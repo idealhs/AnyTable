@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>AnyTable 控制面板</title>
+    <style>
+        body {
+            width: 300px;
+            padding: 12px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-input {
+            flex: 1;
+            height: 32px;
+            padding: 2px 8px 2px 28px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-size: 12px;
+            transition: all 0.3s ease;
+            background: white;
+            position: relative;
+        }
+
+        .filter-input:focus {
+            outline: none;
+            border-color: #4a90e0;
+            box-shadow: 0 0 0 2px rgba(74,144,224,0.2);
+        }
+
+        .filter-input::before {
+            content: "🔍";
+            position: absolute;
+            left: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+            color: #666;
+            pointer-events: none;
+        }
+
+        .control-button {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .control-button:hover {
+            border-color: #4a90e0;
+            box-shadow: 0 0 0 2px rgba(74,144,224,0.2);
+        }
+
+        .column-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="control-panel">
+        <div class="column-title">列标题</div>
+        <div class="control-row">
+            <input type="text" class="filter-input" placeholder="筛选...">
+            <button class="control-button" title="高级筛选">⚙️</button>
+        </div>
+        <div class="control-row">
+            <button class="control-button" title="排序">↕️</button>
+            <button class="control-button" title="高级排序">⚙️</button>
+        </div>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html> 

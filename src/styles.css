@@ -1,0 +1,286 @@
+/* 表格增强功能的样式 */
+.anytable-enhanced {
+    position: relative;
+}
+
+/* 展开按钮样式 */
+.anytable-expand {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1;
+}
+
+.anytable-expand-button {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background: white;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.anytable-expand-button:hover {
+    border-color: #4a90e0;
+    box-shadow: 0 0 0 2px rgba(74,144,224,0.2);
+}
+
+/* 控制面板样式 */
+.anytable-control-panel {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    padding: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 1000;
+    display: none;
+    width: 100%;
+    min-width: 100px;
+    box-sizing: border-box;
+    transform-origin: top left;
+    overflow: hidden;
+}
+
+/* 当控制面板靠近右边缘时，向左延伸 */
+.anytable-control-panel.right-aligned {
+    left: auto;
+    right: 0;
+    transform-origin: top right;
+}
+
+.anytable-control-panel.active {
+    display: block;
+}
+
+.control-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    width: 100%;
+    height: 32px;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.control-row:last-child {
+    margin-bottom: 0;
+}
+
+.filter-input {
+    flex: 1;
+    height: 28px;
+    padding: 0 8px 0 28px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    font-size: 12px;
+    transition: all 0.3s ease;
+    background: white;
+    position: relative;
+    width: 0;
+    min-width: 0;
+    box-sizing: border-box;
+    margin: 0 !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.filter-input:focus {
+    outline: none;
+    border-color: #4a90e0;
+    box-shadow: 0 0 0 2px rgba(74,144,224,0.2);
+}
+
+.filter-input::before {
+    content: "🔍";
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    color: #666;
+    pointer-events: none;
+}
+
+.control-button {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background: white;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+.control-button:hover {
+    border-color: #4a90e0;
+    box-shadow: 0 0 0 2px rgba(74,144,224,0.2);
+}
+
+.column-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #dee2e6;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 选择模式样式 */
+.anytable-pickable {
+    cursor: pointer !important;
+    outline: 2px dashed #4a90e2 !important;
+    outline-offset: 2px !important;
+}
+
+.anytable-picked {
+    outline: 2px solid #4a90e2 !important;
+    outline-offset: 2px !important;
+}
+
+/* 控件行样式 */
+.anytable-controls {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.anytable-control-cell {
+    padding: 4px !important;
+    vertical-align: middle !important;
+    text-align: left !important;
+    border: none !important;
+    min-width: 0 !important; /* 允许单元格收缩 */
+}
+
+/* 控件容器样式 */
+.anytable-filter,
+.anytable-sort {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.anytable-filter {
+    flex: 1;
+    min-width: 0; /* 允许容器收缩 */
+}
+
+.anytable-sort {
+    flex-shrink: 0;
+    margin-left: 4px;
+}
+
+/* 筛选输入框样式 */
+.anytable-filter-input {
+    width: 100%;
+    height: 32px;
+    min-width: 32px;
+    padding: 2px 8px 2px 28px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    font-size: 12px;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.anytable-filter-input:focus {
+    outline: none;
+    border-color: #4a90e0;
+    box-shadow: 0 0 0 2px rgba(74,144,224,0.2);
+}
+
+/* 添加一个明显的视觉标识 */
+.anytable-filter {
+    position: relative;
+}
+
+.anytable-filter::before {
+    content: "🔍";
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    color: #666;
+    pointer-events: none;
+}
+
+/* 按钮基础样式 */
+.anytable-sort-button,
+.anytable-advanced-button {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background: white;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    flex-shrink: 0; /* 防止按钮被压缩 */
+}
+
+.anytable-sort-button:hover,
+.anytable-advanced-button:hover {
+    border-color: #4a90e0;
+    box-shadow: 0 0 0 2px rgba(74,144,224,0.2);
+}
+
+/* 响应式布局 */
+@media screen and (max-width: 768px) {
+    .anytable-control-cell {
+        min-width: 32px !important; /* 确保至少能容纳一个按钮 */
+    }
+
+    /* 当空间不足时，强制两行布局 */
+    .anytable-control-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .anytable-filter {
+        width: 100%;
+    }
+
+    .anytable-sort {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+
+/* 确保控制行内的所有元素都没有margin */
+.control-row > * {
+    margin: 0 !important;
+}
+
+/* 确保控制面板在表头较窄时也能正常显示 */
+.anytable-enhanced th {
+    position: relative;
+} 
