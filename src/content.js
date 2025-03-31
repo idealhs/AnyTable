@@ -1,3 +1,6 @@
+// 导入 i18n
+import i18n from './i18n/i18n.js';
+
 // 表格增强功能的主要实现
 class TableEnhancer {
     constructor() {
@@ -12,6 +15,61 @@ class TableEnhancer {
         this.handleClick = this.handleClick.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
         this.sortTable = this.sortTable.bind(this);
+        // 初始化 i18n 并设置事件监听
+        this.initI18n();
+    }
+
+    // 初始化 i18n
+    async initI18n() {
+        await i18n.init();
+        // 监听语言变更事件
+        window.addEventListener('localeChanged', () => this.updateAllTexts());
+        // 初始化完成后立即更新一次文本
+        this.updateAllTexts();
+    }
+
+    // 更新所有文本
+    updateAllTexts() {
+        // 更新所有表格的文本
+        this.enhancedTables.forEach(table => {
+            const headers = table.getElementsByTagName('th');
+            Array.from(headers).forEach((header, index) => {
+                const expandButton = header.querySelector('.anytable-expand-button');
+                if (expandButton) {
+                    expandButton.title = i18n.t('columnControl.title');
+                }
+
+                const controlPanel = header.querySelector('.anytable-control-panel');
+                if (controlPanel) {
+                    const filterInput = controlPanel.querySelector('.filter-input');
+                    if (filterInput) {
+                        filterInput.placeholder = i18n.t('columnControl.filter.placeholder');
+                    }
+
+                    const advancedFilterButton = controlPanel.querySelector('.control-button');
+                    if (advancedFilterButton) {
+                        advancedFilterButton.title = i18n.t('columnControl.filter.advanced');
+                    }
+
+                    const sortButton = controlPanel.querySelector('.control-button:nth-child(2)');
+                    if (sortButton) {
+                        const currentState = this.sortStates.get(table);
+                        if (currentState && currentState.column === index) {
+                            sortButton.title = currentState.direction === 'asc' ? i18n.t('columnControl.sort.ascending') :
+                                            currentState.direction === 'desc' ? i18n.t('columnControl.sort.descending') :
+                                            i18n.t('columnControl.sort.none');
+                        } else {
+                            sortButton.title = i18n.t('columnControl.sort.none');
+                        }
+                    }
+
+                    const advancedSortButton = controlPanel.querySelector('.control-button:nth-child(3)');
+                    if (advancedSortButton) {
+                        advancedSortButton.title = i18n.t('columnControl.sort.advanced');
+                    }
+                }
+            });
+        });
     }
 
     // 初始化表格增强功能
@@ -204,7 +262,7 @@ class TableEnhancer {
             const expandButton = document.createElement('button');
             expandButton.className = 'anytable-expand-button';
             expandButton.textContent = '🔽'; // 修改为向下箭头
-            expandButton.title = '展开控制面板';
+            expandButton.title = i18n.t('columnControl.title');
             
             expandContainer.appendChild(expandButton);
 
@@ -262,7 +320,7 @@ class TableEnhancer {
         const filterInput = document.createElement('input');
         filterInput.type = 'text';
         filterInput.className = 'filter-input';
-        filterInput.placeholder = '筛选...';
+        filterInput.placeholder = i18n.t('columnControl.filter.placeholder');
         
         // 恢复之前保存的筛选值
         const filterValues = this.filterValues.get(table) || {};
@@ -273,7 +331,7 @@ class TableEnhancer {
         const advancedFilterButton = document.createElement('button');
         advancedFilterButton.className = 'control-button';
         advancedFilterButton.textContent = '⚙️';
-        advancedFilterButton.title = '高级筛选';
+        advancedFilterButton.title = i18n.t('columnControl.filter.advanced');
         
         filterRow.appendChild(filterInput);
         filterRow.appendChild(advancedFilterButton);
@@ -284,12 +342,12 @@ class TableEnhancer {
         const sortButton = document.createElement('button');
         sortButton.className = 'control-button';
         sortButton.textContent = '↕️';
-        sortButton.title = '排序';
+        sortButton.title = i18n.t('columnControl.sort.none');
         
         const advancedSortButton = document.createElement('button');
         advancedSortButton.className = 'control-button';
         advancedSortButton.textContent = '⚙️';
-        advancedSortButton.title = '高级排序';
+        advancedSortButton.title = i18n.t('columnControl.sort.advanced');
         
         sortRow.appendChild(sortButton);
         sortRow.appendChild(advancedSortButton);
@@ -456,8 +514,12 @@ class TableEnhancer {
                     if (index === columnIndex) {
                         sortButton.textContent = direction === 'asc' ? '↑' : 
                                            direction === 'desc' ? '↓' : '↕️';
+                        sortButton.title = direction === 'asc' ? i18n.t('columnControl.sort.ascending') :
+                                         direction === 'desc' ? i18n.t('columnControl.sort.descending') :
+                                         i18n.t('columnControl.sort.none');
                     } else {
                         sortButton.textContent = '↕️';
+                        sortButton.title = i18n.t('columnControl.sort.none');
                     }
                 }
             });

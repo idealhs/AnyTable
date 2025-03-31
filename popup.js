@@ -1,8 +1,34 @@
+// 导入 i18n
+import i18n from './src/i18n/i18n.js';
+
 // 弹出面板的主要逻辑
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const pickButton = document.getElementById('pickTable');
     const clearButton = document.getElementById('clearSelection');
     const statusDiv = document.getElementById('status');
+    const languageSelect = document.getElementById('languageSelect');
+
+    // 初始化 i18n
+    await i18n.init();
+
+    // 更新语言选择器
+    languageSelect.value = i18n.getCurrentLocale();
+
+    // 更新所有带有 data-i18n 属性的元素
+    function updateI18nElements() {
+        document.querySelectorAll('[data-i18n]').forEach(element => {
+            const key = element.getAttribute('data-i18n');
+            element.textContent = i18n.t(key);
+        });
+    }
+
+    // 监听语言变更事件
+    window.addEventListener('localeChanged', updateI18nElements);
+
+    // 语言选择器变更事件
+    languageSelect.addEventListener('change', async (e) => {
+        await i18n.setLocale(e.target.value);
+    });
 
     // 获取当前标签页
     async function getCurrentTab() {
@@ -54,14 +80,14 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await sendMessageToContentScript({action: 'startPicking'});
             if (response && response.success) {
-                showStatus('请点击要增强的表格...', 'picking');
+                showStatus(i18n.t('popup.status.picking'), 'picking');
                 window.close(); // 关闭弹出窗口
             } else {
-                showStatus('无法启动选择器，请刷新页面后重试', 'error');
+                showStatus(i18n.t('popup.status.error'), 'error');
             }
         } catch (error) {
             console.error('启动选择器失败:', error);
-            showStatus('启动选择器失败，请刷新页面后重试', 'error');
+            showStatus(i18n.t('popup.status.error'), 'error');
         }
     });
 
@@ -70,17 +96,18 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await sendMessageToContentScript({action: 'clearSelection'});
             if (response && response.success) {
-                showStatus('已清除所有选择', 'success');
+                showStatus(i18n.t('popup.status.success'), 'success');
                 updateButtonState();
             } else {
-                showStatus('清除选择失败，请刷新页面后重试', 'error');
+                showStatus(i18n.t('popup.status.error'), 'error');
             }
         } catch (error) {
             console.error('清除选择失败:', error);
-            showStatus('清除选择失败，请刷新页面后重试', 'error');
+            showStatus(i18n.t('popup.status.error'), 'error');
         }
     });
 
-    // 初始化时更新按钮状态
+    // 初始化时更新按钮状态和 i18n 元素
     updateButtonState();
+    updateI18nElements();
 }); 

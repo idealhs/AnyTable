@@ -8,7 +8,8 @@
     },
     "permissions": [
         "activeTab",
-        "scripting"
+        "scripting",
+        "storage"
     ],
     "action": {
         "default_icon": {
@@ -25,11 +26,20 @@
                 "<all_urls>"
             ],
             "js": [
-                "src/content.js"
+                "src/content-entry.js"
             ],
             "css": [
                 "src/styles.css"
             ]
+        }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "src/content.js",
+                "src/i18n/*.js"
+            ],
+            "matches": ["<all_urls>"]
         }
     ],
     "browser_specific_settings": {
