@@ -203,7 +203,7 @@ class TableEnhancer {
             // 创建展开按钮
             const expandButton = document.createElement('button');
             expandButton.className = 'anytable-expand-button';
-            expandButton.innerHTML = '🔽'; // 修改为向下箭头
+            expandButton.textContent = '🔽'; // 修改为向下箭头
             expandButton.title = '展开控制面板';
             
             expandContainer.appendChild(expandButton);
@@ -220,12 +220,12 @@ class TableEnhancer {
                     // 如果存在，则移除它
                     existingPanel.remove();
                     // 更新按钮图标
-                    expandButton.innerHTML = '🔽';
+                    expandButton.textContent = '🔽';
                 } else {
                     // 如果不存在，则显示它
                     this.showControlPanel(table, index, header.textContent.trim());
                     // 更新按钮图标
-                    expandButton.innerHTML = '🔼';
+                    expandButton.textContent = '🔼';
                 }
             });
         });
@@ -272,7 +272,7 @@ class TableEnhancer {
         
         const advancedFilterButton = document.createElement('button');
         advancedFilterButton.className = 'control-button';
-        advancedFilterButton.innerHTML = '⚙️';
+        advancedFilterButton.textContent = '⚙️';
         advancedFilterButton.title = '高级筛选';
         
         filterRow.appendChild(filterInput);
@@ -283,12 +283,12 @@ class TableEnhancer {
         
         const sortButton = document.createElement('button');
         sortButton.className = 'control-button';
-        sortButton.innerHTML = '↕️';
+        sortButton.textContent = '↕️';
         sortButton.title = '排序';
         
         const advancedSortButton = document.createElement('button');
         advancedSortButton.className = 'control-button';
-        advancedSortButton.innerHTML = '⚙️';
+        advancedSortButton.textContent = '⚙️';
         advancedSortButton.title = '高级排序';
         
         sortRow.appendChild(sortButton);
@@ -377,7 +377,7 @@ class TableEnhancer {
                 // 更新按钮图标
                 const expandButton = header.querySelector('.anytable-expand-button');
                 if (expandButton) {
-                    expandButton.innerHTML = '🔽';
+                    expandButton.textContent = '🔽';
                 }
             }
         };
@@ -454,10 +454,10 @@ class TableEnhancer {
                 const sortButton = cell.querySelector('.anytable-sort-button');
                 if (sortButton) {
                     if (index === columnIndex) {
-                        sortButton.innerHTML = direction === 'asc' ? '↑' : 
+                        sortButton.textContent = direction === 'asc' ? '↑' : 
                                            direction === 'desc' ? '↓' : '↕️';
                     } else {
-                        sortButton.innerHTML = '↕️';
+                        sortButton.textContent = '↕️';
                     }
                 }
             });
