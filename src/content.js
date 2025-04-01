@@ -287,7 +287,7 @@ class TableEnhancer {
             // 创建展开按钮
             const expandButton = document.createElement('button');
             expandButton.className = 'anytable-expand-button';
-            expandButton.textContent = '🔽'; // 修改为向下箭头
+            expandButton.textContent = '🔽';
             expandButton.title = i18n.t('columnControl.title');
             
             expandContainer.appendChild(expandButton);
@@ -367,8 +367,23 @@ class TableEnhancer {
         
         const sortButton = document.createElement('button');
         sortButton.className = 'control-button';
-        sortButton.textContent = '↕️';
-        sortButton.title = i18n.t('columnControl.sort.none');
+        
+        // 恢复排序状态
+        const currentState = this.sortStates.get(table);
+        if (currentState && currentState.column === columnIndex) {
+            sortButton.textContent = currentState.direction === 'asc' ? '🔼' : 
+                                   currentState.direction === 'desc' ? '🔽' : '↕️';
+            sortButton.classList.add(`sort-${currentState.direction}`);
+        } else {
+            sortButton.textContent = '↕️';
+            sortButton.classList.add('sort-none');
+        }
+        
+        sortButton.title = currentState && currentState.column === columnIndex ? 
+                          (currentState.direction === 'asc' ? i18n.t('columnControl.sort.ascending') :
+                           currentState.direction === 'desc' ? i18n.t('columnControl.sort.descending') :
+                           i18n.t('columnControl.sort.none')) :
+                          i18n.t('columnControl.sort.none');
         
         const advancedSortButton = document.createElement('button');
         advancedSortButton.className = 'control-button';
@@ -530,25 +545,23 @@ class TableEnhancer {
         // 更新排序状态
         this.sortStates.set(table, { column: columnIndex, direction });
 
-        // 更新排序按钮样式
-        const controlRow = table.querySelector('.anytable-controls');
-        if (controlRow) {
-            const cells = controlRow.getElementsByClassName('anytable-control-cell');
-            Array.from(cells).forEach((cell, index) => {
-                const sortButton = cell.querySelector('.anytable-sort-button');
-                if (sortButton) {
-                    if (index === columnIndex) {
-                        sortButton.textContent = direction === 'asc' ? '↑' : 
-                                           direction === 'desc' ? '↓' : '↕️';
-                        sortButton.title = direction === 'asc' ? i18n.t('columnControl.sort.ascending') :
-                                         direction === 'desc' ? i18n.t('columnControl.sort.descending') :
-                                         i18n.t('columnControl.sort.none');
-                    } else {
-                        sortButton.textContent = '↕️';
-                        sortButton.title = i18n.t('columnControl.sort.none');
-                    }
-                }
-            });
+        // 更新排序按钮样式和图标
+        const header = table.getElementsByTagName('th')[columnIndex];
+        const controlPanel = header.querySelector('.anytable-control-panel');
+        if (controlPanel) {
+            const sortButton = controlPanel.querySelector('.control-button:nth-child(1)');
+            if (sortButton) {
+                // 更新按钮图标
+                sortButton.textContent = direction === 'asc' ? '🔼' : 
+                                       direction === 'desc' ? '🔽' : '↕️';
+                // 更新按钮样式
+                sortButton.classList.remove('sort-asc', 'sort-desc', 'sort-none');
+                sortButton.classList.add(`sort-${direction}`);
+                // 更新按钮标题
+                sortButton.title = direction === 'asc' ? i18n.t('columnControl.sort.ascending') :
+                                 direction === 'desc' ? i18n.t('columnControl.sort.descending') :
+                                 i18n.t('columnControl.sort.none');
+            }
         }
 
         // 如果方向为 none，恢复原始顺序

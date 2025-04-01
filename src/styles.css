@@ -283,4 +283,37 @@
 /* 确保控制面板在表头较窄时也能正常显示 */
 .anytable-enhanced th {
     position: relative;
+}
+
+/* 排序按钮样式 */
+.control-button.sort-asc {
+    color: #4a90e0;
+    border-color: #4a90e0;
+}
+
+.control-button.sort-desc {
+    color: #4a90e0;
+    border-color: #4a90e0;
+}
+
+.control-button.sort-none {
+    color: #666;
+    border-color: #ccc;
+}
+
+.control-button.sort-asc:hover,
+.control-button.sort-desc:hover {
+    background-color: #4a90e0;
+    color: white;
+}
+
+.control-button.sort-none:hover {
+    background-color: #f8f9fa;
+    color: #333;
+}
+
+/* 确保排序按钮的箭头图标大小合适 */
+.control-button {
+    font-size: 16px;
+    line-height: 1;
 } 
