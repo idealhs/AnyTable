@@ -4,6 +4,11 @@ class I18n {
         this.currentLocale = 'zh'; // 默认语言
         this.translations = {};
         this.loaded = false;
+        // 语言包映射
+        this.localeMap = {
+            'zh': () => import('./zh.js'),
+            'en': () => import('./en.js')
+        };
     }
 
     // 初始化 i18n
@@ -14,7 +19,7 @@ class I18n {
             // 从浏览器存储中获取语言设置
             const browser = window.browser || chrome;
             const result = await browser.storage.local.get('locale');
-            if (result.locale) {
+            if (result.locale && this.localeMap[result.locale]) {
                 this.currentLocale = result.locale;
             }
 
@@ -29,7 +34,11 @@ class I18n {
     // 加载语言包
     async loadTranslations() {
         try {
-            const module = await import(`./${this.currentLocale}.js`);
+            const importFn = this.localeMap[this.currentLocale];
+            if (!importFn) {
+                throw new Error(`Unsupported locale: ${this.currentLocale}`);
+            }
+            const module = await importFn();
             this.translations = module.default;
         } catch (error) {
             console.error(`Failed to load translations for ${this.currentLocale}:`, error);
@@ -43,7 +52,7 @@ class I18n {
 
     // 切换语言
     async setLocale(locale) {
-        if (locale === this.currentLocale) return;
+        if (locale === this.currentLocale || !this.localeMap[locale]) return;
 
         try {
             const browser = window.browser || chrome;
