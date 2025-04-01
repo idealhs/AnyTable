@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const clearButton = document.getElementById('clearSelection');
     const statusDiv = document.getElementById('status');
     const languageSelect = document.getElementById('languageSelect');
+    const autoEnhanceSwitch = document.getElementById('autoEnhance');
 
     // 初始化 i18n
     await i18n.init();
@@ -107,7 +108,43 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // 初始化时更新按钮状态和 i18n 元素
+    // 自动增强开关事件
+    autoEnhanceSwitch.addEventListener('change', async (e) => {
+        try {
+            const browser = window.browser || chrome;
+            await browser.storage.local.set({ autoEnhance: e.target.checked });
+            const response = await sendMessageToContentScript({
+                action: 'setAutoEnhance',
+                enabled: e.target.checked
+            });
+            if (response && response.success) {
+                showStatus(
+                    i18n.t(e.target.checked ? 'popup.autoEnhance.enabled' : 'popup.autoEnhance.disabled'),
+                    'success'
+                );
+            } else {
+                showStatus(i18n.t('popup.status.error'), 'error');
+            }
+        } catch (error) {
+            console.error('设置自动增强失败:', error);
+            showStatus(i18n.t('popup.status.error'), 'error');
+        }
+    });
+
+    // 初始化时加载设置
+    async function loadSettings() {
+        try {
+            const browser = window.browser || chrome;
+            const result = await browser.storage.local.get(['autoEnhance']);
+            autoEnhanceSwitch.checked = result.autoEnhance !== false; // 默认为 true
+        } catch (error) {
+            console.error('加载设置失败:', error);
+            autoEnhanceSwitch.checked = true; // 出错时默认为 true
+        }
+    }
+
+    // 初始化时更新按钮状态、i18n 元素和设置
     updateButtonState();
     updateI18nElements();
+    loadSettings();
 }); 

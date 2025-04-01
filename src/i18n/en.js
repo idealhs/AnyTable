@@ -26,6 +26,11 @@ export default {
             picking: 'Click on a table to enhance...',
             success: 'Selection cleared',
             error: 'Operation failed, please refresh and try again'
+        },
+        autoEnhance: {
+            label: 'Auto-enhance all tables',
+            enabled: 'Auto-enhancement enabled for all tables',
+            disabled: 'Auto-enhancement disabled for all tables'
         }
     },
     

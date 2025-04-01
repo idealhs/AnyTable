@@ -26,6 +26,11 @@ export default {
             picking: '请点击要增强的表格...',
             success: '已清除所有选择',
             error: '操作失败，请刷新页面后重试'
+        },
+        autoEnhance: {
+            label: '自动增强所有表格',
+            enabled: '已启用自动增强所有表格',
+            disabled: '已禁用自动增强所有表格'
         }
     },
     

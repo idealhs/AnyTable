@@ -10,6 +10,7 @@ class TableEnhancer {
         this.isPicking = false; // 是否处于选择模式
         this.selectedTables = new Set(); // 存储用户选择的表格
         this.filterValues = new Map(); // 存储每个表格的筛选值
+        this.autoEnhance = true; // 是否自动增强所有表格
         // 绑定方法到实例
         this.handleMouseMove = this.handleMouseMove.bind(this);
         this.handleClick = this.handleClick.bind(this);
@@ -73,9 +74,13 @@ class TableEnhancer {
     }
 
     // 初始化表格增强功能
-    init() {
-        // 监听来自 popup 的消息
+    async init() {
+        // 加载自动增强设置
         const browser = window.browser || chrome;
+        const result = await browser.storage.local.get(['autoEnhance']);
+        this.autoEnhance = result.autoEnhance !== false; // 默认为 true
+
+        // 监听来自 popup 的消息
         browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
             // 使用 Promise 处理异步操作
             const handleMessage = async () => {
@@ -89,6 +94,25 @@ class TableEnhancer {
                             return {success: true};
                         case 'getSelectionState':
                             return {hasSelection: this.selectedTables.size > 0};
+                        case 'setAutoEnhance':
+                            this.autoEnhance = request.enabled;
+                            if (request.enabled) {
+                                // 如果启用自动增强，增强所有未增强的表格
+                                const tables = document.getElementsByTagName('table');
+                                for (const table of tables) {
+                                    if (!this.enhancedTables.has(table)) {
+                                        this.enhanceTable(table);
+                                    }
+                                }
+                            } else {
+                                // 如果禁用自动增强，移除所有未选择的表格的增强
+                                this.enhancedTables.forEach(table => {
+                                    if (!this.selectedTables.has(table)) {
+                                        this.removeEnhancement(table);
+                                    }
+                                });
+                            }
+                            return {success: true};
                         default:
                             return {success: false, error: '未知的操作'};
                     }
@@ -103,11 +127,13 @@ class TableEnhancer {
             return true; // 保持消息通道开放
         });
 
-        // 查找页面中的所有表格
-        const tables = document.getElementsByTagName('table');
-        for (const table of tables) {
-            if (!this.enhancedTables.has(table)) {
-                this.enhanceTable(table);
+        // 如果启用了自动增强，查找页面中的所有表格
+        if (this.autoEnhance) {
+            const tables = document.getElementsByTagName('table');
+            for (const table of tables) {
+                if (!this.enhancedTables.has(table)) {
+                    this.enhanceTable(table);
+                }
             }
         }
 
@@ -644,6 +670,8 @@ class TableEnhancer {
     // 监听 DOM 变化
     observeDOMChanges() {
         const observer = new MutationObserver((mutations) => {
+            if (!this.autoEnhance) return; // 如果禁用了自动增强，不处理新表格
+
             for (const mutation of mutations) {
                 for (const node of mutation.addedNodes) {
                     if (node.nodeName === 'TABLE') {
