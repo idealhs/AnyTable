@@ -287,18 +287,30 @@ class TableEnhancer {
             const expandContainer = document.createElement('div');
             expandContainer.className = 'anytable-expand';
             
+            // 创建排序按钮
+            const sortButton = document.createElement('button');
+            sortButton.className = 'anytable-sort-button';
+            sortButton.textContent = '↕️';
+            sortButton.title = i18n.t('columnControl.sort.none');
+            
             // 创建展开按钮
             const expandButton = document.createElement('button');
             expandButton.className = 'anytable-expand-button';
             expandButton.textContent = '🔽';
             expandButton.title = i18n.t('columnControl.title');
             
+            expandContainer.appendChild(sortButton);
             expandContainer.appendChild(expandButton);
 
             // 添加展开按钮到表头
             header.appendChild(expandContainer);
 
             // 添加点击事件
+            sortButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.sortTable(table, index);
+            });
+
             expandButton.addEventListener('click', (e) => {
                 e.stopPropagation();
                 // 检查是否已经存在控制面板
@@ -320,20 +332,6 @@ class TableEnhancer {
 
     // 显示控制面板
     showControlPanel(table, columnIndex, columnTitle) {
-        // 关闭所有其他已打开的控制面板
-        const allControlPanels = table.querySelectorAll('.anytable-control-panel');
-        allControlPanels.forEach(panel => {
-            panel.remove();
-            // 更新对应的展开按钮图标
-            const header = panel.closest('th');
-            if (header) {
-                const expandButton = header.querySelector('.anytable-expand-button');
-                if (expandButton) {
-                    expandButton.textContent = '🔽';
-                }
-            }
-        });
-
         // 检查是否已经存在控制面板
         const header = table.getElementsByTagName('th')[columnIndex];
         const existingPanel = header.querySelector('.anytable-control-panel');
@@ -342,19 +340,37 @@ class TableEnhancer {
         }
 
         // 获取列标题，排除展开按钮的文本
-        const headerText = header.textContent.trim();
-        const expandButton = header.querySelector('.anytable-expand-button');
-        // 使用正则表达式匹配emoji并移除
-        const actualTitle = expandButton ? headerText.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim() : headerText;
+        const actualTitle = header.childNodes[0]?.textContent.trim() || '';
 
         // 创建控制面板容器
         const controlPanel = document.createElement('div');
         controlPanel.className = 'anytable-control-panel';
         
-        // 创建标题
+        // 创建标题和高级按钮容器
+        const panelHeader = document.createElement('div');
+        panelHeader.className = 'panel-header';
+        
         const titleElement = document.createElement('div');
         titleElement.className = 'column-title';
         titleElement.textContent = actualTitle;
+        
+        const advancedButtons = document.createElement('div');
+        advancedButtons.className = 'advanced-buttons';
+        
+        const advancedFilterButton = document.createElement('button');
+        advancedFilterButton.className = 'control-button';
+        advancedFilterButton.textContent = '⚡⚙️';
+        advancedFilterButton.title = i18n.t('columnControl.filter.advanced');
+        
+        const advancedSortButton = document.createElement('button');
+        advancedSortButton.className = 'control-button';
+        advancedSortButton.textContent = '↕️⚙️';
+        advancedSortButton.title = i18n.t('columnControl.sort.advanced');
+        
+        advancedButtons.appendChild(advancedFilterButton);
+        advancedButtons.appendChild(advancedSortButton);
+        panelHeader.appendChild(titleElement);
+        panelHeader.appendChild(advancedButtons);
         
         // 创建控制行
         const filterRow = document.createElement('div');
@@ -371,50 +387,11 @@ class TableEnhancer {
             filterInput.value = filterValues[columnIndex];
         }
         
-        const advancedFilterButton = document.createElement('button');
-        advancedFilterButton.className = 'control-button';
-        advancedFilterButton.textContent = '⚙️';
-        advancedFilterButton.title = i18n.t('columnControl.filter.advanced');
-        
         filterRow.appendChild(filterInput);
-        filterRow.appendChild(advancedFilterButton);
-        
-        const sortRow = document.createElement('div');
-        sortRow.className = 'control-row';
-        
-        const sortButton = document.createElement('button');
-        sortButton.className = 'control-button';
-        
-        // 恢复排序状态
-        const rules = this.sortRules.get(table) || [];
-        const rule = rules.find(r => r.column === columnIndex);
-        if (rule) {
-            sortButton.textContent = rule.direction === 'asc' ? '🔼' : 
-                                   rule.direction === 'desc' ? '🔽' : '↕️';
-            sortButton.classList.add(`sort-${rule.direction}`);
-        } else {
-            sortButton.textContent = '↕️';
-            sortButton.classList.add('sort-none');
-        }
-        
-        sortButton.title = rule ? 
-                          (rule.direction === 'asc' ? i18n.t('columnControl.sort.ascending') :
-                           rule.direction === 'desc' ? i18n.t('columnControl.sort.descending') :
-                           i18n.t('columnControl.sort.none')) :
-                          i18n.t('columnControl.sort.none');
-        
-        const advancedSortButton = document.createElement('button');
-        advancedSortButton.className = 'control-button';
-        advancedSortButton.textContent = '⚙️';
-        advancedSortButton.title = i18n.t('columnControl.sort.advanced');
-        
-        sortRow.appendChild(sortButton);
-        sortRow.appendChild(advancedSortButton);
         
         // 组装控制面板
-        controlPanel.appendChild(titleElement);
+        controlPanel.appendChild(panelHeader);
         controlPanel.appendChild(filterRow);
-        controlPanel.appendChild(sortRow);
         
         // 添加控制面板到表头
         header.appendChild(controlPanel);
@@ -426,7 +403,7 @@ class TableEnhancer {
             const headerRect = header.getBoundingClientRect();
             
             // 计算控制面板需要的空间
-            const panelWidth = Math.max(headerRect.width, 200); // 至少200px
+            const panelWidth = Math.max(headerRect.width, 200);
             const panelRight = headerRect.left + panelWidth;
             const panelLeft = headerRect.right - panelWidth;
             
@@ -481,10 +458,6 @@ class TableEnhancer {
             }
         });
         
-        sortButton.addEventListener('click', () => {
-            this.sortTable(table, columnIndex);
-        });
-        
         advancedFilterButton.addEventListener('click', () => {
             // TODO: 实现高级筛选功能
             console.log('高级筛选按钮被点击');
@@ -533,7 +506,7 @@ class TableEnhancer {
         const headers = table.getElementsByTagName('th');
         Array.from(headers).forEach(header => {
             header.style.position = 'relative';
-            header.style.paddingRight = '32px'; // 为展开按钮留出空间
+            header.style.paddingRight = '56px'; // 为两个按钮留出空间
         });
         
         // 添加排序和筛选功能
@@ -660,21 +633,18 @@ class TableEnhancer {
     // 更新排序按钮样式和图标
     updateSortButton(table, columnIndex, direction) {
         const header = table.getElementsByTagName('th')[columnIndex];
-        const controlPanel = header.querySelector('.anytable-control-panel');
-        if (controlPanel) {
-            const sortButton = controlPanel.querySelector('.control-button:nth-child(1)');
-            if (sortButton) {
-                // 更新按钮图标
-                sortButton.textContent = direction === 'asc' ? '🔼' : 
-                                       direction === 'desc' ? '🔽' : '↕️';
-                // 更新按钮样式
-                sortButton.classList.remove('sort-asc', 'sort-desc', 'sort-none');
-                sortButton.classList.add(`sort-${direction}`);
-                // 更新按钮标题
-                sortButton.title = direction === 'asc' ? i18n.t('columnControl.sort.ascending') :
-                                 direction === 'desc' ? i18n.t('columnControl.sort.descending') :
-                                 i18n.t('columnControl.sort.none');
-            }
+        const sortButton = header.querySelector('.anytable-sort-button');
+        if (sortButton) {
+            // 更新按钮图标
+            sortButton.textContent = direction === 'asc' ? '🔼' : 
+                                   direction === 'desc' ? '🔽' : '↕️';
+            // 更新按钮样式
+            sortButton.classList.remove('sort-asc', 'sort-desc', 'sort-none');
+            sortButton.classList.add(`sort-${direction}`);
+            // 更新按钮标题
+            sortButton.title = direction === 'asc' ? i18n.t('columnControl.sort.ascending') :
+                             direction === 'desc' ? i18n.t('columnControl.sort.descending') :
+                             i18n.t('columnControl.sort.none');
         }
     }
 

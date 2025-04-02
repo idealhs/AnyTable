@@ -10,6 +10,29 @@
     top: 50%;
     transform: translateY(-50%);
     z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.anytable-sort-button {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background: white;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.anytable-sort-button:hover {
+    border-color: #4a90e0;
+    box-shadow: 0 0 0 2px rgba(74,144,224,0.2);
 }
 
 .anytable-expand-button {
@@ -47,7 +70,7 @@
     z-index: 1000;
     display: none;
     width: 100%;
-    min-width: 200px; /* 设置最小宽度 */
+    min-width: 200px;
     box-sizing: border-box;
     transform-origin: top left;
     overflow: hidden;
@@ -76,6 +99,30 @@
 
 .anytable-control-panel.active {
     display: block;
+}
+
+.panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.column-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.advanced-buttons {
+    display: flex;
+    gap: 4px;
+    margin-left: 8px;
 }
 
 .control-row {
@@ -130,8 +177,8 @@
 }
 
 .control-button {
-    width: 28px;
-    height: 28px;
+    width: 48px;
+    height: 24px;
     padding: 0;
     border: 1px solid #ccc;
     border-radius: 3px;
@@ -143,24 +190,11 @@
     justify-content: center;
     transition: all 0.3s ease;
     flex-shrink: 0;
-    box-sizing: border-box;
 }
 
 .control-button:hover {
     border-color: #4a90e0;
     box-shadow: 0 0 0 2px rgba(74,144,224,0.2);
-}
-
-.column-title {
-    font-size: 14px;
-    font-weight: 500;
-    color: #333;
-    margin-bottom: 8px;
-    padding-bottom: 4px;
-    border-bottom: 1px solid #dee2e6;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 /* 选择模式样式 */
@@ -245,14 +279,14 @@
 /* 按钮基础样式 */
 .anytable-sort-button,
 .anytable-advanced-button {
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
     padding: 0;
     border: 1px solid #ccc;
     border-radius: 3px;
     background: white;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -300,34 +334,41 @@
 }
 
 /* 排序按钮样式 */
-.control-button.sort-asc {
+.anytable-sort-button.sort-asc {
     color: #4a90e0;
     border-color: #4a90e0;
 }
 
-.control-button.sort-desc {
+.anytable-sort-button.sort-desc {
     color: #4a90e0;
     border-color: #4a90e0;
 }
 
-.control-button.sort-none {
+.anytable-sort-button.sort-none {
     color: #666;
     border-color: #ccc;
 }
 
-.control-button.sort-asc:hover,
-.control-button.sort-desc:hover {
+.anytable-sort-button.sort-asc:hover,
+.anytable-sort-button.sort-desc:hover {
     background-color: #4a90e0;
     color: white;
 }
 
-.control-button.sort-none:hover {
+.anytable-sort-button.sort-none:hover {
     background-color: #f8f9fa;
     color: #333;
 }
 
 /* 确保排序按钮的箭头图标大小合适 */
+.anytable-sort-button,
+.anytable-expand-button {
+    font-size: 12px;
+    line-height: 1;
+}
+
+/* 确保高级按钮的emoji大小合适 */
 .control-button {
-    font-size: 16px;
+    font-size: 12px;
     line-height: 1;
 } 

@@ -16,6 +16,24 @@
             gap: 8px;
         }
 
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .column-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .advanced-buttons {
+            display: flex;
+            gap: 4px;
+        }
+
         .control-row {
             display: flex;
             align-items: center;
@@ -71,25 +89,19 @@
             border-color: #4a90e0;
             box-shadow: 0 0 0 2px rgba(74,144,224,0.2);
         }
-
-        .column-title {
-            font-size: 14px;
-            font-weight: 500;
-            color: #333;
-            margin-bottom: 4px;
-        }
     </style>
 </head>
 <body>
     <div class="control-panel">
-        <div class="column-title">列标题</div>
-        <div class="control-row">
-            <input type="text" class="filter-input" placeholder="筛选...">
-            <button class="control-button" title="高级筛选">⚙️</button>
+        <div class="panel-header">
+            <div class="column-title">列标题</div>
+            <div class="advanced-buttons">
+                <button class="control-button" title="高级筛选">⚙️</button>
+                <button class="control-button" title="高级排序">⚙️</button>
+            </div>
         </div>
         <div class="control-row">
-            <button class="control-button" title="排序">↕️</button>
-            <button class="control-button" title="高级排序">⚙️</button>
+            <input type="text" class="filter-input" placeholder="筛选...">
         </div>
     </div>
     <script src="column-control-panel.js"></script>
