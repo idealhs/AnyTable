@@ -5,12 +5,13 @@ import i18n from './i18n/i18n.js';
 class TableEnhancer {
     constructor() {
         this.enhancedTables = new Set();
-        this.sortStates = new Map(); // 存储每个表格的排序状态
+        this.sortRules = new Map(); // 存储每个表格的排序规则集合
         this.originalOrders = new Map(); // 存储每个表格的原始行顺序
         this.isPicking = false; // 是否处于选择模式
         this.selectedTables = new Set(); // 存储用户选择的表格
         this.filterValues = new Map(); // 存储每个表格的筛选值
         this.autoEnhance = true; // 是否自动增强所有表格
+        this.multiColumnSort = false; // 是否启用多列排序
         // 绑定方法到实例
         this.handleMouseMove = this.handleMouseMove.bind(this);
         this.handleClick = this.handleClick.bind(this);
@@ -54,10 +55,11 @@ class TableEnhancer {
 
                     const sortButton = controlPanel.querySelector('.control-button:nth-child(2)');
                     if (sortButton) {
-                        const currentState = this.sortStates.get(table);
-                        if (currentState && currentState.column === index) {
-                            sortButton.title = currentState.direction === 'asc' ? i18n.t('columnControl.sort.ascending') :
-                                            currentState.direction === 'desc' ? i18n.t('columnControl.sort.descending') :
+                        const rules = this.sortRules.get(table) || [];
+                        const rule = rules.find(r => r.column === index);
+                        if (rule) {
+                            sortButton.title = rule.direction === 'asc' ? i18n.t('columnControl.sort.ascending') :
+                                            rule.direction === 'desc' ? i18n.t('columnControl.sort.descending') :
                                             i18n.t('columnControl.sort.none');
                         } else {
                             sortButton.title = i18n.t('columnControl.sort.none');
@@ -75,10 +77,11 @@ class TableEnhancer {
 
     // 初始化表格增强功能
     async init() {
-        // 加载自动增强设置
+        // 加载设置
         const browser = window.browser || chrome;
-        const result = await browser.storage.local.get(['autoEnhance']);
+        const result = await browser.storage.local.get(['autoEnhance', 'multiColumnSort']);
         this.autoEnhance = result.autoEnhance !== false; // 默认为 true
+        this.multiColumnSort = result.multiColumnSort === true; // 默认为 false
 
         // 监听来自 popup 的消息
         browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -112,6 +115,9 @@ class TableEnhancer {
                                     }
                                 });
                             }
+                            return {success: true};
+                        case 'setMultiColumnSort':
+                            this.multiColumnSort = request.enabled;
                             return {success: true};
                         default:
                             return {success: false, error: '未知的操作'};
@@ -262,7 +268,7 @@ class TableEnhancer {
         // 移除其他样式和数据
         table.classList.remove('anytable-enhanced');
         this.enhancedTables.delete(table);
-        this.sortStates.delete(table);
+        this.sortRules.delete(table);
         this.originalOrders.delete(table);
         this.filterValues.delete(table); // 清除筛选值
     }
@@ -272,11 +278,8 @@ class TableEnhancer {
         const headers = table.getElementsByTagName('th');
         if (!headers.length) return;
 
-        // 初始化排序状态
-        this.sortStates.set(table, {
-            column: -1,
-            direction: 'none'
-        });
+        // 初始化排序规则
+        this.sortRules.set(table, []);
 
         // 为每个表头添加展开按钮
         Array.from(headers).forEach((header, index) => {
@@ -383,19 +386,20 @@ class TableEnhancer {
         sortButton.className = 'control-button';
         
         // 恢复排序状态
-        const currentState = this.sortStates.get(table);
-        if (currentState && currentState.column === columnIndex) {
-            sortButton.textContent = currentState.direction === 'asc' ? '🔼' : 
-                                   currentState.direction === 'desc' ? '🔽' : '↕️';
-            sortButton.classList.add(`sort-${currentState.direction}`);
+        const rules = this.sortRules.get(table) || [];
+        const rule = rules.find(r => r.column === columnIndex);
+        if (rule) {
+            sortButton.textContent = rule.direction === 'asc' ? '🔼' : 
+                                   rule.direction === 'desc' ? '🔽' : '↕️';
+            sortButton.classList.add(`sort-${rule.direction}`);
         } else {
             sortButton.textContent = '↕️';
             sortButton.classList.add('sort-none');
         }
         
-        sortButton.title = currentState && currentState.column === columnIndex ? 
-                          (currentState.direction === 'asc' ? i18n.t('columnControl.sort.ascending') :
-                           currentState.direction === 'desc' ? i18n.t('columnControl.sort.descending') :
+        sortButton.title = rule ? 
+                          (rule.direction === 'asc' ? i18n.t('columnControl.sort.ascending') :
+                           rule.direction === 'desc' ? i18n.t('columnControl.sort.descending') :
                            i18n.t('columnControl.sort.none')) :
                           i18n.t('columnControl.sort.none');
         
@@ -544,15 +548,16 @@ class TableEnhancer {
         if (!tbody) return;
 
         const rows = Array.from(tbody.getElementsByTagName('tr'));
-        const currentState = this.sortStates.get(table);
+        let rules = this.sortRules.get(table) || [];
 
         // 确定排序方向
         let direction;
-        if (currentState.column !== columnIndex) {
+        const existingRule = rules.find(rule => rule.column === columnIndex);
+        if (!existingRule) {
             // 新列，默认升序
             direction = 'asc';
         } else {
-            switch (currentState.direction) {
+            switch (existingRule.direction) {
                 case 'none':
                     direction = 'asc';
                     break;
@@ -567,10 +572,93 @@ class TableEnhancer {
             }
         }
 
-        // 更新排序状态
-        this.sortStates.set(table, { column: columnIndex, direction });
+        // 更新排序规则
+        if (!this.multiColumnSort) {
+            // 单列排序模式：清空所有规则，但保留当前列的规则
+            rules = [];
+            // 重置所有排序按钮状态
+            const headers = table.getElementsByTagName('th');
+            Array.from(headers).forEach((header, index) => {
+                if (index !== columnIndex) {
+                    this.updateSortButton(table, index, 'none');
+                }
+            });
+            // 如果当前列不是取消排序，则添加当前列的规则
+            if (direction !== 'none') {
+                rules.push({
+                    column: columnIndex,
+                    direction: direction,
+                    type: 'text'
+                });
+            }
+        } else {
+            // 多列排序模式
+            if (direction === 'none') {
+                // 移除该列的排序规则
+                rules = rules.filter(rule => rule.column !== columnIndex);
+            } else {
+                // 更新或添加排序规则
+                if (existingRule) {
+                    existingRule.direction = direction;
+                } else {
+                    rules.push({
+                        column: columnIndex,
+                        direction: direction,
+                        type: 'text'
+                    });
+                }
+            }
+        }
+
+        // 保存更新后的规则
+        this.sortRules.set(table, rules);
 
         // 更新排序按钮样式和图标
+        this.updateSortButton(table, columnIndex, direction);
+
+        // 如果没有排序规则，恢复原始顺序
+        if (rules.length === 0) {
+            const originalRows = this.originalOrders.get(table);
+            if (originalRows) {
+                // 清空当前tbody
+                while (tbody.firstChild) {
+                    tbody.removeChild(tbody.firstChild);
+                }
+                // 按原始顺序重新添加行
+                originalRows.forEach(row => tbody.appendChild(row));
+            }
+            return;
+        }
+
+        // 排序行
+        rows.sort((a, b) => {
+            for (const rule of rules) {
+                const aValue = a.cells[rule.column]?.textContent.trim() || '';
+                const bValue = b.cells[rule.column]?.textContent.trim() || '';
+                
+                // 尝试数字排序
+                const aNum = parseFloat(aValue);
+                const bNum = parseFloat(bValue);
+                if (!isNaN(aNum) && !isNaN(bNum)) {
+                    const result = rule.direction === 'asc' ? aNum - bNum : bNum - aNum;
+                    if (result !== 0) return result;
+                } else {
+                    // 文本排序
+                    const result = rule.direction === 'asc' 
+                        ? aValue.localeCompare(bValue)
+                        : bValue.localeCompare(aValue);
+                    if (result !== 0) return result;
+                }
+            }
+            return 0;
+        });
+
+        // 重新插入排序后的行
+        rows.forEach(row => tbody.appendChild(row));
+    }
+
+    // 更新排序按钮样式和图标
+    updateSortButton(table, columnIndex, direction) {
         const header = table.getElementsByTagName('th')[columnIndex];
         const controlPanel = header.querySelector('.anytable-control-panel');
         if (controlPanel) {
@@ -588,41 +676,6 @@ class TableEnhancer {
                                  i18n.t('columnControl.sort.none');
             }
         }
-
-        // 如果方向为 none，恢复原始顺序
-        if (direction === 'none') {
-            const originalRows = this.originalOrders.get(table);
-            if (originalRows) {
-                // 清空当前tbody
-                while (tbody.firstChild) {
-                    tbody.removeChild(tbody.firstChild);
-                }
-                // 按原始顺序重新添加行
-                originalRows.forEach(row => tbody.appendChild(row));
-            }
-            return;
-        }
-
-        // 排序行
-        rows.sort((a, b) => {
-            const aValue = a.cells[columnIndex]?.textContent.trim() || '';
-            const bValue = b.cells[columnIndex]?.textContent.trim() || '';
-            
-            // 尝试数字排序
-            const aNum = parseFloat(aValue);
-            const bNum = parseFloat(bValue);
-            if (!isNaN(aNum) && !isNaN(bNum)) {
-                return direction === 'asc' ? aNum - bNum : bNum - aNum;
-            }
-            
-            // 文本排序
-            return direction === 'asc' 
-                ? aValue.localeCompare(bValue)
-                : bValue.localeCompare(aValue);
-        });
-
-        // 重新插入排序后的行
-        rows.forEach(row => tbody.appendChild(row));
     }
 
     // 添加筛选功能
@@ -694,14 +747,26 @@ class TableEnhancer {
         if (!tbody) return;
 
         const rows = tbody.getElementsByTagName('tr');
-        filterText = filterText.toLowerCase();
+        const filterValues = this.filterValues.get(table) || {};
+        filterValues[columnIndex] = filterText;
+        this.filterValues.set(table, filterValues);
 
         Array.from(rows).forEach(row => {
-            const cell = row.cells[columnIndex];
-            if (!cell) return;
-
-            const text = cell.textContent.toLowerCase();
-            row.style.display = text.includes(filterText) ? '' : 'none';
+            let shouldShow = true;
+            
+            // 检查每一列的筛选条件
+            for (let i = 0; i < row.cells.length; i++) {
+                const filterValue = filterValues[i]?.toLowerCase() || '';
+                if (filterValue) {
+                    const cellText = row.cells[i]?.textContent.toLowerCase() || '';
+                    if (!cellText.includes(filterValue)) {
+                        shouldShow = false;
+                        break;
+                    }
+                }
+            }
+            
+            row.style.display = shouldShow ? '' : 'none';
         });
     }
 

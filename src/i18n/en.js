@@ -31,6 +31,11 @@ export default {
             label: 'Auto-enhance all tables',
             enabled: 'Auto-enhancement enabled for all tables',
             disabled: 'Auto-enhancement disabled for all tables'
+        },
+        multiColumnSort: {
+            label: 'Enable multi-column sort',
+            enabled: 'Multi-column sort enabled',
+            disabled: 'Multi-column sort disabled'
         }
     },
     

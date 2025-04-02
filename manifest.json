@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "AnyTable",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "为任意网页中的表格添加排序和筛选功能",
     "icons": {
         "48": "icons/anytable-48.png"

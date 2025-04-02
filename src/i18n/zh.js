@@ -31,6 +31,11 @@ export default {
             label: '自动增强所有表格',
             enabled: '已启用自动增强所有表格',
             disabled: '已禁用自动增强所有表格'
+        },
+        multiColumnSort: {
+            label: '启用多列排序',
+            enabled: '已启用多列排序',
+            disabled: '已禁用多列排序'
         }
     },
     
