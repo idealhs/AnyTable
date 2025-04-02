@@ -317,6 +317,20 @@ class TableEnhancer {
 
     // 显示控制面板
     showControlPanel(table, columnIndex, columnTitle) {
+        // 关闭所有其他已打开的控制面板
+        const allControlPanels = table.querySelectorAll('.anytable-control-panel');
+        allControlPanels.forEach(panel => {
+            panel.remove();
+            // 更新对应的展开按钮图标
+            const header = panel.closest('th');
+            if (header) {
+                const expandButton = header.querySelector('.anytable-expand-button');
+                if (expandButton) {
+                    expandButton.textContent = '🔽';
+                }
+            }
+        });
+
         // 检查是否已经存在控制面板
         const header = table.getElementsByTagName('th')[columnIndex];
         const existingPanel = header.querySelector('.anytable-control-panel');
@@ -408,12 +422,23 @@ class TableEnhancer {
             const headerRect = header.getBoundingClientRect();
             
             // 计算控制面板需要的空间
-            const panelWidth = Math.max(headerRect.width, 100); // 至少100px
+            const panelWidth = Math.max(headerRect.width, 200); // 至少200px
             const panelRight = headerRect.left + panelWidth;
+            const panelLeft = headerRect.right - panelWidth;
             
-            // 如果控制面板会超出屏幕右边界，添加right-aligned类
-            if (panelRight > viewportWidth) {
+            // 移除所有对齐类
+            controlPanel.classList.remove('right-aligned', 'left-aligned', 'center-aligned');
+            
+            // 根据位置决定延伸方向
+            if (panelRight > viewportWidth && panelLeft < 0) {
+                // 如果向两边延伸都会超出视口，则居中显示
+                controlPanel.classList.add('center-aligned');
+            } else if (panelRight > viewportWidth) {
+                // 如果向右延伸会超出视口，则向左延伸
                 controlPanel.classList.add('right-aligned');
+            } else if (panelLeft < 0) {
+                // 如果向左延伸会超出视口，则向右延伸
+                controlPanel.classList.add('left-aligned');
             }
         };
         
@@ -488,7 +513,7 @@ class TableEnhancer {
             e.stopPropagation();
         });
     }
-
+    
     // 增强单个表格
     enhanceTable(table) {
         if (this.enhancedTables.has(table)) return;

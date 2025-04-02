@@ -47,7 +47,7 @@
     z-index: 1000;
     display: none;
     width: 100%;
-    min-width: 100px;
+    min-width: 200px; /* 设置最小宽度 */
     box-sizing: border-box;
     transform-origin: top left;
     overflow: hidden;
@@ -58,6 +58,20 @@
     left: auto;
     right: 0;
     transform-origin: top right;
+}
+
+/* 当控制面板靠近左边缘时，向右延伸 */
+.anytable-control-panel.left-aligned {
+    left: 0;
+    right: auto;
+    transform-origin: top left;
+}
+
+/* 当控制面板在中间时，向两侧延伸 */
+.anytable-control-panel.center-aligned {
+    left: 50%;
+    transform: translateX(-50%);
+    transform-origin: top center;
 }
 
 .anytable-control-panel.active {
