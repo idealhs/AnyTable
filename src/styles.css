@@ -27,7 +27,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 1px;
     transition: all 0.3s ease;
+}
+
+.anytable-sort-button.has-priority {
+    width: calc(26px + (var(--anytable-sort-priority-digits, 1) * 7px));
+    min-width: 34px;
+    padding: 0 4px;
 }
 
 .anytable-sort-button:hover {
@@ -259,6 +266,27 @@
     height: 16px;
     display: block;
     fill: currentColor;
+}
+
+.anytable-sort-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.anytable-sort-button.has-priority .anytable-sort-icon svg {
+    width: 14px;
+    height: 14px;
+}
+
+.anytable-sort-priority {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 8px;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
 }
 
 /* 确保高级按钮的emoji大小合适 */

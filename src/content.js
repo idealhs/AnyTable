@@ -98,16 +98,51 @@ class TableEnhancer {
         button.innerHTML = this.createMaterialIconSvg(pathData);
     }
 
-    setSortButtonIcon(button, direction) {
+    setSortButtonIcon(button, direction, priority = null) {
         if (!button) return;
         const iconKey = direction === 'asc' ? 'sortAsc' :
             direction === 'desc' ? 'sortDesc' : 'sortNone';
-        this.setButtonIcon(button, iconKey);
+        const pathData = MATERIAL_ICON_PATHS[iconKey];
+        if (!pathData) return;
+
+        const showPriority = Number.isInteger(priority) && priority > 0;
+        const iconHtml = `<span class="anytable-sort-icon">${this.createMaterialIconSvg(pathData)}</span>`;
+
+        if (showPriority) {
+            button.innerHTML = `${iconHtml}<span class="anytable-sort-priority">${priority}</span>`;
+            button.style.setProperty('--anytable-sort-priority-digits', String(String(priority).length));
+        } else {
+            button.innerHTML = iconHtml;
+            button.style.removeProperty('--anytable-sort-priority-digits');
+        }
+
+        button.classList.toggle('has-priority', showPriority);
     }
 
     setExpandButtonIcon(button, expanded) {
         if (!button) return;
         this.setButtonIcon(button, expanded ? 'expandOpened' : 'expandClosed');
+    }
+
+    refreshSortButtons(table) {
+        const headers = table.getElementsByTagName('th');
+        const rules = this.stateStore.getSortRules(table);
+        const showPriority = this.multiColumnSort && rules.length > 1;
+
+        const directionByColumn = new Map();
+        const priorityByColumn = new Map();
+        rules.forEach((rule, index) => {
+            directionByColumn.set(rule.column, rule.direction);
+            if (showPriority) {
+                priorityByColumn.set(rule.column, index + 1);
+            }
+        });
+
+        Array.from(headers).forEach((header, index) => {
+            const direction = directionByColumn.get(index) || 'none';
+            const priority = priorityByColumn.get(index) || null;
+            this.updateSortButton(table, index, direction, priority);
+        });
     }
 
     getColumnTitles(table) {
@@ -152,15 +187,7 @@ class TableEnhancer {
 
         this.stateStore.setAdvancedSortRules(table, normalizedRules);
         this.stateStore.setSortRules(table, normalizedRules);
-
-        const headers = table.getElementsByTagName('th');
-        Array.from(headers).forEach((header, index) => {
-            this.updateSortButton(table, index, 'none');
-        });
-
-        normalizedRules.forEach((rule) => {
-            this.updateSortButton(table, rule.column, rule.direction);
-        });
+        this.refreshSortButtons(table);
 
         this.applySortRules(table, normalizedRules);
     }
@@ -208,6 +235,9 @@ class TableEnhancer {
                             return {success: true};
                         case MessageAction.SET_MULTI_COLUMN_SORT:
                             this.multiColumnSort = request.enabled;
+                            this.enhancedTables.forEach((table) => {
+                                this.refreshSortButtons(table);
+                            });
                             return {success: true};
                         default:
                             return {success: false, error: '未知的操作'};
@@ -621,7 +651,7 @@ class TableEnhancer {
         const headers = table.getElementsByTagName('th');
         Array.from(headers).forEach(header => {
             header.style.position = 'relative';
-            header.style.paddingRight = '56px'; // 为两个按钮留出空间
+            header.style.paddingRight = '72px'; // 为排序优先级数字预留空间
         });
         
         // 添加排序和筛选功能
@@ -636,33 +666,23 @@ class TableEnhancer {
         if (!tbody) return;
 
         const currentRules = this.stateStore.getSortRules(table);
-        const {rules, direction} = buildNextSortRules(currentRules, columnIndex, this.multiColumnSort);
+        const {rules} = buildNextSortRules(currentRules, columnIndex, this.multiColumnSort);
         this.stateStore.setSortRules(table, rules);
         this.stateStore.setAdvancedSortRules(table, []);
 
-        // 更新排序按钮样式和图标
-        this.updateSortButton(table, columnIndex, direction);
-
-        // 单列模式下，同步重置其他列的按钮
-        if (!this.multiColumnSort) {
-            const headers = table.getElementsByTagName('th');
-            Array.from(headers).forEach((header, index) => {
-                if (index !== columnIndex) {
-                    this.updateSortButton(table, index, 'none');
-                }
-            });
-        }
+        this.refreshSortButtons(table);
 
         this.applySortRules(table, rules);
     }
 
     // 更新排序按钮样式和图标
-    updateSortButton(table, columnIndex, direction) {
+    updateSortButton(table, columnIndex, direction, priority = null) {
         const header = table.getElementsByTagName('th')[columnIndex];
+        if (!header) return;
         const sortButton = header.querySelector('.anytable-sort-button');
         if (sortButton) {
             // 更新按钮图标
-            this.setSortButtonIcon(sortButton, direction);
+            this.setSortButtonIcon(sortButton, direction, priority);
             // 更新按钮样式
             sortButton.classList.remove('sort-asc', 'sort-desc', 'sort-none');
             sortButton.classList.add(`sort-${direction}`);
