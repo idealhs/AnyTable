@@ -1,5 +1,6 @@
 // 导入 i18n
 import i18n from './src/i18n/i18n.js';
+import { MessageAction } from './src/constants/messages.js';
 
 // 弹出面板的主要逻辑
 document.addEventListener('DOMContentLoaded', async () => {
@@ -47,7 +48,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const tab = await getCurrentTab();
         if (tab) {
             browser.tabs.sendMessage(tab.id, {
-                action: 'setAutoEnhance',
+                action: MessageAction.SET_AUTO_ENHANCE,
                 enabled: enabled
             });
         }
@@ -65,7 +66,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const tab = await getCurrentTab();
         if (tab) {
             browser.tabs.sendMessage(tab.id, {
-                action: 'setMultiColumnSort',
+                action: MessageAction.SET_MULTI_COLUMN_SORT,
                 enabled: enabled
             });
         }
@@ -105,7 +106,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 更新按钮状态
     async function updateButtonState() {
         try {
-            const response = await sendMessageToContentScript({action: 'getSelectionState'});
+            const response = await sendMessageToContentScript({action: MessageAction.GET_SELECTION_STATE});
             clearButton.disabled = !response || !response.hasSelection;
         } catch (error) {
             console.error('更新按钮状态失败:', error);
@@ -122,7 +123,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 选择表格按钮点击事件
     pickButton.addEventListener('click', async () => {
         try {
-            const response = await sendMessageToContentScript({action: 'startPicking'});
+            const response = await sendMessageToContentScript({action: MessageAction.START_PICKING});
             if (response && response.success) {
                 showStatus(i18n.t('popup.status.picking'), 'picking');
                 window.close(); // 关闭弹出窗口
@@ -138,7 +139,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 清除选择按钮点击事件
     clearButton.addEventListener('click', async () => {
         try {
-            const response = await sendMessageToContentScript({action: 'clearSelection'});
+            const response = await sendMessageToContentScript({action: MessageAction.CLEAR_SELECTION});
             if (response && response.success) {
                 showStatus(i18n.t('popup.status.success'), 'success');
                 updateButtonState();

@@ -37,7 +37,11 @@
         {
             "resources": [
                 "src/content.js",
-                "src/i18n/*.js"
+                "src/constants/*.js",
+                "src/core/*.js",
+                "src/i18n/*.js",
+                "src/state/*.js",
+                "src/ui/*.js"
             ],
             "matches": ["<all_urls>"]
         }
