@@ -111,7 +111,6 @@ export default {
         sort: {
             title: 'Advanced Sort',
             addRule: '+ Add Sort Rule',
-            mappingPlaceholder: 'unit=factor, one per line',
             direction: {
                 asc: 'Ascending',
                 desc: 'Descending'
@@ -120,8 +119,15 @@ export default {
                 auto: 'Auto Detect',
                 number: 'Number',
                 text: 'Text',
-                date: 'Date',
-                custom: 'Custom Unit Mapping'
+                date: 'Date'
+            },
+            detectedType: {
+                number: 'Number',
+                time: 'Time',
+                weight: 'Weight',
+                percent: 'Percent',
+                unit: 'Numeric (with unit)',
+                text: 'Text'
             },
             hint: {
                 keepOneRule: 'At least one sort rule is required.',
@@ -129,9 +135,7 @@ export default {
                 needOneRule: 'Please add at least one sort rule.'
             },
             errors: {
-                invalidColumn: 'Invalid column selection',
-                invalidMappingFormat: 'Invalid unit mapping format: {line}',
-                mappingEmpty: 'Custom unit mapping cannot be empty'
+                invalidColumn: 'Invalid column selection'
             }
         }
     },

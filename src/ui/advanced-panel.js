@@ -1,4 +1,5 @@
 import i18n from '../i18n/i18n.js';
+import { parseNumberWithUnit } from '../core/type-parser.js';
 
 function escapeHtml(text) {
     return (text ?? '')
@@ -500,17 +501,34 @@ function setupFilterComparatorVisibility(rowElement) {
     applyVisibility();
 }
 
-function buildSortRuleRowHtml(columnOptionsHtml, rule, index) {
+function detectColumnType(values) {
+    if (!values || values.length === 0) return 'text';
+
+    const counts = {};
+    for (const val of values) {
+        const result = parseNumberWithUnit(val);
+        const type = result.success ? result.type : 'text';
+        counts[type] = (counts[type] || 0) + 1;
+    }
+
+    let best = 'text';
+    let bestCount = 0;
+    for (const [type, count] of Object.entries(counts)) {
+        if (count > bestCount) {
+            best = type;
+            bestCount = count;
+        }
+    }
+    return best;
+}
+
+function buildSortRuleRowHtml(columnOptionsHtml, rule) {
     const column = Number.isInteger(rule?.column) ? rule.column : 0;
     const direction = rule?.direction === 'desc' ? 'desc' : 'asc';
     const type = rule?.type || 'auto';
-    const mappingText = rule?.unitConfig?.mapping
-        ? Object.entries(rule.unitConfig.mapping).map(([unit, factor]) => `${unit}=${factor}`).join('\n')
-        : '';
-    const showCustom = type === 'custom';
 
     return `
-        <div class="anytable-adv-sort-row" data-sort-index="${index}">
+        <div class="anytable-adv-sort-row" data-sort-id="${escapeHtml(rule.id)}">
             <div class="anytable-adv-sort-grid">
                 <select class="anytable-adv-sort-column">${columnOptionsHtml}</select>
                 <select class="anytable-adv-sort-direction">
@@ -522,37 +540,12 @@ function buildSortRuleRowHtml(columnOptionsHtml, rule, index) {
                     <option value="number">${translate('advancedPanel.sort.type.number')}</option>
                     <option value="text">${translate('advancedPanel.sort.type.text')}</option>
                     <option value="date">${translate('advancedPanel.sort.type.date')}</option>
-                    <option value="custom">${translate('advancedPanel.sort.type.custom')}</option>
                 </select>
-                <textarea class="anytable-adv-sort-mapping" rows="3" placeholder="${translate('advancedPanel.sort.mappingPlaceholder')}" style="display:${showCustom ? '' : 'none'};">${escapeHtml(mappingText)}</textarea>
-                <button type="button" class="anytable-advanced-btn danger anytable-adv-remove-sort-rule">${translate('advancedPanel.common.delete')}</button>
+                <span class="anytable-adv-detected-type" style="display:${type === 'auto' ? '' : 'none'};"></span>
+                <button type="button" class="anytable-adv-remove-sort-rule">${translate('advancedPanel.common.delete')}</button>
             </div>
         </div>
     `;
-}
-
-function parseSortMapping(mappingText) {
-    const mapping = {};
-    const lines = mappingText
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter(Boolean);
-
-    for (const line of lines) {
-        const [unitPart, factorPart] = line.split('=');
-        const unit = (unitPart || '').trim().toLowerCase();
-        const factor = Number((factorPart || '').trim());
-        if (!unit || Number.isNaN(factor)) {
-            return {error: translate('advancedPanel.sort.errors.invalidMappingFormat', {line})};
-        }
-        mapping[unit] = factor;
-    }
-
-    if (!Object.keys(mapping).length) {
-        return {error: translate('advancedPanel.sort.errors.mappingEmpty')};
-    }
-
-    return {mapping};
 }
 
 function parseSortRuleRow(rowElement) {
@@ -571,30 +564,54 @@ function parseSortRuleRow(rowElement) {
         unitConfig: null
     };
 
-    if (type === 'custom') {
-        const mappingInput = rowElement.querySelector('.anytable-adv-sort-mapping');
-        const {mapping, error} = parseSortMapping(mappingInput.value);
-        if (error) {
-            return {error};
-        }
-        rule.unitConfig = {
-            kind: 'custom',
-            mapping
-        };
-    }
-
     return {rule};
 }
 
-function setupSortTypeVisibility(rowElement) {
+function fitSelectWidth(selectEl, minWidth = 0) {
+    const selected = selectEl.options[selectEl.selectedIndex];
+    if (!selected) return;
+    const measure = document.createElement('span');
+    measure.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;font:' + getComputedStyle(selectEl).font;
+    measure.textContent = selected.textContent;
+    document.body.appendChild(measure);
+    selectEl.style.width = Math.max(measure.offsetWidth + 28, minWidth) + 'px';
+    measure.remove();
+}
+
+function updateDetectedTypeLabel(rowElement, getColumnValues) {
     const typeSelect = rowElement.querySelector('.anytable-adv-sort-type');
-    const mappingInput = rowElement.querySelector('.anytable-adv-sort-mapping');
+    const label = rowElement.querySelector('.anytable-adv-detected-type');
+    const columnSelect = rowElement.querySelector('.anytable-adv-sort-column');
+    if (!label) return;
+
+    if (typeSelect.value !== 'auto') {
+        label.style.display = 'none';
+        return;
+    }
+
+    label.style.display = '';
+    if (typeof getColumnValues !== 'function') {
+        label.textContent = '';
+        return;
+    }
+
+    const colIdx = Number(columnSelect.value);
+    const values = getColumnValues(colIdx);
+    const detected = detectColumnType(values);
+    const detectedLabel = translate(`advancedPanel.sort.detectedType.${detected}`);
+    label.textContent = detectedLabel ? `→ ${detectedLabel}` : '';
+}
+
+function setupSortTypeVisibility(rowElement, getColumnValues) {
+    const typeSelect = rowElement.querySelector('.anytable-adv-sort-type');
+    const columnSelect = rowElement.querySelector('.anytable-adv-sort-column');
 
     const applyVisibility = () => {
-        mappingInput.style.display = typeSelect.value === 'custom' ? '' : 'none';
+        updateDetectedTypeLabel(rowElement, getColumnValues);
     };
 
     typeSelect.addEventListener('change', applyVisibility);
+    columnSelect.addEventListener('change', () => updateDetectedTypeLabel(rowElement, getColumnValues));
     applyVisibility();
 }
 
@@ -726,6 +743,8 @@ export function openAdvancedSortPanel({
     columnIndex,
     columnTitles,
     initialRules,
+    tableElement,
+    getColumnValues,
     onApply,
     onCancel
 }) {
@@ -733,7 +752,7 @@ export function openAdvancedSortPanel({
     const columnOptionsHtml = getColumnOptionsHtml(columnTitles);
     const seedRules = Array.isArray(initialRules) && initialRules.length
         ? initialRules
-        : [{column: columnIndex, direction: 'asc', type: 'auto', unitConfig: null}];
+        : [{column: columnIndex, direction: 'asc', type: 'auto', unitConfig: null, id: generateId('sort')}];
 
     dialog.innerHTML = `
         <div class="anytable-advanced-header">
@@ -742,7 +761,7 @@ export function openAdvancedSortPanel({
         </div>
         <div class="anytable-advanced-body">
             <div class="anytable-adv-sort-list"></div>
-            <div class="anytable-advanced-row compact">
+            <div class="anytable-adv-group-actions">
                 <button type="button" class="anytable-advanced-btn anytable-adv-add-sort-rule">${translate('advancedPanel.sort.addRule')}</button>
             </div>
             <div class="anytable-advanced-hint" data-role="hint"></div>
@@ -753,6 +772,9 @@ export function openAdvancedSortPanel({
             <button type="button" class="anytable-advanced-btn primary anytable-advanced-apply">${translate('advancedPanel.common.apply')}</button>
         </div>
     `;
+
+    const addBtn = dialog.querySelector('.anytable-adv-add-sort-rule');
+    const selectMinWidth = addBtn ? addBtn.offsetWidth : 120;
 
     const sortList = dialog.querySelector('.anytable-adv-sort-list');
     const hintElement = dialog.querySelector('[data-role="hint"]');
@@ -770,47 +792,73 @@ export function openAdvancedSortPanel({
     }
 
     const currentRules = seedRules.map((rule) => ({
+        id: generateId('sort'),
         column: Number.isInteger(rule.column) ? rule.column : columnIndex,
         direction: rule.direction === 'desc' ? 'desc' : 'asc',
         type: rule.type || 'auto',
         unitConfig: rule.unitConfig || null
     }));
 
+    function bindSortRow(row, rules, index) {
+        const rule = rules[index];
+        const columnSelect = row.querySelector('.anytable-adv-sort-column');
+        const directionSelect = row.querySelector('.anytable-adv-sort-direction');
+        const typeSelect = row.querySelector('.anytable-adv-sort-type');
+
+        columnSelect.value = String(rule.column);
+        directionSelect.value = rule.direction;
+        typeSelect.value = rule.type;
+
+        columnSelect.addEventListener('change', () => { rule.column = Number(columnSelect.value); fitSelectWidth(columnSelect, selectMinWidth); });
+        directionSelect.addEventListener('change', () => { rule.direction = directionSelect.value; fitSelectWidth(directionSelect); });
+        typeSelect.addEventListener('change', () => { rule.type = typeSelect.value; fitSelectWidth(typeSelect, selectMinWidth); });
+
+        fitSelectWidth(columnSelect, selectMinWidth);
+        fitSelectWidth(directionSelect);
+        fitSelectWidth(typeSelect, selectMinWidth);
+
+        setupSortTypeVisibility(row, getColumnValues);
+
+        row.querySelector('.anytable-adv-remove-sort-rule').addEventListener('click', () => {
+            if (rules.length <= 1) {
+                setHint(translate('advancedPanel.sort.hint.keepOneRule'), true);
+                return;
+            }
+            const idx = rules.indexOf(rule);
+            if (idx >= 0) rules.splice(idx, 1);
+            row.remove();
+        });
+    }
+
     function renderSortRules(rules) {
         sortList.innerHTML = rules
-            .map((rule, index) => buildSortRuleRowHtml(columnOptionsHtml, rule, index))
+            .map((rule) => buildSortRuleRowHtml(columnOptionsHtml, rule))
             .join('');
 
         const rows = Array.from(sortList.querySelectorAll('.anytable-adv-sort-row'));
-        rows.forEach((row, index) => {
-            const rule = rules[index];
-            row.querySelector('.anytable-adv-sort-column').value = String(rule.column);
-            row.querySelector('.anytable-adv-sort-direction').value = rule.direction;
-            row.querySelector('.anytable-adv-sort-type').value = rule.type;
+        rows.forEach((row, index) => bindSortRow(row, rules, index));
+    }
 
-            setupSortTypeVisibility(row);
-
-            row.querySelector('.anytable-adv-remove-sort-rule').addEventListener('click', () => {
-                if (rules.length <= 1) {
-                    setHint(translate('advancedPanel.sort.hint.keepOneRule'), true);
-                    return;
-                }
-                rules.splice(index, 1);
-                renderSortRules(rules);
-            });
-        });
+    function appendSortRule(rule, rules) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = buildSortRuleRowHtml(columnOptionsHtml, rule);
+        const row = tmp.firstElementChild;
+        sortList.appendChild(row);
+        bindSortRow(row, rules, rules.length - 1);
     }
 
     renderSortRules(currentRules);
 
     dialog.querySelector('.anytable-adv-add-sort-rule').addEventListener('click', () => {
-        currentRules.push({
+        const newRule = {
+            id: generateId('sort'),
             column: columnIndex,
             direction: 'asc',
             type: 'auto',
             unitConfig: null
-        });
-        renderSortRules(currentRules);
+        };
+        currentRules.push(newRule);
+        appendSortRule(newRule, currentRules);
         setHint('');
     });
 
@@ -819,6 +867,7 @@ export function openAdvancedSortPanel({
     dialog.querySelector('.anytable-advanced-reset').addEventListener('click', () => {
         currentRules.length = 0;
         currentRules.push({
+            id: generateId('sort'),
             column: columnIndex,
             direction: 'asc',
             type: 'auto',

@@ -621,6 +621,14 @@ class TableEnhancer {
                 columnIndex,
                 columnTitles,
                 initialRules,
+                tableElement: table,
+                getColumnValues: (colIdx) => {
+                    const tbody = table.getElementsByTagName('tbody')[0];
+                    if (!tbody) return [];
+                    return Array.from(tbody.getElementsByTagName('tr'))
+                        .map(row => row.cells[colIdx]?.textContent.trim() || '')
+                        .filter(Boolean);
+                },
                 onApply: (rules) => {
                     this.applyAdvancedSort(table, rules);
                 }

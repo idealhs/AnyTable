@@ -111,7 +111,6 @@ export default {
         sort: {
             title: '高级排序',
             addRule: '+ 添加排序规则',
-            mappingPlaceholder: '单位=倍率，每行一条',
             direction: {
                 asc: '升序',
                 desc: '降序'
@@ -120,8 +119,15 @@ export default {
                 auto: '自动识别',
                 number: '数值',
                 text: '文本',
-                date: '日期',
-                custom: '自定义单位映射'
+                date: '日期'
+            },
+            detectedType: {
+                number: '数值',
+                time: '时间',
+                weight: '重量',
+                percent: '百分比',
+                unit: '数值（带单位）',
+                text: '文本'
             },
             hint: {
                 keepOneRule: '至少保留一个排序规则。',
@@ -129,9 +135,7 @@ export default {
                 needOneRule: '请至少添加一个排序规则。'
             },
             errors: {
-                invalidColumn: '列选择无效',
-                invalidMappingFormat: '单位映射格式错误：{line}',
-                mappingEmpty: '自定义单位映射不能为空'
+                invalidColumn: '列选择无效'
             }
         }
     },
