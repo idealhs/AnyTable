@@ -53,6 +53,84 @@ export default {
             advanced: 'Advanced Sort'
         }
     },
+
+    // Advanced Panel
+    advancedPanel: {
+        common: {
+            columnFallback: 'Column {index}',
+            close: 'Close',
+            reset: 'Reset',
+            cancel: 'Cancel',
+            apply: 'Apply',
+            delete: 'Delete'
+        },
+        filter: {
+            title: 'Advanced Filter',
+            operatorLabel: 'Logical Operator',
+            operator: {
+                and: 'AND (all conditions)',
+                or: 'OR (any condition)'
+            },
+            addRule: '+ Add Condition',
+            valuePlaceholder: 'Value',
+            minPlaceholder: 'Min Value',
+            maxPlaceholder: 'Max Value',
+            flagsPlaceholder: 'flags',
+            comparator: {
+                contains: 'Contains',
+                startsWith: 'Starts with',
+                endsWith: 'Ends with',
+                equals: 'Equals',
+                regex: 'Regex',
+                gt: 'Greater than',
+                gte: 'Greater than or equal',
+                lt: 'Less than',
+                lte: 'Less than or equal',
+                between: 'Between',
+                isEmpty: 'Is empty',
+                isNotEmpty: 'Is not empty'
+            },
+            hint: {
+                keepOneRule: 'At least one filter condition is required.',
+                resetDone: 'Advanced filter has been reset.',
+                needOneRule: 'Please add at least one filter condition.'
+            },
+            errors: {
+                invalidColumn: 'Invalid column selection',
+                betweenInvalid: 'Between comparator requires valid min and max values',
+                betweenOrder: 'Min value cannot be greater than max value',
+                regexRequired: 'Regex comparator requires a pattern',
+                regexInvalid: 'Invalid regex: {message}',
+                numericRequired: 'Numeric comparators require a valid number'
+            }
+        },
+        sort: {
+            title: 'Advanced Sort',
+            addRule: '+ Add Sort Rule',
+            mappingPlaceholder: 'unit=factor, one per line',
+            direction: {
+                asc: 'Ascending',
+                desc: 'Descending'
+            },
+            type: {
+                auto: 'Auto Detect',
+                number: 'Number',
+                text: 'Text',
+                date: 'Date',
+                custom: 'Custom Unit Mapping'
+            },
+            hint: {
+                keepOneRule: 'At least one sort rule is required.',
+                resetDone: 'Advanced sort has been reset.',
+                needOneRule: 'Please add at least one sort rule.'
+            },
+            errors: {
+                invalidColumn: 'Invalid column selection',
+                invalidMappingFormat: 'Invalid unit mapping format: {line}',
+                mappingEmpty: 'Custom unit mapping cannot be empty'
+            }
+        }
+    },
     
     // Error Messages
     errors: {

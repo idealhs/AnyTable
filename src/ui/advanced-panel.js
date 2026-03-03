@@ -1,3 +1,5 @@
+import i18n from '../i18n/i18n.js';
+
 function escapeHtml(text) {
     return (text ?? '')
         .toString()
@@ -16,9 +18,21 @@ function parseNumberLike(value) {
     return Number(normalized);
 }
 
+function translate(key, params = null) {
+    const message = i18n.t(key);
+    if (!params || typeof message !== 'string') {
+        return message;
+    }
+
+    return Object.entries(params).reduce(
+        (output, [name, value]) => output.replaceAll(`{${name}}`, String(value)),
+        message
+    );
+}
+
 function getColumnOptionsHtml(columnTitles) {
     return columnTitles
-        .map((title, index) => `<option value="${index}">${escapeHtml(title || `列${index + 1}`)}</option>`)
+        .map((title, index) => `<option value="${index}">${escapeHtml(title || translate('advancedPanel.common.columnFallback', {index: index + 1}))}</option>`)
         .join('');
 }
 
@@ -52,26 +66,26 @@ function buildFilterRuleRowHtml(columnOptionsHtml, rule, index) {
             <div class="anytable-adv-rule-grid">
                 <select class="anytable-adv-column">${columnOptionsHtml}</select>
                 <select class="anytable-adv-comparator">
-                    <option value="contains">包含</option>
-                    <option value="startsWith">开头是</option>
-                    <option value="endsWith">结尾是</option>
-                    <option value="equals">等于</option>
-                    <option value="regex">正则</option>
-                    <option value=">">大于</option>
-                    <option value=">=">大于等于</option>
-                    <option value="<">小于</option>
-                    <option value="<=">小于等于</option>
-                    <option value="between">区间</option>
-                    <option value="isEmpty">为空</option>
-                    <option value="isNotEmpty">不为空</option>
+                    <option value="contains">${translate('advancedPanel.filter.comparator.contains')}</option>
+                    <option value="startsWith">${translate('advancedPanel.filter.comparator.startsWith')}</option>
+                    <option value="endsWith">${translate('advancedPanel.filter.comparator.endsWith')}</option>
+                    <option value="equals">${translate('advancedPanel.filter.comparator.equals')}</option>
+                    <option value="regex">${translate('advancedPanel.filter.comparator.regex')}</option>
+                    <option value=">">${translate('advancedPanel.filter.comparator.gt')}</option>
+                    <option value=">=">${translate('advancedPanel.filter.comparator.gte')}</option>
+                    <option value="<">${translate('advancedPanel.filter.comparator.lt')}</option>
+                    <option value="<=">${translate('advancedPanel.filter.comparator.lte')}</option>
+                    <option value="between">${translate('advancedPanel.filter.comparator.between')}</option>
+                    <option value="isEmpty">${translate('advancedPanel.filter.comparator.isEmpty')}</option>
+                    <option value="isNotEmpty">${translate('advancedPanel.filter.comparator.isNotEmpty')}</option>
                 </select>
-                <input type="text" class="anytable-adv-value" placeholder="值" style="display:${hideValue ? 'none' : ''};" value="${escapeHtml(value)}">
+                <input type="text" class="anytable-adv-value" placeholder="${translate('advancedPanel.filter.valuePlaceholder')}" style="display:${hideValue ? 'none' : ''};" value="${escapeHtml(value)}">
                 <div class="anytable-adv-range" style="display:${showRange ? '' : 'none'};">
-                    <input type="text" class="anytable-adv-min" placeholder="最小值" value="${escapeHtml(min)}">
-                    <input type="text" class="anytable-adv-max" placeholder="最大值" value="${escapeHtml(max)}">
+                    <input type="text" class="anytable-adv-min" placeholder="${translate('advancedPanel.filter.minPlaceholder')}" value="${escapeHtml(min)}">
+                    <input type="text" class="anytable-adv-max" placeholder="${translate('advancedPanel.filter.maxPlaceholder')}" value="${escapeHtml(max)}">
                 </div>
-                <input type="text" class="anytable-adv-flags" placeholder="flags" style="display:${showRegex ? '' : 'none'};" value="${escapeHtml(flags)}">
-                <button type="button" class="anytable-advanced-btn danger anytable-adv-remove-rule">删除</button>
+                <input type="text" class="anytable-adv-flags" placeholder="${translate('advancedPanel.filter.flagsPlaceholder')}" style="display:${showRegex ? '' : 'none'};" value="${escapeHtml(flags)}">
+                <button type="button" class="anytable-advanced-btn danger anytable-adv-remove-rule">${translate('advancedPanel.common.delete')}</button>
             </div>
         </div>
     `;
@@ -112,7 +126,7 @@ function parseFilterRuleRow(rowElement) {
     const column = Number(rowElement.querySelector('.anytable-adv-column').value);
 
     if (Number.isNaN(column)) {
-        return {error: '列选择无效'};
+        return {error: translate('advancedPanel.filter.errors.invalidColumn')};
     }
 
     const rule = {
@@ -127,10 +141,10 @@ function parseFilterRuleRow(rowElement) {
         const min = parseNumberLike(rowElement.querySelector('.anytable-adv-min').value);
         const max = parseNumberLike(rowElement.querySelector('.anytable-adv-max').value);
         if (Number.isNaN(min) || Number.isNaN(max)) {
-            return {error: '区间筛选需要有效的最小值和最大值'};
+            return {error: translate('advancedPanel.filter.errors.betweenInvalid')};
         }
         if (min > max) {
-            return {error: '区间筛选最小值不能大于最大值'};
+            return {error: translate('advancedPanel.filter.errors.betweenOrder')};
         }
         rule.options = {min, max};
         return {rule};
@@ -140,12 +154,12 @@ function parseFilterRuleRow(rowElement) {
         const value = rowElement.querySelector('.anytable-adv-value').value.trim();
         const flags = rowElement.querySelector('.anytable-adv-flags').value.trim();
         if (!value) {
-            return {error: '正则筛选必须输入表达式'};
+            return {error: translate('advancedPanel.filter.errors.regexRequired')};
         }
         try {
             new RegExp(value, flags);
         } catch (error) {
-            return {error: `正则表达式无效：${error.message}`};
+            return {error: translate('advancedPanel.filter.errors.regexInvalid', {message: error.message})};
         }
         rule.value = value;
         rule.options = {flags};
@@ -160,7 +174,7 @@ function parseFilterRuleRow(rowElement) {
         const valueText = rowElement.querySelector('.anytable-adv-value').value;
         const numericValue = parseNumberLike(valueText);
         if (Number.isNaN(numericValue)) {
-            return {error: '数值比较器需要有效的数字'};
+            return {error: translate('advancedPanel.filter.errors.numericRequired')};
         }
         rule.value = numericValue;
         return {rule};
@@ -206,18 +220,18 @@ function buildSortRuleRowHtml(columnOptionsHtml, rule, index) {
             <div class="anytable-adv-sort-grid">
                 <select class="anytable-adv-sort-column">${columnOptionsHtml}</select>
                 <select class="anytable-adv-sort-direction">
-                    <option value="asc">升序</option>
-                    <option value="desc">降序</option>
+                    <option value="asc">${translate('advancedPanel.sort.direction.asc')}</option>
+                    <option value="desc">${translate('advancedPanel.sort.direction.desc')}</option>
                 </select>
                 <select class="anytable-adv-sort-type">
-                    <option value="auto">自动识别</option>
-                    <option value="number">数值</option>
-                    <option value="text">文本</option>
-                    <option value="date">日期</option>
-                    <option value="custom">自定义单位映射</option>
+                    <option value="auto">${translate('advancedPanel.sort.type.auto')}</option>
+                    <option value="number">${translate('advancedPanel.sort.type.number')}</option>
+                    <option value="text">${translate('advancedPanel.sort.type.text')}</option>
+                    <option value="date">${translate('advancedPanel.sort.type.date')}</option>
+                    <option value="custom">${translate('advancedPanel.sort.type.custom')}</option>
                 </select>
-                <textarea class="anytable-adv-sort-mapping" rows="3" placeholder="单位=倍率，每行一条" style="display:${showCustom ? '' : 'none'};">${escapeHtml(mappingText)}</textarea>
-                <button type="button" class="anytable-advanced-btn danger anytable-adv-remove-sort-rule">删除</button>
+                <textarea class="anytable-adv-sort-mapping" rows="3" placeholder="${translate('advancedPanel.sort.mappingPlaceholder')}" style="display:${showCustom ? '' : 'none'};">${escapeHtml(mappingText)}</textarea>
+                <button type="button" class="anytable-advanced-btn danger anytable-adv-remove-sort-rule">${translate('advancedPanel.common.delete')}</button>
             </div>
         </div>
     `;
@@ -235,13 +249,13 @@ function parseSortMapping(mappingText) {
         const unit = (unitPart || '').trim().toLowerCase();
         const factor = Number((factorPart || '').trim());
         if (!unit || Number.isNaN(factor)) {
-            return {error: `单位映射格式错误：${line}`};
+            return {error: translate('advancedPanel.sort.errors.invalidMappingFormat', {line})};
         }
         mapping[unit] = factor;
     }
 
     if (!Object.keys(mapping).length) {
-        return {error: '自定义单位映射不能为空'};
+        return {error: translate('advancedPanel.sort.errors.mappingEmpty')};
     }
 
     return {mapping};
@@ -250,7 +264,7 @@ function parseSortMapping(mappingText) {
 function parseSortRuleRow(rowElement) {
     const column = Number(rowElement.querySelector('.anytable-adv-sort-column').value);
     if (Number.isNaN(column)) {
-        return {error: '列选择无效'};
+        return {error: translate('advancedPanel.sort.errors.invalidColumn')};
     }
 
     const direction = rowElement.querySelector('.anytable-adv-sort-direction').value === 'desc' ? 'desc' : 'asc';
@@ -303,27 +317,27 @@ export function openAdvancedFilterPanel({
 
     dialog.innerHTML = `
         <div class="anytable-advanced-header">
-            <div class="anytable-advanced-title">高级筛选</div>
-            <button class="anytable-advanced-close" type="button" aria-label="关闭">${MATERIAL_CLOSE_ICON_SVG}</button>
+            <div class="anytable-advanced-title">${translate('advancedPanel.filter.title')}</div>
+            <button class="anytable-advanced-close" type="button" aria-label="${translate('advancedPanel.common.close')}">${MATERIAL_CLOSE_ICON_SVG}</button>
         </div>
         <div class="anytable-advanced-body">
             <div class="anytable-advanced-row compact">
-                <label>逻辑关系</label>
+                <label>${translate('advancedPanel.filter.operatorLabel')}</label>
                 <select class="anytable-adv-operator">
-                    <option value="AND">AND（并且）</option>
-                    <option value="OR">OR（或者）</option>
+                    <option value="AND">${translate('advancedPanel.filter.operator.and')}</option>
+                    <option value="OR">${translate('advancedPanel.filter.operator.or')}</option>
                 </select>
             </div>
             <div class="anytable-adv-rule-list"></div>
             <div class="anytable-advanced-row compact">
-                <button type="button" class="anytable-advanced-btn anytable-adv-add-rule">+ 添加条件</button>
+                <button type="button" class="anytable-advanced-btn anytable-adv-add-rule">${translate('advancedPanel.filter.addRule')}</button>
             </div>
             <div class="anytable-advanced-hint" data-role="hint"></div>
         </div>
         <div class="anytable-advanced-footer">
-            <button type="button" class="anytable-advanced-btn anytable-advanced-reset">重置</button>
-            <button type="button" class="anytable-advanced-btn anytable-advanced-cancel">取消</button>
-            <button type="button" class="anytable-advanced-btn primary anytable-advanced-apply">应用</button>
+            <button type="button" class="anytable-advanced-btn anytable-advanced-reset">${translate('advancedPanel.common.reset')}</button>
+            <button type="button" class="anytable-advanced-btn anytable-advanced-cancel">${translate('advancedPanel.common.cancel')}</button>
+            <button type="button" class="anytable-advanced-btn primary anytable-advanced-apply">${translate('advancedPanel.common.apply')}</button>
         </div>
     `;
 
@@ -360,7 +374,7 @@ export function openAdvancedFilterPanel({
 
             row.querySelector('.anytable-adv-remove-rule').addEventListener('click', () => {
                 if (rules.length <= 1) {
-                    setHint('至少保留一个筛选条件。', true);
+                    setHint(translate('advancedPanel.filter.hint.keepOneRule'), true);
                     return;
                 }
                 rules.splice(index, 1);
@@ -385,13 +399,13 @@ export function openAdvancedFilterPanel({
         currentRules.length = 0;
         currentRules.push(createDefaultFilterRule(columnIndex));
         renderRules(currentRules);
-        setHint('已重置高级筛选配置。');
+        setHint(translate('advancedPanel.filter.hint.resetDone'));
     });
 
     dialog.querySelector('.anytable-advanced-apply').addEventListener('click', () => {
         const rows = Array.from(ruleList.querySelectorAll('.anytable-adv-rule-row'));
         if (!rows.length) {
-            setHint('请至少添加一个筛选条件。', true);
+            setHint(translate('advancedPanel.filter.hint.needOneRule'), true);
             return;
         }
 
@@ -445,20 +459,20 @@ export function openAdvancedSortPanel({
 
     dialog.innerHTML = `
         <div class="anytable-advanced-header">
-            <div class="anytable-advanced-title">高级排序</div>
-            <button class="anytable-advanced-close" type="button" aria-label="关闭">${MATERIAL_CLOSE_ICON_SVG}</button>
+            <div class="anytable-advanced-title">${translate('advancedPanel.sort.title')}</div>
+            <button class="anytable-advanced-close" type="button" aria-label="${translate('advancedPanel.common.close')}">${MATERIAL_CLOSE_ICON_SVG}</button>
         </div>
         <div class="anytable-advanced-body">
             <div class="anytable-adv-sort-list"></div>
             <div class="anytable-advanced-row compact">
-                <button type="button" class="anytable-advanced-btn anytable-adv-add-sort-rule">+ 添加排序规则</button>
+                <button type="button" class="anytable-advanced-btn anytable-adv-add-sort-rule">${translate('advancedPanel.sort.addRule')}</button>
             </div>
             <div class="anytable-advanced-hint" data-role="hint"></div>
         </div>
         <div class="anytable-advanced-footer">
-            <button type="button" class="anytable-advanced-btn anytable-advanced-reset">重置</button>
-            <button type="button" class="anytable-advanced-btn anytable-advanced-cancel">取消</button>
-            <button type="button" class="anytable-advanced-btn primary anytable-advanced-apply">应用</button>
+            <button type="button" class="anytable-advanced-btn anytable-advanced-reset">${translate('advancedPanel.common.reset')}</button>
+            <button type="button" class="anytable-advanced-btn anytable-advanced-cancel">${translate('advancedPanel.common.cancel')}</button>
+            <button type="button" class="anytable-advanced-btn primary anytable-advanced-apply">${translate('advancedPanel.common.apply')}</button>
         </div>
     `;
 
@@ -500,7 +514,7 @@ export function openAdvancedSortPanel({
 
             row.querySelector('.anytable-adv-remove-sort-rule').addEventListener('click', () => {
                 if (rules.length <= 1) {
-                    setHint('至少保留一个排序规则。', true);
+                    setHint(translate('advancedPanel.sort.hint.keepOneRule'), true);
                     return;
                 }
                 rules.splice(index, 1);
@@ -533,13 +547,13 @@ export function openAdvancedSortPanel({
             unitConfig: null
         });
         renderSortRules(currentRules);
-        setHint('已重置高级排序配置。');
+        setHint(translate('advancedPanel.sort.hint.resetDone'));
     });
 
     dialog.querySelector('.anytable-advanced-apply').addEventListener('click', () => {
         const rows = Array.from(sortList.querySelectorAll('.anytable-adv-sort-row'));
         if (!rows.length) {
-            setHint('请至少添加一个排序规则。', true);
+            setHint(translate('advancedPanel.sort.hint.needOneRule'), true);
             return;
         }
 

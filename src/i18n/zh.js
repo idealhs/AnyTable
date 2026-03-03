@@ -53,6 +53,84 @@ export default {
             advanced: '高级排序'
         }
     },
+
+    // 高级面板
+    advancedPanel: {
+        common: {
+            columnFallback: '列{index}',
+            close: '关闭',
+            reset: '重置',
+            cancel: '取消',
+            apply: '应用',
+            delete: '删除'
+        },
+        filter: {
+            title: '高级筛选',
+            operatorLabel: '逻辑关系',
+            operator: {
+                and: 'AND（并且）',
+                or: 'OR（或者）'
+            },
+            addRule: '+ 添加条件',
+            valuePlaceholder: '值',
+            minPlaceholder: '最小值',
+            maxPlaceholder: '最大值',
+            flagsPlaceholder: 'flags',
+            comparator: {
+                contains: '包含',
+                startsWith: '开头是',
+                endsWith: '结尾是',
+                equals: '等于',
+                regex: '正则',
+                gt: '大于',
+                gte: '大于等于',
+                lt: '小于',
+                lte: '小于等于',
+                between: '区间',
+                isEmpty: '为空',
+                isNotEmpty: '不为空'
+            },
+            hint: {
+                keepOneRule: '至少保留一个筛选条件。',
+                resetDone: '已重置高级筛选配置。',
+                needOneRule: '请至少添加一个筛选条件。'
+            },
+            errors: {
+                invalidColumn: '列选择无效',
+                betweenInvalid: '区间筛选需要有效的最小值和最大值',
+                betweenOrder: '区间筛选最小值不能大于最大值',
+                regexRequired: '正则筛选必须输入表达式',
+                regexInvalid: '正则表达式无效：{message}',
+                numericRequired: '数值比较器需要有效的数字'
+            }
+        },
+        sort: {
+            title: '高级排序',
+            addRule: '+ 添加排序规则',
+            mappingPlaceholder: '单位=倍率，每行一条',
+            direction: {
+                asc: '升序',
+                desc: '降序'
+            },
+            type: {
+                auto: '自动识别',
+                number: '数值',
+                text: '文本',
+                date: '日期',
+                custom: '自定义单位映射'
+            },
+            hint: {
+                keepOneRule: '至少保留一个排序规则。',
+                resetDone: '已重置高级排序配置。',
+                needOneRule: '请至少添加一个排序规则。'
+            },
+            errors: {
+                invalidColumn: '列选择无效',
+                invalidMappingFormat: '单位映射格式错误：{line}',
+                mappingEmpty: '自定义单位映射不能为空'
+            }
+        }
+    },
     
     // 错误消息
     errors: {

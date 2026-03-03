@@ -149,7 +149,7 @@ class TableEnhancer {
         const headers = table.getElementsByTagName('th');
         return Array.from(headers).map((header, index) => {
             const headerText = header.childNodes[0]?.textContent?.trim() || header.textContent?.trim() || '';
-            return headerText || `列${index + 1}`;
+            return headerText || i18n.t('advancedPanel.common.columnFallback').replace('{index}', String(index + 1));
         });
     }
 

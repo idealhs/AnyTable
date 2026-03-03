@@ -4,6 +4,8 @@ class I18n {
         this.currentLocale = 'zh'; // 默认语言
         this.translations = {};
         this.loaded = false;
+        this.storageListenerRegistered = false;
+        this.pendingLocale = null;
         // 语言包映射
         this.localeMap = {
             'zh': () => import('./zh.js'),
@@ -25,6 +27,7 @@ class I18n {
 
             // 加载语言包
             await this.loadTranslations();
+            this.registerStorageListener(browser);
             this.loaded = true;
         } catch (error) {
             console.error('Failed to initialize i18n:', error);
@@ -56,6 +59,7 @@ class I18n {
 
         try {
             const browser = window.browser || chrome;
+            this.pendingLocale = locale;
             await browser.storage.local.set({ locale });
             this.currentLocale = locale;
             await this.loadTranslations();
@@ -66,7 +70,44 @@ class I18n {
             }));
         } catch (error) {
             console.error(`Failed to set locale to ${locale}:`, error);
+        } finally {
+            this.pendingLocale = null;
         }
+    }
+
+    // 监听存储变化，确保 popup/content script 之间语言同步
+    registerStorageListener(browser) {
+        if (this.storageListenerRegistered || !browser?.storage?.onChanged?.addListener) {
+            return;
+        }
+
+        browser.storage.onChanged.addListener(async (changes, areaName) => {
+            if (areaName !== 'local' || !changes.locale) {
+                return;
+            }
+
+            const nextLocale = changes.locale.newValue;
+            if (
+                !nextLocale ||
+                !this.localeMap[nextLocale] ||
+                nextLocale === this.currentLocale ||
+                nextLocale === this.pendingLocale
+            ) {
+                return;
+            }
+
+            try {
+                this.currentLocale = nextLocale;
+                await this.loadTranslations();
+                window.dispatchEvent(new CustomEvent('localeChanged', {
+                    detail: { locale: this.currentLocale }
+                }));
+            } catch (error) {
+                console.error('Failed to sync locale from storage change:', error);
+            }
+        });
+
+        this.storageListenerRegistered = true;
     }
 
     // 获取翻译文本
