@@ -72,16 +72,43 @@ function evaluateRuleTree(row, ruleNode) {
     if (!ruleNode) return true;
 
     if (Array.isArray(ruleNode.children)) {
-        const operator = ruleNode.operator === 'OR' ? 'OR' : 'AND';
-        if (operator === 'OR') {
-            return ruleNode.children.some((child) => evaluateRuleTree(row, child));
+        const children = ruleNode.children;
+        if (children.length === 0) return true;
+
+        let result;
+        const hasPerRuleOperator = children.some((child) => child.operator);
+        if (hasPerRuleOperator || !ruleNode.operator) {
+            result = evaluateRuleTree(row, children[0]);
+            for (let i = 1; i < children.length; i++) {
+                const childResult = evaluateRuleTree(row, children[i]);
+                if (children[i].operator === 'OR') {
+                    result = result || childResult;
+                } else {
+                    result = result && childResult;
+                }
+            }
+        } else {
+            const operator = ruleNode.operator === 'OR' ? 'OR' : 'AND';
+            if (operator === 'OR') {
+                result = children.some((child) => evaluateRuleTree(row, child));
+            } else {
+                result = children.every((child) => evaluateRuleTree(row, child));
+            }
         }
-        return ruleNode.children.every((child) => evaluateRuleTree(row, child));
+
+        if (ruleNode.negated) {
+            result = !result;
+        }
+        return result;
     }
 
     const columnIndex = Number(ruleNode.column);
     const cellText = row.cells[columnIndex]?.textContent ?? '';
-    return evaluateLeafRule(cellText, ruleNode);
+    let result = evaluateLeafRule(cellText, ruleNode);
+    if (ruleNode.negated) {
+        result = !result;
+    }
+    return result;
 }
 
 export function matchesBasicFilters(row, filterValues) {

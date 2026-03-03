@@ -66,12 +66,12 @@ export default {
         },
         filter: {
             title: 'Advanced Filter',
-            operatorLabel: 'Logical Operator',
             operator: {
                 and: 'AND (all conditions)',
                 or: 'OR (any condition)'
             },
             addRule: '+ Add Condition',
+            negateTooltip: 'Negate this condition',
             valuePlaceholder: 'Value',
             minPlaceholder: 'Min Value',
             maxPlaceholder: 'Max Value',
@@ -90,13 +90,17 @@ export default {
                 isEmpty: 'Is empty',
                 isNotEmpty: 'Is not empty'
             },
+            addGroup: '+ Add Group',
+            groupLabel: 'Group',
+            groupNegateTooltip: 'Negate this group (NOT)',
             hint: {
                 keepOneRule: 'At least one filter condition is required.',
+                keepOneInGroup: 'At least one condition is required in a group.',
+                maxDepth: 'Maximum nesting depth is {max} levels.',
                 resetDone: 'Advanced filter has been reset.',
                 needOneRule: 'Please add at least one filter condition.'
             },
             errors: {
-                invalidColumn: 'Invalid column selection',
                 betweenInvalid: 'Between comparator requires valid min and max values',
                 betweenOrder: 'Min value cannot be greater than max value',
                 regexRequired: 'Regex comparator requires a pattern',

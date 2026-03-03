@@ -176,6 +176,13 @@
     box-shadow: 0 0 0 2px rgba(74,144,224,0.2);
 }
 
+.filter-input:disabled {
+    background-color: #f0f0f0;
+    color: #999;
+    cursor: not-allowed;
+    border-color: #ddd;
+}
+
 .control-button {
     width: 48px;
     height: 24px;
@@ -446,7 +453,12 @@
     gap: 8px;
 }
 
-.anytable-adv-rule-row,
+.anytable-adv-rule-row {
+    border: 1px solid #e6e6e6;
+    border-radius: 6px;
+    padding: 6px 8px;
+}
+
 .anytable-adv-sort-row {
     border: 1px solid #e6e6e6;
     border-radius: 6px;
@@ -454,10 +466,114 @@
 }
 
 .anytable-adv-rule-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-    align-items: start;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.anytable-adv-negate {
+    width: 28px;
+    min-width: 28px;
+    height: 32px;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    background: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    color: #999;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.anytable-adv-negate.active {
+    color: #fff;
+    background: #c1121f;
+    border-color: #c1121f;
+}
+
+.anytable-adv-comparator {
+    width: auto;
+    min-width: 0;
+    flex-shrink: 0;
+    height: 32px;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    padding: 0 6px;
+    font-size: 13px;
+    box-sizing: border-box;
+}
+
+.anytable-adv-rule-grid .anytable-adv-value {
+    flex: 1;
+    min-width: 0;
+    height: 32px;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    padding: 0 8px;
+    font-size: 13px;
+    box-sizing: border-box;
+}
+
+.anytable-adv-rule-grid .anytable-adv-flags {
+    width: 60px;
+    flex-shrink: 0;
+    height: 32px;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    padding: 0 8px;
+    font-size: 13px;
+    box-sizing: border-box;
+}
+
+.anytable-adv-remove-rule {
+    flex-shrink: 0;
+    height: 32px;
+    border: 1px solid #f1b4bb;
+    border-radius: 4px;
+    background: #fff;
+    color: #c1121f;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 0 8px;
+    white-space: nowrap;
+}
+
+.anytable-adv-rule-grid .anytable-adv-range {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    gap: 6px;
+}
+
+.anytable-adv-rule-grid .anytable-adv-range input {
+    flex: 1;
+    min-width: 0;
+    height: 32px;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    padding: 0 8px;
+    font-size: 13px;
+    box-sizing: border-box;
+}
+
+.anytable-adv-rule-operator {
+    display: flex;
+    justify-content: center;
+    padding: 2px 0;
+}
+
+.anytable-adv-inline-operator {
+    height: 32px;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    padding: 0 8px;
+    font-size: 13px;
+    background: #fafafa;
+    cursor: pointer;
 }
 
 .anytable-adv-sort-grid {
@@ -467,14 +583,64 @@
     align-items: start;
 }
 
-.anytable-adv-range {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-}
-
 .anytable-adv-sort-mapping {
     grid-column: 1 / span 2;
+}
+
+/* 分组容器样式 */
+.anytable-adv-rule-group {
+    border: 1px solid #d0d5dd;
+    border-left: 3px solid #4a90e0;
+    border-radius: 6px;
+    background: #f8fafc;
+}
+
+.anytable-adv-rule-group .anytable-adv-rule-group {
+    background: #fff;
+}
+
+.anytable-adv-rule-group .anytable-adv-rule-group .anytable-adv-rule-group {
+    background: #f8fafc;
+}
+
+.anytable-adv-group-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    border-bottom: 1px solid #e6e6e6;
+}
+
+.anytable-adv-group-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #555;
+    flex: 1;
+}
+
+.anytable-adv-remove-group {
+    height: 28px;
+    border: 1px solid #f1b4bb;
+    border-radius: 4px;
+    background: #fff;
+    color: #c1121f;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 0 8px;
+    white-space: nowrap;
+}
+
+.anytable-adv-group-children {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+}
+
+.anytable-adv-group-actions {
+    display: flex;
+    gap: 6px;
+    padding: 0 8px 8px;
 }
 
 @media screen and (max-width: 768px) {
@@ -488,7 +654,14 @@
         grid-template-columns: 1fr;
     }
 
-    .anytable-adv-rule-grid,
+    .anytable-adv-rule-grid {
+        flex-wrap: wrap;
+    }
+
+    .anytable-adv-rule-grid .anytable-adv-value {
+        flex-basis: 100%;
+    }
+
     .anytable-adv-sort-grid {
         grid-template-columns: 1fr;
     }

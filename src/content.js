@@ -157,6 +157,15 @@ class TableEnhancer {
         const filterValues = this.stateStore.getFilterValues(table);
         const advancedRuleGroup = this.stateStore.getAdvancedFilterRules(table);
         applyCombinedFilters(table, filterValues, advancedRuleGroup);
+        this.updateFilterInputsDisabledState(table);
+    }
+
+    updateFilterInputsDisabledState(table) {
+        const hasAdvanced = this.stateStore.getAdvancedFilterRules(table) !== null;
+        const inputs = table.querySelectorAll('.filter-input');
+        for (const input of inputs) {
+            input.disabled = hasAdvanced;
+        }
     }
 
     applySortRules(table, rules) {
@@ -503,6 +512,11 @@ class TableEnhancer {
         const filterValues = this.stateStore.getFilterValues(table);
         if (filterValues[columnIndex]) {
             filterInput.value = filterValues[columnIndex];
+        }
+
+        // 如果有高级筛选，禁用普通筛选框
+        if (this.stateStore.getAdvancedFilterRules(table) !== null) {
+            filterInput.disabled = true;
         }
         
         filterRow.appendChild(filterInput);

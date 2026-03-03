@@ -66,12 +66,12 @@ export default {
         },
         filter: {
             title: '高级筛选',
-            operatorLabel: '逻辑关系',
             operator: {
                 and: 'AND（并且）',
                 or: 'OR（或者）'
             },
             addRule: '+ 添加条件',
+            negateTooltip: '取反当前条件',
             valuePlaceholder: '值',
             minPlaceholder: '最小值',
             maxPlaceholder: '最大值',
@@ -90,13 +90,17 @@ export default {
                 isEmpty: '为空',
                 isNotEmpty: '不为空'
             },
+            addGroup: '+ 添加分组',
+            groupLabel: '条件组',
+            groupNegateTooltip: '取反当前分组（NOT）',
             hint: {
                 keepOneRule: '至少保留一个筛选条件。',
+                keepOneInGroup: '分组内至少保留一个条件。',
+                maxDepth: '最多支持 {max} 层嵌套。',
                 resetDone: '已重置高级筛选配置。',
                 needOneRule: '请至少添加一个筛选条件。'
             },
             errors: {
-                invalidColumn: '列选择无效',
                 betweenInvalid: '区间筛选需要有效的最小值和最大值',
                 betweenOrder: '区间筛选最小值不能大于最大值',
                 regexRequired: '正则筛选必须输入表达式',

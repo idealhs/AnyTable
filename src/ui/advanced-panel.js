@@ -49,9 +49,30 @@ function createOverlayAndDialog() {
     return {overlay, dialog};
 }
 
-function buildFilterRuleRowHtml(columnOptionsHtml, rule, index) {
+function buildFilterOperatorHtml(operator) {
+    return `
+        <div class="anytable-adv-rule-operator">
+            <select class="anytable-adv-inline-operator">
+                <option value="AND">${translate('advancedPanel.filter.operator.and')}</option>
+                <option value="OR">${translate('advancedPanel.filter.operator.or')}</option>
+            </select>
+        </div>
+    `;
+}
+
+const MAX_NESTING_DEPTH = 4;
+
+function isGroup(node) {
+    return Array.isArray(node.children);
+}
+
+function generateId(prefix) {
+    return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function buildFilterRuleRowHtml(rule) {
     const comparator = rule?.comparator || 'contains';
-    const column = Number.isInteger(rule?.column) ? rule.column : 0;
+    const negated = rule?.negated || false;
     const value = rule?.value || '';
     const flags = rule?.options?.flags || '';
     const min = rule?.options?.min ?? '';
@@ -62,9 +83,9 @@ function buildFilterRuleRowHtml(columnOptionsHtml, rule, index) {
     const hideValue = comparator === 'between' || comparator === 'isEmpty' || comparator === 'isNotEmpty';
 
     return `
-        <div class="anytable-adv-rule-row" data-rule-index="${index}">
+        <div class="anytable-adv-rule-row" data-rule-id="${escapeHtml(rule.id)}">
             <div class="anytable-adv-rule-grid">
-                <select class="anytable-adv-column">${columnOptionsHtml}</select>
+                <button type="button" class="anytable-adv-negate${negated ? ' active' : ''}" title="${translate('advancedPanel.filter.negateTooltip')}">!</button>
                 <select class="anytable-adv-comparator">
                     <option value="contains">${translate('advancedPanel.filter.comparator.contains')}</option>
                     <option value="startsWith">${translate('advancedPanel.filter.comparator.startsWith')}</option>
@@ -85,7 +106,7 @@ function buildFilterRuleRowHtml(columnOptionsHtml, rule, index) {
                     <input type="text" class="anytable-adv-max" placeholder="${translate('advancedPanel.filter.maxPlaceholder')}" value="${escapeHtml(max)}">
                 </div>
                 <input type="text" class="anytable-adv-flags" placeholder="${translate('advancedPanel.filter.flagsPlaceholder')}" style="display:${showRegex ? '' : 'none'};" value="${escapeHtml(flags)}">
-                <button type="button" class="anytable-advanced-btn danger anytable-adv-remove-rule">${translate('advancedPanel.common.delete')}</button>
+                <button type="button" class="anytable-adv-remove-rule">${translate('advancedPanel.common.delete')}</button>
             </div>
         </div>
     `;
@@ -93,7 +114,7 @@ function buildFilterRuleRowHtml(columnOptionsHtml, rule, index) {
 
 function createDefaultFilterRule(columnIndex) {
     return {
-        id: `leaf-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        id: generateId('leaf'),
         column: columnIndex,
         comparator: 'contains',
         value: '',
@@ -101,38 +122,311 @@ function createDefaultFilterRule(columnIndex) {
     };
 }
 
-function ensureFilterRules(initialRuleGroup, fallbackColumnIndex) {
-    if (!initialRuleGroup || !Array.isArray(initialRuleGroup.children) || initialRuleGroup.children.length === 0) {
-        return {
-            operator: 'AND',
-            rules: [createDefaultFilterRule(fallbackColumnIndex)]
-        };
-    }
-
+function createDefaultGroup(columnIndex) {
     return {
-        operator: initialRuleGroup.operator === 'OR' ? 'OR' : 'AND',
-        rules: initialRuleGroup.children.map((rule) => ({
-            id: rule.id || `leaf-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-            column: Number.isInteger(rule.column) ? rule.column : fallbackColumnIndex,
-            comparator: rule.comparator || 'contains',
-            value: rule.value || '',
-            options: {...(rule.options || {})}
-        }))
+        id: generateId('group'),
+        children: [createDefaultFilterRule(columnIndex)]
     };
 }
 
-function parseFilterRuleRow(rowElement) {
-    const comparator = rowElement.querySelector('.anytable-adv-comparator').value;
-    const column = Number(rowElement.querySelector('.anytable-adv-column').value);
-
-    if (Number.isNaN(column)) {
-        return {error: translate('advancedPanel.filter.errors.invalidColumn')};
+function normalizeNode(node, fallbackColumnIndex, index, globalOperator) {
+    const operator = index === 0 ? undefined : (node.operator || globalOperator);
+    if (Array.isArray(node.children)) {
+        return {
+            id: node.id || generateId('group'),
+            negated: node.negated || false,
+            operator,
+            children: normalizeChildren(node.children, fallbackColumnIndex, null)
+        };
     }
+    return {
+        id: node.id || generateId('leaf'),
+        column: fallbackColumnIndex,
+        comparator: node.comparator || 'contains',
+        negated: node.negated || false,
+        value: node.value || '',
+        options: {...(node.options || {})},
+        operator
+    };
+}
+
+function normalizeChildren(children, fallbackColumnIndex, globalOperator) {
+    if (!Array.isArray(children) || children.length === 0) {
+        return [createDefaultFilterRule(fallbackColumnIndex)];
+    }
+    return children.map((child, index) => normalizeNode(child, fallbackColumnIndex, index, globalOperator));
+}
+
+function ensureFilterRules(initialRuleGroup, fallbackColumnIndex) {
+    if (!initialRuleGroup || !Array.isArray(initialRuleGroup.children) || initialRuleGroup.children.length === 0) {
+        return [createDefaultFilterRule(fallbackColumnIndex)];
+    }
+    const globalOperator = initialRuleGroup.operator === 'OR' ? 'OR' : null;
+    return normalizeChildren(initialRuleGroup.children, fallbackColumnIndex, globalOperator);
+}
+
+function buildGroupHtml(groupNode, depth) {
+    const negated = groupNode.negated || false;
+    return `
+        <div class="anytable-adv-rule-group" data-group-id="${escapeHtml(groupNode.id)}">
+            <div class="anytable-adv-group-header">
+                <button type="button" class="anytable-adv-negate${negated ? ' active' : ''}" title="${translate('advancedPanel.filter.groupNegateTooltip')}">!</button>
+                <span class="anytable-adv-group-label">${translate('advancedPanel.filter.groupLabel')}</span>
+                <button type="button" class="anytable-adv-remove-group">${translate('advancedPanel.common.delete')}</button>
+            </div>
+            <div class="anytable-adv-group-children">
+                ${buildChildrenHtml(groupNode.children, depth + 1)}
+            </div>
+            <div class="anytable-adv-group-actions">
+                <button type="button" class="anytable-advanced-btn anytable-adv-add-rule">${translate('advancedPanel.filter.addRule')}</button>
+                <button type="button" class="anytable-advanced-btn anytable-adv-add-group">${translate('advancedPanel.filter.addGroup')}</button>
+            </div>
+        </div>
+    `;
+}
+
+function buildChildrenHtml(children, depth) {
+    let html = '';
+    children.forEach((child, index) => {
+        if (index > 0) {
+            html += buildFilterOperatorHtml(child.operator || 'AND');
+        }
+        if (isGroup(child)) {
+            html += buildGroupHtml(child, depth);
+        } else {
+            html += buildFilterRuleRowHtml(child);
+        }
+    });
+    return html;
+}
+
+function renderTree(containerEl, children, columnIndex, setHint) {
+    containerEl.innerHTML = buildChildrenHtml(children, 0);
+
+    const reRender = () => renderTree(containerEl, children, columnIndex, setHint);
+    bindChildrenEvents(containerEl, children, 0, columnIndex, setHint, reRender);
+}
+
+function findNodeIndex(children, id) {
+    return children.findIndex((c) => c.id === id);
+}
+
+function bindChildrenEvents(containerEl, children, depth, columnIndex, setHint, reRender) {
+    const directChildren = Array.from(containerEl.children);
+
+    for (const el of directChildren) {
+        if (el.classList.contains('anytable-adv-rule-operator')) {
+            const select = el.querySelector('.anytable-adv-inline-operator');
+            const ruleId = getNextSiblingNodeId(el);
+            if (select && ruleId !== null) {
+                const idx = findNodeIndex(children, ruleId);
+                if (idx >= 0) {
+                    select.value = children[idx].operator || 'AND';
+                    select.addEventListener('change', () => {
+                        children[idx].operator = select.value;
+                    });
+                }
+            }
+            continue;
+        }
+
+        const ruleId = el.getAttribute('data-rule-id');
+        const groupId = el.getAttribute('data-group-id');
+
+        if (ruleId) {
+            const idx = findNodeIndex(children, ruleId);
+            if (idx < 0) continue;
+            const rule = children[idx];
+
+            const comparatorSelect = el.querySelector('.anytable-adv-comparator');
+            if (comparatorSelect) {
+                comparatorSelect.value = rule.comparator;
+            }
+            setupFilterComparatorVisibility(el);
+
+            const negateBtn = el.querySelector('.anytable-adv-negate');
+            if (negateBtn) {
+                negateBtn.addEventListener('click', () => {
+                    rule.negated = !rule.negated;
+                    negateBtn.classList.toggle('active', rule.negated);
+                });
+            }
+
+            if (comparatorSelect) {
+                comparatorSelect.addEventListener('change', () => {
+                    rule.comparator = comparatorSelect.value;
+                });
+            }
+
+            const valueInput = el.querySelector('.anytable-adv-value');
+            if (valueInput) {
+                valueInput.addEventListener('input', () => {
+                    rule.value = valueInput.value;
+                });
+            }
+
+            const minInput = el.querySelector('.anytable-adv-min');
+            const maxInput = el.querySelector('.anytable-adv-max');
+            if (minInput) {
+                minInput.addEventListener('input', () => {
+                    rule.options = rule.options || {};
+                    rule.options.min = minInput.value;
+                });
+            }
+            if (maxInput) {
+                maxInput.addEventListener('input', () => {
+                    rule.options = rule.options || {};
+                    rule.options.max = maxInput.value;
+                });
+            }
+
+            const flagsInput = el.querySelector('.anytable-adv-flags');
+            if (flagsInput) {
+                flagsInput.addEventListener('input', () => {
+                    rule.options = rule.options || {};
+                    rule.options.flags = flagsInput.value;
+                });
+            }
+
+            const removeBtn = el.querySelector('.anytable-adv-remove-rule');
+            if (removeBtn) {
+                removeBtn.addEventListener('click', () => {
+                    if (children.length <= 1) {
+                        setHint(translate('advancedPanel.filter.hint.keepOneRule'), true);
+                        return;
+                    }
+                    children.splice(idx, 1);
+                    if (children.length > 0 && children[0].operator) {
+                        delete children[0].operator;
+                    }
+                    reRender();
+                });
+            }
+        } else if (groupId) {
+            const idx = findNodeIndex(children, groupId);
+            if (idx < 0) continue;
+            const groupNode = children[idx];
+
+            const negateBtn = el.querySelector(':scope > .anytable-adv-group-header > .anytable-adv-negate');
+            if (negateBtn) {
+                negateBtn.addEventListener('click', () => {
+                    groupNode.negated = !groupNode.negated;
+                    negateBtn.classList.toggle('active', groupNode.negated);
+                });
+            }
+
+            const removeGroupBtn = el.querySelector(':scope > .anytable-adv-group-header > .anytable-adv-remove-group');
+            if (removeGroupBtn) {
+                removeGroupBtn.addEventListener('click', () => {
+                    if (children.length <= 1) {
+                        setHint(translate('advancedPanel.filter.hint.keepOneRule'), true);
+                        return;
+                    }
+                    children.splice(idx, 1);
+                    if (children.length > 0 && children[0].operator) {
+                        delete children[0].operator;
+                    }
+                    reRender();
+                });
+            }
+
+            const addRuleBtn = el.querySelector(':scope > .anytable-adv-group-actions > .anytable-adv-add-rule');
+            if (addRuleBtn) {
+                addRuleBtn.addEventListener('click', () => {
+                    const newRule = createDefaultFilterRule(columnIndex);
+                    newRule.operator = 'AND';
+                    groupNode.children.push(newRule);
+                    reRender();
+                    setHint('');
+                });
+            }
+
+            const addGroupBtn = el.querySelector(':scope > .anytable-adv-group-actions > .anytable-adv-add-group');
+            if (addGroupBtn) {
+                addGroupBtn.addEventListener('click', () => {
+                    if (depth + 1 >= MAX_NESTING_DEPTH) {
+                        setHint(translate('advancedPanel.filter.hint.maxDepth', {max: MAX_NESTING_DEPTH}), true);
+                        return;
+                    }
+                    const newGroup = createDefaultGroup(columnIndex);
+                    newGroup.operator = 'AND';
+                    groupNode.children.push(newGroup);
+                    reRender();
+                    setHint('');
+                });
+            }
+
+            const groupChildrenContainer = el.querySelector(':scope > .anytable-adv-group-children');
+            if (groupChildrenContainer) {
+                bindChildrenEvents(groupChildrenContainer, groupNode.children, depth + 1, columnIndex, setHint, reRender);
+            }
+        }
+    }
+}
+
+function getNextSiblingNodeId(operatorEl) {
+    let next = operatorEl.nextElementSibling;
+    while (next) {
+        const ruleId = next.getAttribute('data-rule-id');
+        if (ruleId) return ruleId;
+        const groupId = next.getAttribute('data-group-id');
+        if (groupId) return groupId;
+        next = next.nextElementSibling;
+    }
+    return null;
+}
+
+function collectRuleTree(containerEl, children, columnIndex) {
+    const collected = [];
+
+    for (let i = 0; i < children.length; i++) {
+        const child = children[i];
+
+        if (isGroup(child)) {
+            const groupEl = containerEl.querySelector(`:scope > [data-group-id="${CSS.escape(child.id)}"]`);
+            if (!groupEl) continue;
+
+            const negated = groupEl.querySelector(':scope > .anytable-adv-group-header > .anytable-adv-negate')?.classList.contains('active') || false;
+            const groupChildrenContainer = groupEl.querySelector(':scope > .anytable-adv-group-children');
+
+            const subResult = collectRuleTree(groupChildrenContainer, child.children, columnIndex);
+            if (subResult.error) return subResult;
+
+            const groupRule = {
+                id: child.id,
+                negated,
+                children: subResult.rules
+            };
+            if (i > 0) {
+                groupRule.operator = child.operator || 'AND';
+            }
+            collected.push(groupRule);
+        } else {
+            const rowEl = containerEl.querySelector(`:scope > [data-rule-id="${CSS.escape(child.id)}"]`);
+            if (!rowEl) continue;
+
+            const {rule, error} = parseFilterRuleRow(rowEl, columnIndex);
+            if (error) return {error};
+
+            if (i > 0) {
+                rule.operator = child.operator || 'AND';
+            }
+            collected.push(rule);
+        }
+    }
+
+    return {rules: collected};
+}
+
+function parseFilterRuleRow(rowElement, columnIndex) {
+    const comparator = rowElement.querySelector('.anytable-adv-comparator').value;
+    const negated = rowElement.querySelector('.anytable-adv-negate').classList.contains('active');
 
     const rule = {
         id: `leaf-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-        column,
+        column: columnIndex,
         comparator,
+        negated,
         value: '',
         options: {}
     };
@@ -312,25 +606,19 @@ export function openAdvancedFilterPanel({
     onCancel
 }) {
     const {overlay, dialog} = createOverlayAndDialog();
-    const columnOptionsHtml = getColumnOptionsHtml(columnTitles);
-    const state = ensureFilterRules(initialRuleGroup, columnIndex);
+    const currentRules = ensureFilterRules(initialRuleGroup, columnIndex);
+    const columnName = columnTitles[columnIndex] || translate('advancedPanel.common.columnFallback', {index: columnIndex + 1});
 
     dialog.innerHTML = `
         <div class="anytable-advanced-header">
-            <div class="anytable-advanced-title">${translate('advancedPanel.filter.title')}</div>
+            <div class="anytable-advanced-title">${translate('advancedPanel.filter.title')} - ${escapeHtml(columnName)}</div>
             <button class="anytable-advanced-close" type="button" aria-label="${translate('advancedPanel.common.close')}">${MATERIAL_CLOSE_ICON_SVG}</button>
         </div>
         <div class="anytable-advanced-body">
-            <div class="anytable-advanced-row compact">
-                <label>${translate('advancedPanel.filter.operatorLabel')}</label>
-                <select class="anytable-adv-operator">
-                    <option value="AND">${translate('advancedPanel.filter.operator.and')}</option>
-                    <option value="OR">${translate('advancedPanel.filter.operator.or')}</option>
-                </select>
-            </div>
             <div class="anytable-adv-rule-list"></div>
-            <div class="anytable-advanced-row compact">
+            <div class="anytable-adv-group-actions">
                 <button type="button" class="anytable-advanced-btn anytable-adv-add-rule">${translate('advancedPanel.filter.addRule')}</button>
+                <button type="button" class="anytable-advanced-btn anytable-adv-add-group">${translate('advancedPanel.filter.addGroup')}</button>
             </div>
             <div class="anytable-advanced-hint" data-role="hint"></div>
         </div>
@@ -341,11 +629,8 @@ export function openAdvancedFilterPanel({
         </div>
     `;
 
-    const operatorSelect = dialog.querySelector('.anytable-adv-operator');
     const ruleList = dialog.querySelector('.anytable-adv-rule-list');
     const hintElement = dialog.querySelector('[data-role="hint"]');
-
-    operatorSelect.value = state.operator;
 
     function setHint(message, isError = false) {
         hintElement.textContent = message || '';
@@ -359,69 +644,62 @@ export function openAdvancedFilterPanel({
         }
     }
 
-    function renderRules(rules) {
-        ruleList.innerHTML = rules
-            .map((rule, index) => buildFilterRuleRowHtml(columnOptionsHtml, rule, index))
-            .join('');
-
-        const rows = Array.from(ruleList.querySelectorAll('.anytable-adv-rule-row'));
-        rows.forEach((row, index) => {
-            const rule = rules[index] || createDefaultFilterRule(columnIndex);
-            row.querySelector('.anytable-adv-column').value = String(rule.column);
-            row.querySelector('.anytable-adv-comparator').value = rule.comparator;
-
-            setupFilterComparatorVisibility(row);
-
-            row.querySelector('.anytable-adv-remove-rule').addEventListener('click', () => {
-                if (rules.length <= 1) {
-                    setHint(translate('advancedPanel.filter.hint.keepOneRule'), true);
-                    return;
-                }
-                rules.splice(index, 1);
-                renderRules(rules);
-            });
-        });
+    function doRender() {
+        renderTree(ruleList, currentRules, columnIndex, setHint);
     }
 
-    const currentRules = [...state.rules];
-    renderRules(currentRules);
+    doRender();
 
-    dialog.querySelector('.anytable-adv-add-rule').addEventListener('click', () => {
-        currentRules.push(createDefaultFilterRule(columnIndex));
-        renderRules(currentRules);
+    const rootActions = dialog.querySelector('.anytable-advanced-body > .anytable-adv-group-actions');
+
+    rootActions.querySelector('.anytable-adv-add-rule').addEventListener('click', () => {
+        const newRule = createDefaultFilterRule(columnIndex);
+        if (currentRules.length > 0) {
+            newRule.operator = 'AND';
+        }
+        currentRules.push(newRule);
+        doRender();
+        setHint('');
+    });
+
+    rootActions.querySelector('.anytable-adv-add-group').addEventListener('click', () => {
+        const newGroup = createDefaultGroup(columnIndex);
+        if (currentRules.length > 0) {
+            newGroup.operator = 'AND';
+        }
+        currentRules.push(newGroup);
+        doRender();
         setHint('');
     });
 
     dialog.querySelector('.anytable-advanced-close').addEventListener('click', () => closePanel(true));
     dialog.querySelector('.anytable-advanced-cancel').addEventListener('click', () => closePanel(true));
     dialog.querySelector('.anytable-advanced-reset').addEventListener('click', () => {
-        operatorSelect.value = 'AND';
         currentRules.length = 0;
         currentRules.push(createDefaultFilterRule(columnIndex));
-        renderRules(currentRules);
+        doRender();
         setHint(translate('advancedPanel.filter.hint.resetDone'));
     });
 
     dialog.querySelector('.anytable-advanced-apply').addEventListener('click', () => {
-        const rows = Array.from(ruleList.querySelectorAll('.anytable-adv-rule-row'));
-        if (!rows.length) {
+        if (currentRules.length === 0) {
             setHint(translate('advancedPanel.filter.hint.needOneRule'), true);
             return;
         }
 
-        const rules = [];
-        for (const row of rows) {
-            const {rule, error} = parseFilterRuleRow(row);
-            if (error) {
-                setHint(error, true);
-                return;
-            }
-            rules.push(rule);
+        const {rules, error} = collectRuleTree(ruleList, currentRules, columnIndex);
+        if (error) {
+            setHint(error, true);
+            return;
+        }
+
+        if (!rules || rules.length === 0) {
+            setHint(translate('advancedPanel.filter.hint.needOneRule'), true);
+            return;
         }
 
         const ruleGroup = {
             id: `group-${Date.now()}`,
-            operator: operatorSelect.value === 'OR' ? 'OR' : 'AND',
             children: rules
         };
 
