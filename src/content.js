@@ -89,13 +89,21 @@ class TableEnhancer {
     }
 
     createMaterialIconSvg(pathData) {
-        return `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="${pathData}"></path></svg>`;
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('viewBox', '0 0 24 24');
+        svg.setAttribute('aria-hidden', 'true');
+        svg.setAttribute('focusable', 'false');
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', pathData);
+        svg.appendChild(path);
+        return svg;
     }
 
     setButtonIcon(button, iconKey) {
         const pathData = MATERIAL_ICON_PATHS[iconKey];
         if (!pathData || !button) return;
-        button.innerHTML = this.createMaterialIconSvg(pathData);
+        button.textContent = '';
+        button.appendChild(this.createMaterialIconSvg(pathData));
     }
 
     setSortButtonIcon(button, direction, priority = null) {
@@ -106,13 +114,23 @@ class TableEnhancer {
         if (!pathData) return;
 
         const showPriority = Number.isInteger(priority) && priority > 0;
-        const iconHtml = `<span class="anytable-sort-icon">${this.createMaterialIconSvg(pathData)}</span>`;
+
+        // 清空按钮内容
+        button.textContent = '';
+
+        // 创建图标容器
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'anytable-sort-icon';
+        iconSpan.appendChild(this.createMaterialIconSvg(pathData));
+        button.appendChild(iconSpan);
 
         if (showPriority) {
-            button.innerHTML = `${iconHtml}<span class="anytable-sort-priority">${priority}</span>`;
+            const prioritySpan = document.createElement('span');
+            prioritySpan.className = 'anytable-sort-priority';
+            prioritySpan.textContent = priority;
+            button.appendChild(prioritySpan);
             button.style.setProperty('--anytable-sort-priority-digits', String(String(priority).length));
         } else {
-            button.innerHTML = iconHtml;
             button.style.removeProperty('--anytable-sort-priority-digits');
         }
 

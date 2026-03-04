@@ -13,6 +13,28 @@ function escapeHtml(text) {
 
 const MATERIAL_CLOSE_ICON_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>';
 
+function createCloseIconSvg() {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('focusable', 'false');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z');
+    svg.appendChild(path);
+    return svg;
+}
+
+// 安全地设置 HTML 内容（所有内容都已通过 escapeHtml 转义）
+function setInnerHTML(element, htmlString) {
+    // 使用 DOMParser 安全地解析 HTML
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlString, 'text/html');
+    element.textContent = '';
+    Array.from(doc.body.childNodes).forEach(node => {
+        element.appendChild(node.cloneNode(true));
+    });
+}
+
 function parseNumberLike(value) {
     if (value === null || value === undefined) return NaN;
     const normalized = value.toString().replace(/,/g, '').trim();
@@ -202,7 +224,7 @@ function buildChildrenHtml(children, depth) {
 }
 
 function renderTree(containerEl, children, columnIndex, setHint) {
-    containerEl.innerHTML = buildChildrenHtml(children, 0);
+    setInnerHTML(containerEl, buildChildrenHtml(children, 0));
 
     const reRender = () => renderTree(containerEl, children, columnIndex, setHint);
     bindChildrenEvents(containerEl, children, 0, columnIndex, setHint, reRender);
@@ -565,7 +587,7 @@ function openSortTypePopup(anchorButton, currentType, onSelect) {
     popup.appendChild(optionsContainer);
 
     function renderOptions(filter) {
-        optionsContainer.innerHTML = '';
+        optionsContainer.textContent = '';
         const lowerFilter = (filter || '').toLowerCase();
 
         SORT_TYPE_GROUPS.forEach((group, groupIndex) => {
@@ -708,28 +730,78 @@ export function openAdvancedFilterPanel({
     const currentRules = ensureFilterRules(initialRuleGroup, columnIndex);
     const columnName = columnTitles[columnIndex] || translate('advancedPanel.common.columnFallback', {index: columnIndex + 1});
 
-    dialog.innerHTML = `
-        <div class="anytable-advanced-header">
-            <div class="anytable-advanced-title">${translate('advancedPanel.filter.title')} - ${escapeHtml(columnName)}</div>
-            <button class="anytable-advanced-close" type="button" aria-label="${translate('advancedPanel.common.close')}">${MATERIAL_CLOSE_ICON_SVG}</button>
-        </div>
-        <div class="anytable-advanced-body">
-            <div class="anytable-adv-rule-list"></div>
-            <div class="anytable-adv-group-actions">
-                <button type="button" class="anytable-advanced-btn anytable-adv-add-rule">${translate('advancedPanel.filter.addRule')}</button>
-                <button type="button" class="anytable-advanced-btn anytable-adv-add-group">${translate('advancedPanel.filter.addGroup')}</button>
-            </div>
-            <div class="anytable-advanced-hint" data-role="hint"></div>
-        </div>
-        <div class="anytable-advanced-footer">
-            <button type="button" class="anytable-advanced-btn anytable-advanced-reset">${translate('advancedPanel.common.reset')}</button>
-            <button type="button" class="anytable-advanced-btn anytable-advanced-cancel">${translate('advancedPanel.common.cancel')}</button>
-            <button type="button" class="anytable-advanced-btn primary anytable-advanced-apply">${translate('advancedPanel.common.apply')}</button>
-        </div>
-    `;
+    // 创建 header
+    const header = document.createElement('div');
+    header.className = 'anytable-advanced-header';
 
-    const ruleList = dialog.querySelector('.anytable-adv-rule-list');
-    const hintElement = dialog.querySelector('[data-role="hint"]');
+    const title = document.createElement('div');
+    title.className = 'anytable-advanced-title';
+    title.textContent = `${translate('advancedPanel.filter.title')} - ${columnName}`;
+    header.appendChild(title);
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'anytable-advanced-close';
+    closeBtn.type = 'button';
+    closeBtn.setAttribute('aria-label', translate('advancedPanel.common.close'));
+    closeBtn.appendChild(createCloseIconSvg());
+    header.appendChild(closeBtn);
+
+    // 创建 body
+    const body = document.createElement('div');
+    body.className = 'anytable-advanced-body';
+
+    const ruleList = document.createElement('div');
+    ruleList.className = 'anytable-adv-rule-list';
+    body.appendChild(ruleList);
+
+    const groupActions = document.createElement('div');
+    groupActions.className = 'anytable-adv-group-actions';
+
+    const addRuleBtn = document.createElement('button');
+    addRuleBtn.type = 'button';
+    addRuleBtn.className = 'anytable-advanced-btn anytable-adv-add-rule';
+    addRuleBtn.textContent = translate('advancedPanel.filter.addRule');
+    groupActions.appendChild(addRuleBtn);
+
+    const addGroupBtn = document.createElement('button');
+    addGroupBtn.type = 'button';
+    addGroupBtn.className = 'anytable-advanced-btn anytable-adv-add-group';
+    addGroupBtn.textContent = translate('advancedPanel.filter.addGroup');
+    groupActions.appendChild(addGroupBtn);
+
+    body.appendChild(groupActions);
+
+    const hintElement = document.createElement('div');
+    hintElement.className = 'anytable-advanced-hint';
+    hintElement.setAttribute('data-role', 'hint');
+    body.appendChild(hintElement);
+
+    // 创建 footer
+    const footer = document.createElement('div');
+    footer.className = 'anytable-advanced-footer';
+
+    const resetBtn = document.createElement('button');
+    resetBtn.type = 'button';
+    resetBtn.className = 'anytable-advanced-btn anytable-advanced-reset';
+    resetBtn.textContent = translate('advancedPanel.common.reset');
+    footer.appendChild(resetBtn);
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'anytable-advanced-btn anytable-advanced-cancel';
+    cancelBtn.textContent = translate('advancedPanel.common.cancel');
+    footer.appendChild(cancelBtn);
+
+    const applyBtn = document.createElement('button');
+    applyBtn.type = 'button';
+    applyBtn.className = 'anytable-advanced-btn primary anytable-advanced-apply';
+    applyBtn.textContent = translate('advancedPanel.common.apply');
+    footer.appendChild(applyBtn);
+
+    // 组装对话框
+    dialog.appendChild(header);
+    dialog.appendChild(body);
+    dialog.appendChild(footer);
 
     function setHint(message, isError = false) {
         hintElement.textContent = message || '';
@@ -836,30 +908,74 @@ export function openAdvancedSortPanel({
         ? initialRules
         : [{column: columnIndex, direction: 'asc', type: 'auto', unitConfig: null, id: generateId('sort')}];
 
-    dialog.innerHTML = `
-        <div class="anytable-advanced-header">
-            <div class="anytable-advanced-title">${translate('advancedPanel.sort.title')}</div>
-            <button class="anytable-advanced-close" type="button" aria-label="${translate('advancedPanel.common.close')}">${MATERIAL_CLOSE_ICON_SVG}</button>
-        </div>
-        <div class="anytable-advanced-body">
-            <div class="anytable-adv-sort-list"></div>
-            <div class="anytable-adv-group-actions">
-                <button type="button" class="anytable-advanced-btn anytable-adv-add-sort-rule">${translate('advancedPanel.sort.addRule')}</button>
-            </div>
-            <div class="anytable-advanced-hint" data-role="hint"></div>
-        </div>
-        <div class="anytable-advanced-footer">
-            <button type="button" class="anytable-advanced-btn anytable-advanced-reset">${translate('advancedPanel.common.reset')}</button>
-            <button type="button" class="anytable-advanced-btn anytable-advanced-cancel">${translate('advancedPanel.common.cancel')}</button>
-            <button type="button" class="anytable-advanced-btn primary anytable-advanced-apply">${translate('advancedPanel.common.apply')}</button>
-        </div>
-    `;
+    // 创建 header
+    const header = document.createElement('div');
+    header.className = 'anytable-advanced-header';
 
-    const addBtn = dialog.querySelector('.anytable-adv-add-sort-rule');
+    const title = document.createElement('div');
+    title.className = 'anytable-advanced-title';
+    title.textContent = translate('advancedPanel.sort.title');
+    header.appendChild(title);
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'anytable-advanced-close';
+    closeBtn.type = 'button';
+    closeBtn.setAttribute('aria-label', translate('advancedPanel.common.close'));
+    closeBtn.appendChild(createCloseIconSvg());
+    header.appendChild(closeBtn);
+
+    // 创建 body
+    const body = document.createElement('div');
+    body.className = 'anytable-advanced-body';
+
+    const sortList = document.createElement('div');
+    sortList.className = 'anytable-adv-sort-list';
+    body.appendChild(sortList);
+
+    const groupActions = document.createElement('div');
+    groupActions.className = 'anytable-adv-group-actions';
+
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'anytable-advanced-btn anytable-adv-add-sort-rule';
+    addBtn.textContent = translate('advancedPanel.sort.addRule');
+    groupActions.appendChild(addBtn);
+
+    body.appendChild(groupActions);
+
+    const hintElement = document.createElement('div');
+    hintElement.className = 'anytable-advanced-hint';
+    hintElement.setAttribute('data-role', 'hint');
+    body.appendChild(hintElement);
+
+    // 创建 footer
+    const footer = document.createElement('div');
+    footer.className = 'anytable-advanced-footer';
+
+    const resetBtn = document.createElement('button');
+    resetBtn.type = 'button';
+    resetBtn.className = 'anytable-advanced-btn anytable-advanced-reset';
+    resetBtn.textContent = translate('advancedPanel.common.reset');
+    footer.appendChild(resetBtn);
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'anytable-advanced-btn anytable-advanced-cancel';
+    cancelBtn.textContent = translate('advancedPanel.common.cancel');
+    footer.appendChild(cancelBtn);
+
+    const applyBtn = document.createElement('button');
+    applyBtn.type = 'button';
+    applyBtn.className = 'anytable-advanced-btn primary anytable-advanced-apply';
+    applyBtn.textContent = translate('advancedPanel.common.apply');
+    footer.appendChild(applyBtn);
+
+    // 组装对话框
+    dialog.appendChild(header);
+    dialog.appendChild(body);
+    dialog.appendChild(footer);
+
     const selectMinWidth = addBtn ? addBtn.offsetWidth : 120;
-
-    const sortList = dialog.querySelector('.anytable-adv-sort-list');
-    const hintElement = dialog.querySelector('[data-role="hint"]');
 
     function setHint(message, isError = false) {
         hintElement.textContent = message || '';
@@ -965,9 +1081,10 @@ export function openAdvancedSortPanel({
     }
 
     function renderSortRules(rules) {
-        sortList.innerHTML = rules
+        const htmlString = rules
             .map((rule) => buildSortRuleRowHtml(columnOptionsHtml, rule))
             .join('');
+        setInnerHTML(sortList, htmlString);
 
         const rows = Array.from(sortList.querySelectorAll('.anytable-adv-sort-row'));
         rows.forEach((row, index) => bindSortRow(row, rules, index));
@@ -977,7 +1094,7 @@ export function openAdvancedSortPanel({
 
     function appendSortRule(rule, rules) {
         const tmp = document.createElement('div');
-        tmp.innerHTML = buildSortRuleRowHtml(columnOptionsHtml, rule);
+        setInnerHTML(tmp, buildSortRuleRowHtml(columnOptionsHtml, rule));
         const row = tmp.firstElementChild;
         sortList.appendChild(row);
         bindSortRow(row, rules, rules.length - 1);
