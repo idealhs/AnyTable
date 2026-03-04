@@ -522,6 +522,135 @@ function detectColumnType(values) {
     return best;
 }
 
+const SORT_TYPE_OPTIONS = ['auto', 'number', 'text', 'date', 'time', 'weight', 'percent', 'unit'];
+
+function getTypeLabel(type) {
+    return translate(`advancedPanel.sort.type.${type}`) || type;
+}
+
+function getButtonLabel(type, getColumnValues, columnIndex) {
+    if (type === 'auto') {
+        let detectedLabel = '';
+        if (typeof getColumnValues === 'function') {
+            const values = getColumnValues(columnIndex);
+            const detected = detectColumnType(values);
+            detectedLabel = getTypeLabel(detected);
+        }
+        return translate('advancedPanel.sort.typeButton.autoFormat', {type: detectedLabel || '...'});
+    }
+    return getTypeLabel(type);
+}
+
+function updateTypeButtonLabel(rowElement, getColumnValues) {
+    const btn = rowElement.querySelector('.anytable-adv-sort-type-btn');
+    const columnSelect = rowElement.querySelector('.anytable-adv-sort-column');
+    if (!btn) return;
+
+    const type = btn.getAttribute('data-sort-type') || 'auto';
+    const colIdx = Number(columnSelect.value);
+    btn.textContent = getButtonLabel(type, getColumnValues, colIdx);
+}
+
+function closeSortTypePopup() {
+    const existing = document.querySelector('.anytable-sort-type-popup');
+    if (existing) existing.remove();
+}
+
+function openSortTypePopup(anchorButton, currentType, onSelect) {
+    closeSortTypePopup();
+
+    const popup = document.createElement('div');
+    popup.className = 'anytable-sort-type-popup';
+
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.className = 'anytable-sort-type-search';
+    searchInput.placeholder = translate('advancedPanel.sort.typePopup.searchPlaceholder');
+    popup.appendChild(searchInput);
+
+    const optionsContainer = document.createElement('div');
+    optionsContainer.className = 'anytable-sort-type-options';
+    popup.appendChild(optionsContainer);
+
+    function renderOptions(filter) {
+        optionsContainer.innerHTML = '';
+        const lowerFilter = (filter || '').toLowerCase();
+
+        SORT_TYPE_OPTIONS.forEach((type, index) => {
+            const label = getTypeLabel(type);
+            if (lowerFilter && !label.toLowerCase().includes(lowerFilter) && !type.toLowerCase().includes(lowerFilter)) {
+                return;
+            }
+
+            if (index === 1 && !lowerFilter) {
+                const divider = document.createElement('div');
+                divider.className = 'anytable-sort-type-divider';
+                optionsContainer.appendChild(divider);
+            }
+
+            const option = document.createElement('div');
+            option.className = 'anytable-sort-type-option';
+            if (type === currentType) option.classList.add('selected');
+            option.textContent = label;
+            option.addEventListener('click', () => {
+                onSelect(type);
+                closePopup();
+            });
+            optionsContainer.appendChild(option);
+        });
+    }
+
+    renderOptions('');
+
+    searchInput.addEventListener('input', () => {
+        renderOptions(searchInput.value);
+    });
+
+    document.body.appendChild(popup);
+
+    // Position below the anchor button
+    const rect = anchorButton.getBoundingClientRect();
+    popup.style.top = (rect.bottom + 2) + 'px';
+    popup.style.left = rect.left + 'px';
+
+    // Adjust if popup goes off-screen
+    const popupRect = popup.getBoundingClientRect();
+    if (popupRect.right > window.innerWidth) {
+        popup.style.left = (window.innerWidth - popupRect.width - 4) + 'px';
+    }
+    if (popupRect.bottom > window.innerHeight) {
+        popup.style.top = (rect.top - popupRect.height - 2) + 'px';
+    }
+
+    searchInput.focus();
+
+    function closePopup() {
+        popup.remove();
+        document.removeEventListener('mousedown', outsideClickHandler, true);
+        document.removeEventListener('keydown', escHandler, true);
+    }
+
+    function outsideClickHandler(e) {
+        if (!popup.contains(e.target) && e.target !== anchorButton) {
+            closePopup();
+        }
+    }
+
+    function escHandler(e) {
+        if (e.key === 'Escape') {
+            e.stopPropagation();
+            e.preventDefault();
+            closePopup();
+        }
+    }
+
+    // Delay to avoid immediate close from the same click
+    setTimeout(() => {
+        document.addEventListener('mousedown', outsideClickHandler, true);
+        document.addEventListener('keydown', escHandler, true);
+    }, 0);
+}
+
 function buildSortRuleRowHtml(columnOptionsHtml, rule) {
     const column = Number.isInteger(rule?.column) ? rule.column : 0;
     const direction = rule?.direction === 'desc' ? 'desc' : 'asc';
@@ -535,13 +664,7 @@ function buildSortRuleRowHtml(columnOptionsHtml, rule) {
                     <option value="asc">${translate('advancedPanel.sort.direction.asc')}</option>
                     <option value="desc">${translate('advancedPanel.sort.direction.desc')}</option>
                 </select>
-                <select class="anytable-adv-sort-type">
-                    <option value="auto">${translate('advancedPanel.sort.type.auto')}</option>
-                    <option value="number">${translate('advancedPanel.sort.type.number')}</option>
-                    <option value="text">${translate('advancedPanel.sort.type.text')}</option>
-                    <option value="date">${translate('advancedPanel.sort.type.date')}</option>
-                </select>
-                <span class="anytable-adv-detected-type" style="display:${type === 'auto' ? '' : 'none'};"></span>
+                <button type="button" class="anytable-adv-sort-type-btn" data-sort-type="${escapeHtml(type)}">${getTypeLabel(type)}</button>
                 <button type="button" class="anytable-adv-remove-sort-rule">${translate('advancedPanel.common.delete')}</button>
             </div>
         </div>
@@ -555,7 +678,8 @@ function parseSortRuleRow(rowElement) {
     }
 
     const direction = rowElement.querySelector('.anytable-adv-sort-direction').value === 'desc' ? 'desc' : 'asc';
-    const type = rowElement.querySelector('.anytable-adv-sort-type').value || 'auto';
+    const typeBtn = rowElement.querySelector('.anytable-adv-sort-type-btn');
+    const type = (typeBtn && typeBtn.getAttribute('data-sort-type')) || 'auto';
 
     const rule = {
         column,
@@ -576,43 +700,6 @@ function fitSelectWidth(selectEl, minWidth = 0) {
     document.body.appendChild(measure);
     selectEl.style.width = Math.max(measure.offsetWidth + 28, minWidth) + 'px';
     measure.remove();
-}
-
-function updateDetectedTypeLabel(rowElement, getColumnValues) {
-    const typeSelect = rowElement.querySelector('.anytable-adv-sort-type');
-    const label = rowElement.querySelector('.anytable-adv-detected-type');
-    const columnSelect = rowElement.querySelector('.anytable-adv-sort-column');
-    if (!label) return;
-
-    if (typeSelect.value !== 'auto') {
-        label.style.display = 'none';
-        return;
-    }
-
-    label.style.display = '';
-    if (typeof getColumnValues !== 'function') {
-        label.textContent = '';
-        return;
-    }
-
-    const colIdx = Number(columnSelect.value);
-    const values = getColumnValues(colIdx);
-    const detected = detectColumnType(values);
-    const detectedLabel = translate(`advancedPanel.sort.detectedType.${detected}`);
-    label.textContent = detectedLabel ? `→ ${detectedLabel}` : '';
-}
-
-function setupSortTypeVisibility(rowElement, getColumnValues) {
-    const typeSelect = rowElement.querySelector('.anytable-adv-sort-type');
-    const columnSelect = rowElement.querySelector('.anytable-adv-sort-column');
-
-    const applyVisibility = () => {
-        updateDetectedTypeLabel(rowElement, getColumnValues);
-    };
-
-    typeSelect.addEventListener('change', applyVisibility);
-    columnSelect.addEventListener('change', () => updateDetectedTypeLabel(rowElement, getColumnValues));
-    applyVisibility();
 }
 
 export function openAdvancedFilterPanel({
@@ -785,6 +872,7 @@ export function openAdvancedSortPanel({
     }
 
     function closePanel(triggerCancel = true) {
+        closeSortTypePopup();
         overlay.remove();
         if (triggerCancel && typeof onCancel === 'function') {
             onCancel();
@@ -841,25 +929,32 @@ export function openAdvancedSortPanel({
         const rule = rules[index];
         const columnSelect = row.querySelector('.anytable-adv-sort-column');
         const directionSelect = row.querySelector('.anytable-adv-sort-direction');
-        const typeSelect = row.querySelector('.anytable-adv-sort-type');
+        const typeBtn = row.querySelector('.anytable-adv-sort-type-btn');
 
         columnSelect.value = String(rule.column);
         directionSelect.value = rule.direction;
-        typeSelect.value = rule.type;
+        typeBtn.setAttribute('data-sort-type', rule.type);
 
         columnSelect.addEventListener('change', () => {
             rule.column = Number(columnSelect.value);
             fitSelectWidth(columnSelect, selectMinWidth);
             updateColumnOptions(rules);
+            updateTypeButtonLabel(row, getColumnValues);
         });
         directionSelect.addEventListener('change', () => { rule.direction = directionSelect.value; fitSelectWidth(directionSelect); });
-        typeSelect.addEventListener('change', () => { rule.type = typeSelect.value; fitSelectWidth(typeSelect, selectMinWidth); });
+
+        typeBtn.addEventListener('click', () => {
+            openSortTypePopup(typeBtn, rule.type, (newType) => {
+                rule.type = newType;
+                typeBtn.setAttribute('data-sort-type', newType);
+                updateTypeButtonLabel(row, getColumnValues);
+            });
+        });
 
         fitSelectWidth(columnSelect, selectMinWidth);
         fitSelectWidth(directionSelect);
-        fitSelectWidth(typeSelect, selectMinWidth);
 
-        setupSortTypeVisibility(row, getColumnValues);
+        updateTypeButtonLabel(row, getColumnValues);
 
         row.querySelector('.anytable-adv-remove-sort-rule').addEventListener('click', () => {
             if (rules.length <= 1) {

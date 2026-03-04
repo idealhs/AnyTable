@@ -119,15 +119,17 @@ export default {
                 auto: '自动识别',
                 number: '数值',
                 text: '文本',
-                date: '日期'
-            },
-            detectedType: {
-                number: '数值',
+                date: '日期',
                 time: '时间',
                 weight: '重量',
                 percent: '百分比',
-                unit: '数值（带单位）',
-                text: '文本'
+                unit: '数值（带单位）'
+            },
+            typeButton: {
+                autoFormat: '自动: {type}'
+            },
+            typePopup: {
+                searchPlaceholder: '搜索类型...'
             },
             hint: {
                 keepOneRule: '至少保留一个排序规则。',

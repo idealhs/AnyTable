@@ -119,15 +119,17 @@ export default {
                 auto: 'Auto Detect',
                 number: 'Number',
                 text: 'Text',
-                date: 'Date'
-            },
-            detectedType: {
-                number: 'Number',
+                date: 'Date',
                 time: 'Time',
                 weight: 'Weight',
                 percent: 'Percent',
-                unit: 'Numeric (with unit)',
-                text: 'Text'
+                unit: 'Numeric (with unit)'
+            },
+            typeButton: {
+                autoFormat: 'Auto: {type}'
+            },
+            typePopup: {
+                searchPlaceholder: 'Search type...'
             },
             hint: {
                 keepOneRule: 'At least one sort rule is required.',
