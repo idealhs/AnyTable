@@ -132,7 +132,9 @@ export default {
             hint: {
                 keepOneRule: '至少保留一个排序规则。',
                 resetDone: '已重置高级排序配置。',
-                needOneRule: '请至少添加一个排序规则。'
+                needOneRule: '请至少添加一个排序规则。',
+                multiColumnAuto: '应用后将自动启用多列排序。',
+                allColumnsUsed: '所有列已添加排序规则。'
             },
             errors: {
                 invalidColumn: '列选择无效'

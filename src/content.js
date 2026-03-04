@@ -190,8 +190,12 @@ class TableEnhancer {
 
     applyAdvancedSort(table, advancedRules) {
         const normalizedRules = normalizeAdvancedSortRules(advancedRules);
-        if (!this.multiColumnSort && normalizedRules.length > 0) {
-            normalizedRules.splice(1);
+
+        // 高级排序包含多列时，自动启用多列排序
+        if (!this.multiColumnSort && normalizedRules.length > 1) {
+            this.multiColumnSort = true;
+            const browser = window.browser || chrome;
+            browser.storage.local.set({ multiColumnSort: true });
         }
 
         this.stateStore.setAdvancedSortRules(table, normalizedRules);

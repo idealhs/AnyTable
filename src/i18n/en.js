@@ -132,7 +132,9 @@ export default {
             hint: {
                 keepOneRule: 'At least one sort rule is required.',
                 resetDone: 'Advanced sort has been reset.',
-                needOneRule: 'Please add at least one sort rule.'
+                needOneRule: 'Please add at least one sort rule.',
+                multiColumnAuto: 'Multi-column sort will be enabled on apply.',
+                allColumnsUsed: 'All columns already have sort rules.'
             },
             errors: {
                 invalidColumn: 'Invalid column selection'

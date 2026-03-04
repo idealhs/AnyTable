@@ -799,6 +799,44 @@ export function openAdvancedSortPanel({
         unitConfig: rule.unitConfig || null
     }));
 
+    function getUsedColumns(rules) {
+        return new Set(rules.map(r => r.column));
+    }
+
+    function updateColumnOptions(rules) {
+        const used = getUsedColumns(rules);
+        const rows = Array.from(sortList.querySelectorAll('.anytable-adv-sort-row'));
+        rows.forEach((row, i) => {
+            const select = row.querySelector('.anytable-adv-sort-column');
+            if (!select) return;
+            const currentVal = Number(select.value);
+            Array.from(select.options).forEach(opt => {
+                const val = Number(opt.value);
+                opt.disabled = val !== currentVal && used.has(val);
+            });
+        });
+    }
+
+    function updateMultiColumnHint(rules) {
+        if (rules.length > 1) {
+            setHint(translate('advancedPanel.sort.hint.multiColumnAuto'));
+        } else {
+            // 清除该提示（如果当前显示的正好是该提示）
+            if (hintElement.textContent === translate('advancedPanel.sort.hint.multiColumnAuto')) {
+                setHint('');
+            }
+        }
+    }
+
+    function getFirstUnusedColumn(rules) {
+        const used = getUsedColumns(rules);
+        const totalColumns = columnTitles.length;
+        for (let i = 0; i < totalColumns; i++) {
+            if (!used.has(i)) return i;
+        }
+        return columnIndex;
+    }
+
     function bindSortRow(row, rules, index) {
         const rule = rules[index];
         const columnSelect = row.querySelector('.anytable-adv-sort-column');
@@ -809,7 +847,11 @@ export function openAdvancedSortPanel({
         directionSelect.value = rule.direction;
         typeSelect.value = rule.type;
 
-        columnSelect.addEventListener('change', () => { rule.column = Number(columnSelect.value); fitSelectWidth(columnSelect, selectMinWidth); });
+        columnSelect.addEventListener('change', () => {
+            rule.column = Number(columnSelect.value);
+            fitSelectWidth(columnSelect, selectMinWidth);
+            updateColumnOptions(rules);
+        });
         directionSelect.addEventListener('change', () => { rule.direction = directionSelect.value; fitSelectWidth(directionSelect); });
         typeSelect.addEventListener('change', () => { rule.type = typeSelect.value; fitSelectWidth(typeSelect, selectMinWidth); });
 
@@ -827,6 +869,8 @@ export function openAdvancedSortPanel({
             const idx = rules.indexOf(rule);
             if (idx >= 0) rules.splice(idx, 1);
             row.remove();
+            updateColumnOptions(rules);
+            updateMultiColumnHint(rules);
         });
     }
 
@@ -837,6 +881,8 @@ export function openAdvancedSortPanel({
 
         const rows = Array.from(sortList.querySelectorAll('.anytable-adv-sort-row'));
         rows.forEach((row, index) => bindSortRow(row, rules, index));
+        updateColumnOptions(rules);
+        updateMultiColumnHint(rules);
     }
 
     function appendSortRule(rule, rules) {
@@ -845,14 +891,20 @@ export function openAdvancedSortPanel({
         const row = tmp.firstElementChild;
         sortList.appendChild(row);
         bindSortRow(row, rules, rules.length - 1);
+        updateColumnOptions(rules);
+        updateMultiColumnHint(rules);
     }
 
     renderSortRules(currentRules);
 
     dialog.querySelector('.anytable-adv-add-sort-rule').addEventListener('click', () => {
+        if (currentRules.length >= columnTitles.length) {
+            setHint(translate('advancedPanel.sort.hint.allColumnsUsed'), true);
+            return;
+        }
         const newRule = {
             id: generateId('sort'),
-            column: columnIndex,
+            column: getFirstUnusedColumn(currentRules),
             direction: 'asc',
             type: 'auto',
             unitConfig: null
