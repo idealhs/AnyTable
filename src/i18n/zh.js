@@ -120,10 +120,23 @@ export default {
                 number: '数值',
                 text: '文本',
                 date: '日期',
-                time: '时间',
-                weight: '重量',
                 percent: '百分比',
-                unit: '数值（带单位）'
+                duration: '时长',
+                mass: '质量',
+                length: '长度',
+                area: '面积',
+                volume: '体积',
+                speed: '速度',
+                temperature: '温度',
+                pressure: '压力',
+                energy: '能量',
+                power: '功率',
+                voltage: '电压',
+                current: '电流',
+                resistance: '电阻',
+                frequency: '频率',
+                dataSize: '数据量',
+                bitrate: '码率'
             },
             typeButton: {
                 autoFormat: '自动: {type}'

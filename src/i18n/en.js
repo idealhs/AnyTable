@@ -120,10 +120,23 @@ export default {
                 number: 'Number',
                 text: 'Text',
                 date: 'Date',
-                time: 'Time',
-                weight: 'Weight',
                 percent: 'Percent',
-                unit: 'Numeric (with unit)'
+                duration: 'Duration',
+                mass: 'Mass',
+                length: 'Length',
+                area: 'Area',
+                volume: 'Volume',
+                speed: 'Speed',
+                temperature: 'Temperature',
+                pressure: 'Pressure',
+                energy: 'Energy',
+                power: 'Power',
+                voltage: 'Voltage',
+                current: 'Current',
+                resistance: 'Resistance',
+                frequency: 'Frequency',
+                dataSize: 'Data Size',
+                bitrate: 'Bitrate'
             },
             typeButton: {
                 autoFormat: 'Auto: {type}'

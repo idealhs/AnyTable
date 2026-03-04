@@ -1,5 +1,5 @@
 import i18n from '../i18n/i18n.js';
-import { parseNumberWithUnit } from '../core/type-parser.js';
+import { detectColumnUnitSystem } from '../core/type-parser.js';
 
 function escapeHtml(text) {
     return (text ?? '')
@@ -503,26 +503,18 @@ function setupFilterComparatorVisibility(rowElement) {
 
 function detectColumnType(values) {
     if (!values || values.length === 0) return 'text';
-
-    const counts = {};
-    for (const val of values) {
-        const result = parseNumberWithUnit(val);
-        const type = result.success ? result.type : 'text';
-        counts[type] = (counts[type] || 0) + 1;
-    }
-
-    let best = 'text';
-    let bestCount = 0;
-    for (const [type, count] of Object.entries(counts)) {
-        if (count > bestCount) {
-            best = type;
-            bestCount = count;
-        }
-    }
-    return best;
+    return detectColumnUnitSystem(values).type;
 }
 
-const SORT_TYPE_OPTIONS = ['auto', 'number', 'text', 'date', 'time', 'weight', 'percent', 'unit'];
+const SORT_TYPE_GROUPS = [
+    ['auto'],
+    ['number', 'text', 'date', 'percent'],
+    ['duration', 'mass', 'length', 'area', 'volume', 'speed',
+     'temperature', 'pressure', 'energy', 'power', 'voltage',
+     'current', 'resistance', 'frequency', 'dataSize', 'bitrate']
+];
+
+const SORT_TYPE_OPTIONS = SORT_TYPE_GROUPS.flat();
 
 function getTypeLabel(type) {
     return translate(`advancedPanel.sort.type.${type}`) || type;
@@ -576,27 +568,30 @@ function openSortTypePopup(anchorButton, currentType, onSelect) {
         optionsContainer.innerHTML = '';
         const lowerFilter = (filter || '').toLowerCase();
 
-        SORT_TYPE_OPTIONS.forEach((type, index) => {
-            const label = getTypeLabel(type);
-            if (lowerFilter && !label.toLowerCase().includes(lowerFilter) && !type.toLowerCase().includes(lowerFilter)) {
-                return;
-            }
+        SORT_TYPE_GROUPS.forEach((group, groupIndex) => {
+            const filtered = group.filter(type => {
+                const label = getTypeLabel(type);
+                return !lowerFilter || label.toLowerCase().includes(lowerFilter) || type.toLowerCase().includes(lowerFilter);
+            });
+            if (filtered.length === 0) return;
 
-            if (index === 1 && !lowerFilter) {
+            if (groupIndex > 0 && optionsContainer.children.length > 0 && !lowerFilter) {
                 const divider = document.createElement('div');
                 divider.className = 'anytable-sort-type-divider';
                 optionsContainer.appendChild(divider);
             }
 
-            const option = document.createElement('div');
-            option.className = 'anytable-sort-type-option';
-            if (type === currentType) option.classList.add('selected');
-            option.textContent = label;
-            option.addEventListener('click', () => {
-                onSelect(type);
-                closePopup();
-            });
-            optionsContainer.appendChild(option);
+            for (const type of filtered) {
+                const option = document.createElement('div');
+                option.className = 'anytable-sort-type-option';
+                if (type === currentType) option.classList.add('selected');
+                option.textContent = getTypeLabel(type);
+                option.addEventListener('click', () => {
+                    onSelect(type);
+                    closePopup();
+                });
+                optionsContainer.appendChild(option);
+            }
         });
     }
 
