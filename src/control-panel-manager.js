@@ -1,8 +1,4 @@
 import i18n from './i18n/i18n.js';
-import { getColumnValues } from './core/table-data.js';
-import { openAdvancedFilterPanel } from './ui/filter-panel.js';
-import { openAdvancedSortPanel } from './ui/sort-panel.js';
-import { openStatisticsPanel } from './ui/statistics-panel.js';
 
 export class ControlPanelManager {
     constructor(enhancer) {
@@ -16,36 +12,8 @@ export class ControlPanelManager {
             return;
         }
 
-        const actualTitle = header.childNodes[0]?.textContent.trim() || '';
-
         const controlPanel = document.createElement('div');
         controlPanel.className = 'anytable-control-panel';
-
-        const panelHeader = document.createElement('div');
-        panelHeader.className = 'panel-header';
-
-        const advancedButtons = document.createElement('div');
-        advancedButtons.className = 'advanced-buttons';
-
-        const advancedFilterButton = document.createElement('button');
-        advancedFilterButton.className = 'control-button';
-        this.enhancer.setButtonIcon(advancedFilterButton, 'advancedFilter');
-        advancedFilterButton.title = i18n.t('columnControl.filter.advanced');
-
-        const advancedSortButton = document.createElement('button');
-        advancedSortButton.className = 'control-button';
-        this.enhancer.setButtonIcon(advancedSortButton, 'advancedSort');
-        advancedSortButton.title = i18n.t('columnControl.sort.advanced');
-
-        const statisticsButton = document.createElement('button');
-        statisticsButton.className = 'control-button';
-        this.enhancer.setButtonIcon(statisticsButton, 'statistics');
-        statisticsButton.title = i18n.t('columnControl.statistics');
-
-        advancedButtons.appendChild(advancedFilterButton);
-        advancedButtons.appendChild(advancedSortButton);
-        advancedButtons.appendChild(statisticsButton);
-        panelHeader.appendChild(advancedButtons);
 
         const filterRow = document.createElement('div');
         filterRow.className = 'control-row';
@@ -66,7 +34,6 @@ export class ControlPanelManager {
 
         filterRow.appendChild(filterInput);
 
-        controlPanel.appendChild(panelHeader);
         controlPanel.appendChild(filterRow);
 
         header.appendChild(controlPanel);
@@ -113,64 +80,6 @@ export class ControlPanelManager {
                 this.enhancer.stateStore.setFilterValue(table, columnIndex, '');
                 this.enhancer.filterTable(table, columnIndex, '');
             }
-        });
-
-        advancedFilterButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const columnTitles = this.enhancer.getColumnTitles(table);
-            const initialRuleGroup = this.enhancer.stateStore.getAdvancedFilterRules(table) || {
-                id: `group-${Date.now()}`,
-                operator: 'AND',
-                children: [{
-                    id: `leaf-${Date.now()}`,
-                    column: columnIndex,
-                    comparator: 'contains',
-                    value: '',
-                    options: {}
-                }]
-            };
-
-            openAdvancedFilterPanel({
-                columnIndex,
-                columnTitles,
-                initialRuleGroup,
-                onApply: (ruleGroup) => {
-                    this.enhancer.stateStore.setAdvancedFilterRules(table, ruleGroup);
-                    this.enhancer.applyAllFilters(table);
-                }
-            });
-        });
-
-        advancedSortButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const columnTitles = this.enhancer.getColumnTitles(table);
-            const initialRules = this.enhancer.stateStore.getAdvancedSortRules(table);
-
-            openAdvancedSortPanel({
-                columnIndex,
-                columnTitles,
-                initialRules,
-                tableElement: table,
-                getColumnValues: (colIdx) => getColumnValues(table, colIdx),
-                onApply: (rules) => {
-                    this.enhancer.applyAdvancedSort(table, rules);
-                }
-            });
-        });
-
-        statisticsButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const columnTitles = this.enhancer.getColumnTitles(table);
-            const initialRules = this.enhancer.stateStore.getStatisticsRules(table);
-
-            openStatisticsPanel({
-                columnIndex,
-                columnTitles,
-                initialRules,
-                onApply: (rules) => {
-                    this.enhancer.applyStatistics(table, rules);
-                }
-            });
         });
 
         const closePanel = (e) => {

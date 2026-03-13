@@ -1,4 +1,4 @@
-import { escapeHtml, createCloseIconSvg, setInnerHTML, parseNumberLike, translate, createOverlayAndDialog } from './panel-utils.js';
+import { escapeHtml, createCloseIconSvg, setInnerHTML, parseNumberLike, translate, getColumnOptionsHtml, createOverlayAndDialog } from './panel-utils.js';
 
 function buildFilterOperatorHtml(operator) {
     return `
@@ -21,7 +21,7 @@ function generateId(prefix) {
     return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function buildFilterRuleRowHtml(rule) {
+function buildFilterRuleRowHtml(rule, columnOptionsHtml) {
     const comparator = rule?.comparator || 'contains';
     const negated = rule?.negated || false;
     const value = rule?.value || '';
@@ -37,6 +37,7 @@ function buildFilterRuleRowHtml(rule) {
         <div class="anytable-adv-rule-row" data-rule-id="${escapeHtml(rule.id)}">
             <div class="anytable-adv-rule-grid">
                 <button type="button" class="anytable-adv-negate${negated ? ' active' : ''}" title="${translate('advancedPanel.filter.negateTooltip')}">!</button>
+                <select class="anytable-adv-filter-column">${columnOptionsHtml}</select>
                 <select class="anytable-adv-comparator">
                     <option value="contains">${translate('advancedPanel.filter.comparator.contains')}</option>
                     <option value="startsWith">${translate('advancedPanel.filter.comparator.startsWith')}</option>
@@ -92,7 +93,7 @@ function normalizeNode(node, fallbackColumnIndex, index, globalOperator) {
     }
     return {
         id: node.id || generateId('leaf'),
-        column: fallbackColumnIndex,
+        column: Number.isInteger(node.column) ? node.column : fallbackColumnIndex,
         comparator: node.comparator || 'contains',
         negated: node.negated || false,
         value: node.value || '',
@@ -116,7 +117,7 @@ function ensureFilterRules(initialRuleGroup, fallbackColumnIndex) {
     return normalizeChildren(initialRuleGroup.children, fallbackColumnIndex, globalOperator);
 }
 
-function buildGroupHtml(groupNode, depth) {
+function buildGroupHtml(groupNode, depth, columnOptionsHtml) {
     const negated = groupNode.negated || false;
     return `
         <div class="anytable-adv-rule-group" data-group-id="${escapeHtml(groupNode.id)}">
@@ -126,7 +127,7 @@ function buildGroupHtml(groupNode, depth) {
                 <button type="button" class="anytable-adv-remove-group">${translate('advancedPanel.common.delete')}</button>
             </div>
             <div class="anytable-adv-group-children">
-                ${buildChildrenHtml(groupNode.children, depth + 1)}
+                ${buildChildrenHtml(groupNode.children, depth + 1, columnOptionsHtml)}
             </div>
             <div class="anytable-adv-group-actions">
                 <button type="button" class="anytable-advanced-btn anytable-adv-add-rule">${translate('advancedPanel.filter.addRule')}</button>
@@ -136,33 +137,33 @@ function buildGroupHtml(groupNode, depth) {
     `;
 }
 
-function buildChildrenHtml(children, depth) {
+function buildChildrenHtml(children, depth, columnOptionsHtml) {
     let html = '';
     children.forEach((child, index) => {
         if (index > 0) {
             html += buildFilterOperatorHtml(child.operator || 'AND');
         }
         if (isGroup(child)) {
-            html += buildGroupHtml(child, depth);
+            html += buildGroupHtml(child, depth, columnOptionsHtml);
         } else {
-            html += buildFilterRuleRowHtml(child);
+            html += buildFilterRuleRowHtml(child, columnOptionsHtml);
         }
     });
     return html;
 }
 
-function renderTree(containerEl, children, columnIndex, setHint) {
-    setInnerHTML(containerEl, buildChildrenHtml(children, 0));
+function renderTree(containerEl, children, columnOptionsHtml, setHint) {
+    setInnerHTML(containerEl, buildChildrenHtml(children, 0, columnOptionsHtml));
 
-    const reRender = () => renderTree(containerEl, children, columnIndex, setHint);
-    bindChildrenEvents(containerEl, children, 0, columnIndex, setHint, reRender);
+    const reRender = () => renderTree(containerEl, children, columnOptionsHtml, setHint);
+    bindChildrenEvents(containerEl, children, 0, columnOptionsHtml, setHint, reRender);
 }
 
 function findNodeIndex(children, id) {
     return children.findIndex((c) => c.id === id);
 }
 
-function bindChildrenEvents(containerEl, children, depth, columnIndex, setHint, reRender) {
+function bindChildrenEvents(containerEl, children, depth, columnOptionsHtml, setHint, reRender) {
     const directChildren = Array.from(containerEl.children);
 
     for (const el of directChildren) {
@@ -188,6 +189,14 @@ function bindChildrenEvents(containerEl, children, depth, columnIndex, setHint, 
             const idx = findNodeIndex(children, ruleId);
             if (idx < 0) continue;
             const rule = children[idx];
+
+            const columnSelect = el.querySelector('.anytable-adv-filter-column');
+            if (columnSelect) {
+                columnSelect.value = String(rule.column);
+                columnSelect.addEventListener('change', () => {
+                    rule.column = Number(columnSelect.value);
+                });
+            }
 
             const comparatorSelect = el.querySelector('.anytable-adv-comparator');
             if (comparatorSelect) {
@@ -284,7 +293,7 @@ function bindChildrenEvents(containerEl, children, depth, columnIndex, setHint, 
             const addRuleBtn = el.querySelector(':scope > .anytable-adv-group-actions > .anytable-adv-add-rule');
             if (addRuleBtn) {
                 addRuleBtn.addEventListener('click', () => {
-                    const newRule = createDefaultFilterRule(columnIndex);
+                    const newRule = createDefaultFilterRule(0);
                     newRule.operator = 'AND';
                     groupNode.children.push(newRule);
                     reRender();
@@ -299,7 +308,7 @@ function bindChildrenEvents(containerEl, children, depth, columnIndex, setHint, 
                         setHint(translate('advancedPanel.filter.hint.maxDepth', {max: MAX_NESTING_DEPTH}), true);
                         return;
                     }
-                    const newGroup = createDefaultGroup(columnIndex);
+                    const newGroup = createDefaultGroup(0);
                     newGroup.operator = 'AND';
                     groupNode.children.push(newGroup);
                     reRender();
@@ -309,7 +318,7 @@ function bindChildrenEvents(containerEl, children, depth, columnIndex, setHint, 
 
             const groupChildrenContainer = el.querySelector(':scope > .anytable-adv-group-children');
             if (groupChildrenContainer) {
-                bindChildrenEvents(groupChildrenContainer, groupNode.children, depth + 1, columnIndex, setHint, reRender);
+                bindChildrenEvents(groupChildrenContainer, groupNode.children, depth + 1, columnOptionsHtml, setHint, reRender);
             }
         }
     }
@@ -327,7 +336,7 @@ function getNextSiblingNodeId(operatorEl) {
     return null;
 }
 
-function collectRuleTree(containerEl, children, columnIndex) {
+function collectRuleTree(containerEl, children) {
     const collected = [];
 
     for (let i = 0; i < children.length; i++) {
@@ -340,7 +349,7 @@ function collectRuleTree(containerEl, children, columnIndex) {
             const negated = groupEl.querySelector(':scope > .anytable-adv-group-header > .anytable-adv-negate')?.classList.contains('active') || false;
             const groupChildrenContainer = groupEl.querySelector(':scope > .anytable-adv-group-children');
 
-            const subResult = collectRuleTree(groupChildrenContainer, child.children, columnIndex);
+            const subResult = collectRuleTree(groupChildrenContainer, child.children);
             if (subResult.error) return subResult;
 
             const groupRule = {
@@ -356,7 +365,7 @@ function collectRuleTree(containerEl, children, columnIndex) {
             const rowEl = containerEl.querySelector(`:scope > [data-rule-id="${CSS.escape(child.id)}"]`);
             if (!rowEl) continue;
 
-            const {rule, error} = parseFilterRuleRow(rowEl, columnIndex);
+            const {rule, error} = parseFilterRuleRow(rowEl);
             if (error) return {error};
 
             if (i > 0) {
@@ -369,13 +378,14 @@ function collectRuleTree(containerEl, children, columnIndex) {
     return {rules: collected};
 }
 
-function parseFilterRuleRow(rowElement, columnIndex) {
+function parseFilterRuleRow(rowElement) {
     const comparator = rowElement.querySelector('.anytable-adv-comparator').value;
     const negated = rowElement.querySelector('.anytable-adv-negate').classList.contains('active');
+    const column = Number(rowElement.querySelector('.anytable-adv-filter-column').value);
 
     const rule = {
         id: `leaf-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-        column: columnIndex,
+        column,
         comparator,
         negated,
         value: '',
@@ -452,15 +462,14 @@ function setupFilterComparatorVisibility(rowElement) {
 }
 
 export function openAdvancedFilterPanel({
-    columnIndex,
     columnTitles,
     initialRuleGroup,
     onApply,
     onCancel
 }) {
     const {overlay, dialog} = createOverlayAndDialog();
-    const currentRules = ensureFilterRules(initialRuleGroup, columnIndex);
-    const columnName = columnTitles[columnIndex] || translate('advancedPanel.common.columnFallback', {index: columnIndex + 1});
+    const columnOptionsHtml = getColumnOptionsHtml(columnTitles);
+    const currentRules = ensureFilterRules(initialRuleGroup, 0);
 
     // 创建 header
     const header = document.createElement('div');
@@ -468,7 +477,7 @@ export function openAdvancedFilterPanel({
 
     const title = document.createElement('div');
     title.className = 'anytable-advanced-title';
-    title.textContent = `${translate('advancedPanel.filter.title')} - ${columnName}`;
+    title.textContent = translate('advancedPanel.filter.title');
     header.appendChild(title);
 
     const closeBtn = document.createElement('button');
@@ -548,7 +557,7 @@ export function openAdvancedFilterPanel({
     }
 
     function doRender() {
-        renderTree(ruleList, currentRules, columnIndex, setHint);
+        renderTree(ruleList, currentRules, columnOptionsHtml, setHint);
     }
 
     doRender();
@@ -556,7 +565,7 @@ export function openAdvancedFilterPanel({
     const rootActions = dialog.querySelector('.anytable-advanced-body > .anytable-adv-group-actions');
 
     rootActions.querySelector('.anytable-adv-add-rule').addEventListener('click', () => {
-        const newRule = createDefaultFilterRule(columnIndex);
+        const newRule = createDefaultFilterRule(0);
         if (currentRules.length > 0) {
             newRule.operator = 'AND';
         }
@@ -566,7 +575,7 @@ export function openAdvancedFilterPanel({
     });
 
     rootActions.querySelector('.anytable-adv-add-group').addEventListener('click', () => {
-        const newGroup = createDefaultGroup(columnIndex);
+        const newGroup = createDefaultGroup(0);
         if (currentRules.length > 0) {
             newGroup.operator = 'AND';
         }
@@ -579,7 +588,7 @@ export function openAdvancedFilterPanel({
     dialog.querySelector('.anytable-advanced-cancel').addEventListener('click', () => closePanel(true));
     dialog.querySelector('.anytable-advanced-reset').addEventListener('click', () => {
         currentRules.length = 0;
-        currentRules.push(createDefaultFilterRule(columnIndex));
+        currentRules.push(createDefaultFilterRule(0));
         doRender();
         setHint(translate('advancedPanel.filter.hint.resetDone'));
     });
@@ -590,7 +599,7 @@ export function openAdvancedFilterPanel({
             return;
         }
 
-        const {rules, error} = collectRuleTree(ruleList, currentRules, columnIndex);
+        const {rules, error} = collectRuleTree(ruleList, currentRules);
         if (error) {
             setHint(error, true);
             return;

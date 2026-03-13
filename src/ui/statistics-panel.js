@@ -52,9 +52,10 @@ export function openStatisticsPanel({
     const {overlay, dialog} = createOverlayAndDialog();
     const columnOptionsHtml = getColumnOptionsHtml(columnTitles);
     const statTypeOptionsHtml = getStatTypeOptionsHtml();
+    const effectiveColumnIndex = columnIndex ?? 0;
     const seedRules = Array.isArray(initialRules) && initialRules.length
         ? initialRules
-        : [{column: columnIndex, statType: 'count', id: generateId('stats')}];
+        : [{column: effectiveColumnIndex, statType: 'count', id: generateId('stats')}];
 
     // Header
     const header = document.createElement('div');
@@ -135,7 +136,7 @@ export function openStatisticsPanel({
 
     const currentRules = seedRules.map(rule => ({
         id: generateId('stats'),
-        column: Number.isInteger(rule.column) ? rule.column : columnIndex,
+        column: Number.isInteger(rule.column) ? rule.column : effectiveColumnIndex,
         statType: rule.statType || 'count'
     }));
 
@@ -203,7 +204,7 @@ export function openStatisticsPanel({
     addBtn.addEventListener('click', () => {
         const newRule = {
             id: generateId('stats'),
-            column: columnIndex,
+            column: effectiveColumnIndex,
             statType: 'count'
         };
         currentRules.push(newRule);
@@ -218,7 +219,7 @@ export function openStatisticsPanel({
         currentRules.length = 0;
         currentRules.push({
             id: generateId('stats'),
-            column: columnIndex,
+            column: effectiveColumnIndex,
             statType: 'count'
         });
         renderRules(currentRules);

@@ -3,6 +3,57 @@
     position: relative;
 }
 
+/* 悬浮工具栏 */
+.anytable-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    height: 0;
+    overflow: visible;
+    position: relative;
+    z-index: 2;
+}
+
+.anytable-toolbar-button {
+    width: 48px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid #c4d9f2;
+    border-radius: 0;
+    background: #f0f5ff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    position: relative;
+    top: -26px;
+}
+
+.anytable-toolbar-button + .anytable-toolbar-button {
+    border-left: none;
+}
+
+.anytable-toolbar-button:first-child {
+    border-radius: 3px 0 0 3px;
+}
+
+.anytable-toolbar-button:last-child {
+    border-radius: 0 3px 3px 0;
+}
+
+.anytable-toolbar-button:hover {
+    border-color: #4a90e0;
+    background-color: #e0ecff;
+    box-shadow: 0 0 0 2px rgba(74, 144, 224, 0.2);
+}
+
+.anytable-toolbar-button svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+    fill: currentColor;
+}
+
 /* 展开按钮样式 */
 .anytable-expand {
     position: absolute;
@@ -108,30 +159,6 @@
     display: block;
 }
 
-.panel-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 8px;
-    padding-bottom: 4px;
-    border-bottom: 1px solid #dee2e6;
-}
-
-.column-title {
-    font-size: 14px;
-    font-weight: 500;
-    color: #333;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.advanced-buttons {
-    display: flex;
-    gap: 4px;
-    margin-left: 8px;
-}
-
 .control-row {
     display: flex;
     align-items: center;
@@ -181,34 +208,6 @@
     color: #999;
     cursor: not-allowed;
     border-color: #ddd;
-}
-
-.control-button {
-    width: 48px;
-    height: 24px;
-    padding: 0;
-    border: 1px solid #ccc;
-    border-radius: 3px;
-    background: white;
-    cursor: pointer;
-    font-size: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-    flex-shrink: 0;
-}
-
-.control-button:hover {
-    border-color: #4a90e0;
-    box-shadow: 0 0 0 2px rgba(74,144,224,0.2);
-}
-
-.control-button svg {
-    width: 16px;
-    height: 16px;
-    display: block;
-    fill: currentColor;
 }
 
 /* 选择模式样式 */
@@ -295,12 +294,6 @@
     font-weight: 600;
     line-height: 1;
 }
-
-/* 确保高级按钮的emoji大小合适 */
-.control-button {
-    font-size: 12px;
-    line-height: 1;
-} 
 
 /* 高级面板样式 */
 .anytable-advanced-overlay {
@@ -512,6 +505,17 @@
     box-sizing: border-box;
 }
 
+.anytable-adv-rule-grid .anytable-adv-filter-column {
+    height: 32px;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    padding: 0 6px;
+    font-size: 13px;
+    box-sizing: border-box;
+    min-width: 0;
+    flex-shrink: 0;
+}
+
 .anytable-adv-rule-grid .anytable-adv-value {
     flex: 1;
     min-width: 0;
@@ -709,6 +713,12 @@
     padding: 0 6px;
     font-size: 13px;
     box-sizing: border-box;
+}
+
+.anytable-adv-sort-grid .anytable-adv-stats-column,
+.anytable-adv-sort-grid .anytable-adv-stats-type {
+    min-width: 120px;
+    width: auto;
 }
 
 /* 分组容器样式 */

@@ -6,6 +6,7 @@ import { computeStatisticsData } from './core/statistics-engine.js';
 import { renderStatisticsRows, removeStatisticsRows } from './ui/statistics-renderer.js';
 import { PickingMode } from './picking-mode.js';
 import { ControlPanelManager } from './control-panel-manager.js';
+import { Toolbar } from './ui/toolbar.js';
 import { setupMessageHandler } from './message-handler.js';
 
 const MATERIAL_ICON_PATHS = {
@@ -36,6 +37,7 @@ class TableEnhancer {
         });
 
         this.controlPanelManager = new ControlPanelManager(this);
+        this.toolbar = new Toolbar(this);
 
         this.initI18n();
     }
@@ -62,11 +64,6 @@ class TableEnhancer {
                         filterInput.placeholder = i18n.t('columnControl.filter.placeholder');
                     }
 
-                    const advancedFilterButton = controlPanel.querySelector('.advanced-buttons .control-button:nth-child(1)');
-                    if (advancedFilterButton) {
-                        advancedFilterButton.title = i18n.t('columnControl.filter.advanced');
-                    }
-
                     const sortButton = header.querySelector('.anytable-sort-button');
                     if (sortButton) {
                         const rules = this.stateStore.getSortRules(table);
@@ -79,18 +76,10 @@ class TableEnhancer {
                             sortButton.title = i18n.t('columnControl.sort.none');
                         }
                     }
-
-                    const advancedSortButton = controlPanel.querySelector('.advanced-buttons .control-button:nth-child(2)');
-                    if (advancedSortButton) {
-                        advancedSortButton.title = i18n.t('columnControl.sort.advanced');
-                    }
-
-                    const statisticsButton = controlPanel.querySelector('.advanced-buttons .control-button:nth-child(3)');
-                    if (statisticsButton) {
-                        statisticsButton.title = i18n.t('columnControl.statistics');
-                    }
                 }
             });
+
+            this.toolbar.updateTexts(table);
         });
     }
 
@@ -261,6 +250,7 @@ class TableEnhancer {
     }
 
     removeEnhancement(table) {
+        this.toolbar.removeToolbar(table);
         removeStatisticsRows(table);
 
         const expandButtons = table.querySelectorAll('.anytable-expand');
@@ -339,6 +329,7 @@ class TableEnhancer {
         this.addSortingAndFiltering(table);
         this.enhancedTables.add(table);
         table.classList.add('anytable-enhanced');
+        this.toolbar.createToolbar(table);
     }
 
     sortTable(table, columnIndex) {

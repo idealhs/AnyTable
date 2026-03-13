@@ -220,9 +220,10 @@ export function openAdvancedSortPanel({
 }) {
     const {overlay, dialog} = createOverlayAndDialog();
     const columnOptionsHtml = getColumnOptionsHtml(columnTitles);
+    const effectiveColumnIndex = columnIndex ?? 0;
     const seedRules = Array.isArray(initialRules) && initialRules.length
         ? initialRules
-        : [{column: columnIndex, direction: 'asc', type: 'auto', unitConfig: null, id: generateId('sort')}];
+        : [{column: effectiveColumnIndex, direction: 'asc', type: 'auto', unitConfig: null, id: generateId('sort')}];
 
     // 创建 header
     const header = document.createElement('div');
@@ -308,7 +309,7 @@ export function openAdvancedSortPanel({
 
     const currentRules = seedRules.map((rule) => ({
         id: generateId('sort'),
-        column: Number.isInteger(rule.column) ? rule.column : columnIndex,
+        column: Number.isInteger(rule.column) ? rule.column : effectiveColumnIndex,
         direction: rule.direction === 'desc' ? 'desc' : 'asc',
         type: rule.type || 'auto',
         unitConfig: rule.unitConfig || null
@@ -349,7 +350,7 @@ export function openAdvancedSortPanel({
         for (let i = 0; i < totalColumns; i++) {
             if (!used.has(i)) return i;
         }
-        return columnIndex;
+        return effectiveColumnIndex;
     }
 
     function bindSortRow(row, rules, index) {
@@ -447,7 +448,7 @@ export function openAdvancedSortPanel({
         currentRules.length = 0;
         currentRules.push({
             id: generateId('sort'),
-            column: columnIndex,
+            column: effectiveColumnIndex,
             direction: 'asc',
             type: 'auto',
             unitConfig: null
