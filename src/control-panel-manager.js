@@ -1,6 +1,7 @@
 import i18n from './i18n/i18n.js';
 import { getColumnValues } from './core/table-data.js';
-import { openAdvancedFilterPanel, openAdvancedSortPanel } from './ui/advanced-panel.js';
+import { openAdvancedFilterPanel } from './ui/filter-panel.js';
+import { openAdvancedSortPanel } from './ui/sort-panel.js';
 
 export class ControlPanelManager {
     constructor(enhancer) {
