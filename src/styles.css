@@ -561,6 +561,30 @@
     flex-shrink: 0;
 }
 
+.anytable-adv-sort-direction {
+    height: 32px;
+    border: 1px solid #b7deb8;
+    border-radius: 4px;
+    background: #edf7ee;
+    color: #2e7d32;
+    padding: 0 8px;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+    box-sizing: border-box;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.anytable-adv-sort-direction:hover {
+    filter: brightness(0.95);
+}
+
+.anytable-adv-sort-direction[data-sort-direction="desc"] {
+    border-color: #f1b4bb;
+    background: #fef0f1;
+    color: #c1121f;
+}
+
 .anytable-adv-sort-type-btn {
     height: 32px;
     border: 1px solid #d0d0d0;

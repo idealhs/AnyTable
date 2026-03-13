@@ -150,19 +150,26 @@ function generateId(prefix) {
     return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function getDirectionLabel(direction) {
+    const text = direction === 'desc'
+        ? translate('advancedPanel.sort.direction.desc')
+        : translate('advancedPanel.sort.direction.asc');
+    const arrow = direction === 'desc' ? ' \u2193' : ' \u2191';
+    return text + arrow;
+}
+
 function buildSortRuleRowHtml(columnOptionsHtml, rule) {
     const column = Number.isInteger(rule?.column) ? rule.column : 0;
     const direction = rule?.direction === 'desc' ? 'desc' : 'asc';
     const type = rule?.type || 'auto';
 
+    const dirLabel = getDirectionLabel(direction);
+
     return `
         <div class="anytable-adv-sort-row" data-sort-id="${escapeHtml(rule.id)}">
             <div class="anytable-adv-sort-grid">
                 <select class="anytable-adv-sort-column">${columnOptionsHtml}</select>
-                <select class="anytable-adv-sort-direction">
-                    <option value="asc">${translate('advancedPanel.sort.direction.asc')}</option>
-                    <option value="desc">${translate('advancedPanel.sort.direction.desc')}</option>
-                </select>
+                <button type="button" class="anytable-adv-sort-direction" data-sort-direction="${direction}">${dirLabel}</button>
                 <button type="button" class="anytable-adv-sort-type-btn" data-sort-type="${escapeHtml(type)}">${getTypeLabel(type)}</button>
                 <button type="button" class="anytable-adv-remove-sort-rule">${translate('advancedPanel.common.delete')}</button>
             </div>
@@ -176,7 +183,8 @@ function parseSortRuleRow(rowElement) {
         return {error: translate('advancedPanel.sort.errors.invalidColumn')};
     }
 
-    const direction = rowElement.querySelector('.anytable-adv-sort-direction').value === 'desc' ? 'desc' : 'asc';
+    const dirBtn = rowElement.querySelector('.anytable-adv-sort-direction');
+    const direction = dirBtn.getAttribute('data-sort-direction') === 'desc' ? 'desc' : 'asc';
     const typeBtn = rowElement.querySelector('.anytable-adv-sort-type-btn');
     const type = (typeBtn && typeBtn.getAttribute('data-sort-type')) || 'auto';
 
@@ -347,11 +355,12 @@ export function openAdvancedSortPanel({
     function bindSortRow(row, rules, index) {
         const rule = rules[index];
         const columnSelect = row.querySelector('.anytable-adv-sort-column');
-        const directionSelect = row.querySelector('.anytable-adv-sort-direction');
+        const directionBtn = row.querySelector('.anytable-adv-sort-direction');
         const typeBtn = row.querySelector('.anytable-adv-sort-type-btn');
 
         columnSelect.value = String(rule.column);
-        directionSelect.value = rule.direction;
+        directionBtn.setAttribute('data-sort-direction', rule.direction);
+        directionBtn.textContent = getDirectionLabel(rule.direction);
         typeBtn.setAttribute('data-sort-type', rule.type);
 
         columnSelect.addEventListener('change', () => {
@@ -360,7 +369,11 @@ export function openAdvancedSortPanel({
             updateColumnOptions(rules);
             updateTypeButtonLabel(row, getColumnValues);
         });
-        directionSelect.addEventListener('change', () => { rule.direction = directionSelect.value; fitSelectWidth(directionSelect); });
+        directionBtn.addEventListener('click', () => {
+            rule.direction = rule.direction === 'asc' ? 'desc' : 'asc';
+            directionBtn.setAttribute('data-sort-direction', rule.direction);
+            directionBtn.textContent = getDirectionLabel(rule.direction);
+        });
 
         typeBtn.addEventListener('click', () => {
             openSortTypePopup(typeBtn, rule.type, (newType) => {
@@ -371,7 +384,6 @@ export function openAdvancedSortPanel({
         });
 
         fitSelectWidth(columnSelect, selectMinWidth);
-        fitSelectWidth(directionSelect);
 
         updateTypeButtonLabel(row, getColumnValues);
 
