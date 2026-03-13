@@ -469,7 +469,6 @@ export function convertToBase(numericValue, unitStr, system) {
 
     // Temperature special handling
     if (typeof system.convertToBase === 'function') {
-        const unitKey = system.caseSensitive ? alias : alias;
         // For temperature, try exact case first
         if (system.units[alias] !== undefined) {
             return system.convertToBase(numericValue, alias);

@@ -1,10 +1,10 @@
 export class TableStateStore {
     constructor() {
-        this.sortRulesByTable = new Map();
-        this.originalRowsByTable = new Map();
-        this.filterValuesByTable = new Map();
-        this.advancedFilterRulesByTable = new Map();
-        this.advancedSortRulesByTable = new Map();
+        this.sortRulesByTable = new WeakMap();
+        this.originalRowsByTable = new WeakMap();
+        this.filterValuesByTable = new WeakMap();
+        this.advancedFilterRulesByTable = new WeakMap();
+        this.advancedSortRulesByTable = new WeakMap();
     }
 
     initTable(table, originalRows = []) {

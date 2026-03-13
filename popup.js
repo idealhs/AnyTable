@@ -17,11 +17,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 更新语言选择器
     languageSelect.value = i18n.getCurrentLocale();
 
-    // 加载设置
     const browser = window.browser || chrome;
-    const result = await browser.storage.local.get(['autoEnhance', 'multiColumnSort']);
-    autoEnhanceSwitch.checked = result.autoEnhance !== false;
-    multiColumnSortSwitch.checked = result.multiColumnSort === true;
 
     // 更新所有带有 data-i18n 属性的元素
     function updateI18nElements() {

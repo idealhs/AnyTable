@@ -1,3 +1,5 @@
+import { getCellText } from './table-data.js';
+
 function safeToLowerCase(value) {
     return (value ?? '').toString().toLowerCase();
 }
@@ -103,7 +105,7 @@ function evaluateRuleTree(row, ruleNode) {
     }
 
     const columnIndex = Number(ruleNode.column);
-    const cellText = row.cells[columnIndex]?.textContent ?? '';
+    const cellText = getCellText(row, columnIndex);
     let result = evaluateLeafRule(cellText, ruleNode);
     if (ruleNode.negated) {
         result = !result;
@@ -116,7 +118,7 @@ export function matchesBasicFilters(row, filterValues) {
         const filterValue = safeToLowerCase(filterValues[index]);
         if (!filterValue) continue;
 
-        const cellText = safeToLowerCase(row.cells[index]?.textContent);
+        const cellText = safeToLowerCase(getCellText(row, index));
         if (!cellText.includes(filterValue)) {
             return false;
         }

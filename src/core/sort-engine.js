@@ -1,4 +1,5 @@
 import { parseValueAndUnit, convertToBase, detectColumnUnitSystem, getUnitSystemByName, tryParseDate } from './type-parser.js';
+import { getCellText } from './table-data.js';
 
 function normalizeValue(value) {
     return (value ?? '').toString().trim();
@@ -185,8 +186,10 @@ export function buildNextSortRules(currentRules, columnIndex, multiColumnSort) {
     }
 
     if (existingRule) {
-        existingRule.direction = direction;
-        return {rules, direction};
+        return {
+            rules: rules.map(r => r.column === columnIndex ? { ...r, direction } : r),
+            direction
+        };
     }
 
     return {
@@ -222,14 +225,14 @@ export function normalizeAdvancedSortRules(rules) {
 }
 
 export function sortRowsByRules(rows, rules) {
-    const sortingRules = Array.isArray(rules) ? rules : [];
+    const sortingRules = Array.isArray(rules) ? rules.map(rule => ({ ...rule })) : [];
     const sortableRows = Array.isArray(rows) ? [...rows] : [];
 
     // Pre-process: resolve 'auto' types via column detection
     for (const rule of sortingRules) {
         if (rule.type === 'auto' && !rule._resolvedType) {
             const colValues = sortableRows.map(row =>
-                row.cells[rule.column]?.textContent.trim() || ''
+                getCellText(row, rule.column)
             );
             const detection = detectColumnUnitSystem(colValues);
             rule._resolvedType = detection.type;
@@ -239,7 +242,7 @@ export function sortRowsByRules(rows, rules) {
         // Also resolve dateOrder for explicitly typed 'date' columns
         if (rule.type === 'date' && !rule._dateOrder) {
             const colValues = sortableRows.map(row =>
-                row.cells[rule.column]?.textContent.trim() || ''
+                getCellText(row, rule.column)
             );
             const detection = detectColumnUnitSystem(colValues);
             rule._dateOrder = detection.dateOrder || null;
@@ -248,8 +251,8 @@ export function sortRowsByRules(rows, rules) {
 
     sortableRows.sort((rowA, rowB) => {
         for (const rule of sortingRules) {
-            const aValue = rowA.cells[rule.column]?.textContent.trim() || '';
-            const bValue = rowB.cells[rule.column]?.textContent.trim() || '';
+            const aValue = getCellText(rowA, rule.column);
+            const bValue = getCellText(rowB, rule.column);
 
             const result = compareValues(aValue, bValue, rule);
             if (result === 0) continue;
