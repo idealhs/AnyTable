@@ -140,6 +140,7 @@ export function applyCombinedFilters(table, filterValues = {}, advancedRuleGroup
 
     const rows = Array.from(tbody.getElementsByTagName('tr'));
     rows.forEach((row) => {
+        if (row.hasAttribute('data-anytable-stats-row')) return;
         const basicMatched = matchesBasicFilters(row, filterValues || {});
         const advancedMatched = matchesRuleTree(row, advancedRuleGroup);
         row.style.display = basicMatched && advancedMatched ? '' : 'none';

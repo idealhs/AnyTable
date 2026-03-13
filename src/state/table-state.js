@@ -5,6 +5,7 @@ export class TableStateStore {
         this.filterValuesByTable = new WeakMap();
         this.advancedFilterRulesByTable = new WeakMap();
         this.advancedSortRulesByTable = new WeakMap();
+        this.statisticsRulesByTable = new WeakMap();
     }
 
     initTable(table, originalRows = []) {
@@ -25,6 +26,7 @@ export class TableStateStore {
         this.filterValuesByTable.delete(table);
         this.advancedFilterRulesByTable.delete(table);
         this.advancedSortRulesByTable.delete(table);
+        this.statisticsRulesByTable.delete(table);
     }
 
     getSortRules(table) {
@@ -72,6 +74,14 @@ export class TableStateStore {
 
     setAdvancedSortRules(table, sortRules) {
         this.advancedSortRulesByTable.set(table, Array.isArray(sortRules) ? [...sortRules] : []);
+    }
+
+    getStatisticsRules(table) {
+        return this.statisticsRulesByTable.get(table) || [];
+    }
+
+    setStatisticsRules(table, rules) {
+        this.statisticsRulesByTable.set(table, Array.isArray(rules) ? [...rules] : []);
     }
 }
 

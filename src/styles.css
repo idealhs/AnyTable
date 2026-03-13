@@ -767,6 +767,19 @@
     padding: 0 8px 8px;
 }
 
+.anytable-stats-row {
+    background: #f0f7ff;
+    border-bottom: 1px solid #d0e3f7;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.anytable-stats-row td.anytable-stats-cell {
+    padding: 4px 8px;
+    color: #1a5276;
+    white-space: nowrap;
+}
+
 @media screen and (max-width: 768px) {
     .anytable-advanced-dialog {
         width: 100%;

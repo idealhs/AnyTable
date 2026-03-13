@@ -1,0 +1,54 @@
+import i18n from '../i18n/i18n.js';
+
+function formatStatValue(value) {
+    if (value === null || value === undefined) return '-';
+    if (Number.isInteger(value)) return String(value);
+    // Keep up to 4 significant decimals
+    const str = value.toPrecision(Math.max(1, Math.floor(Math.log10(Math.abs(value))) + 5));
+    return String(parseFloat(str));
+}
+
+function getStatTypeLabel(statType) {
+    return i18n.t(`advancedPanel.statistics.type.${statType}`) || statType;
+}
+
+export function renderStatisticsRows(table, statsData, totalColumns) {
+    removeStatisticsRows(table);
+
+    const tbody = table.getElementsByTagName('tbody')[0];
+    if (!tbody || statsData.size === 0) return;
+
+    const firstDataRow = tbody.querySelector('tr:not([data-anytable-stats-row])');
+
+    for (const [statType, columnMap] of statsData) {
+        const tr = document.createElement('tr');
+        tr.setAttribute('data-anytable-stats-row', statType);
+        tr.className = 'anytable-stats-row';
+
+        for (let i = 0; i < totalColumns; i++) {
+            const td = document.createElement('td');
+            td.className = 'anytable-stats-cell';
+            if (columnMap.has(i)) {
+                const label = getStatTypeLabel(statType);
+                const val = formatStatValue(columnMap.get(i));
+                td.textContent = `${label}：${val}`;
+            }
+            tr.appendChild(td);
+        }
+
+        if (firstDataRow) {
+            tbody.insertBefore(tr, firstDataRow);
+        } else {
+            tbody.appendChild(tr);
+        }
+    }
+}
+
+export function removeStatisticsRows(table) {
+    const tbody = table.getElementsByTagName('tbody')[0];
+    if (!tbody) return;
+    const statsRows = tbody.querySelectorAll('tr[data-anytable-stats-row]');
+    for (const row of statsRows) {
+        row.remove();
+    }
+}

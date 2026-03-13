@@ -51,7 +51,8 @@ export default {
             descending: '降序',
             none: '不排序',
             advanced: '高级排序'
-        }
+        },
+        statistics: '统计'
     },
 
     // 高级面板
@@ -153,6 +154,27 @@ export default {
             },
             errors: {
                 invalidColumn: '列选择无效'
+            }
+        },
+        statistics: {
+            title: '统计',
+            addRule: '+ 添加统计规则',
+            type: {
+                count: '计数',
+                sum: '总和',
+                average: '平均值',
+                median: '中位数',
+                min: '最小值',
+                max: '最大值',
+                range: '极差',
+                variance: '方差',
+                stddev: '标准差'
+            },
+            hint: {
+                keepOneRule: '至少保留一个统计规则。',
+                resetDone: '已重置统计配置。',
+                needOneRule: '请至少添加一个统计规则。',
+                duplicateRule: '已存在相同列和统计类型的规则。'
             }
         }
     },

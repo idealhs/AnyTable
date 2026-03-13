@@ -51,7 +51,8 @@ export default {
             descending: 'Descending',
             none: 'No Sort',
             advanced: 'Advanced Sort'
-        }
+        },
+        statistics: 'Statistics'
     },
 
     // Advanced Panel
@@ -153,6 +154,27 @@ export default {
             },
             errors: {
                 invalidColumn: 'Invalid column selection'
+            }
+        },
+        statistics: {
+            title: 'Statistics',
+            addRule: '+ Add Statistics Rule',
+            type: {
+                count: 'Count',
+                sum: 'Sum',
+                average: 'Average',
+                median: 'Median',
+                min: 'Min',
+                max: 'Max',
+                range: 'Range',
+                variance: 'Variance',
+                stddev: 'Std Dev'
+            },
+            hint: {
+                keepOneRule: 'At least one statistics rule is required.',
+                resetDone: 'Statistics configuration has been reset.',
+                needOneRule: 'Please add at least one statistics rule.',
+                duplicateRule: 'A rule with the same column and type already exists.'
             }
         }
     },

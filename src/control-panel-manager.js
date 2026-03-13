@@ -2,6 +2,7 @@ import i18n from './i18n/i18n.js';
 import { getColumnValues } from './core/table-data.js';
 import { openAdvancedFilterPanel } from './ui/filter-panel.js';
 import { openAdvancedSortPanel } from './ui/sort-panel.js';
+import { openStatisticsPanel } from './ui/statistics-panel.js';
 
 export class ControlPanelManager {
     constructor(enhancer) {
@@ -23,10 +24,6 @@ export class ControlPanelManager {
         const panelHeader = document.createElement('div');
         panelHeader.className = 'panel-header';
 
-        const titleElement = document.createElement('div');
-        titleElement.className = 'column-title';
-        titleElement.textContent = actualTitle;
-
         const advancedButtons = document.createElement('div');
         advancedButtons.className = 'advanced-buttons';
 
@@ -40,9 +37,14 @@ export class ControlPanelManager {
         this.enhancer.setButtonIcon(advancedSortButton, 'advancedSort');
         advancedSortButton.title = i18n.t('columnControl.sort.advanced');
 
+        const statisticsButton = document.createElement('button');
+        statisticsButton.className = 'control-button';
+        this.enhancer.setButtonIcon(statisticsButton, 'statistics');
+        statisticsButton.title = i18n.t('columnControl.statistics');
+
         advancedButtons.appendChild(advancedFilterButton);
         advancedButtons.appendChild(advancedSortButton);
-        panelHeader.appendChild(titleElement);
+        advancedButtons.appendChild(statisticsButton);
         panelHeader.appendChild(advancedButtons);
 
         const filterRow = document.createElement('div');
@@ -152,6 +154,21 @@ export class ControlPanelManager {
                 getColumnValues: (colIdx) => getColumnValues(table, colIdx),
                 onApply: (rules) => {
                     this.enhancer.applyAdvancedSort(table, rules);
+                }
+            });
+        });
+
+        statisticsButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const columnTitles = this.enhancer.getColumnTitles(table);
+            const initialRules = this.enhancer.stateStore.getStatisticsRules(table);
+
+            openStatisticsPanel({
+                columnIndex,
+                columnTitles,
+                initialRules,
+                onApply: (rules) => {
+                    this.enhancer.applyStatistics(table, rules);
                 }
             });
         });
