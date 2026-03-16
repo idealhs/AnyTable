@@ -1,6 +1,7 @@
 import { openAdvancedFilterPanel } from './filter-panel.js';
 import { openAdvancedSortPanel } from './sort-panel.js';
 import { openStatisticsPanel } from './statistics-panel.js';
+import { downloadTableAsCsv } from '../core/csv-export.js';
 import { getColumnValues } from '../core/table-data.js';
 import i18n from '../i18n/i18n.js';
 import { createShadowSurface } from './shadow-ui.js';
@@ -47,7 +48,6 @@ export class Toolbar {
 
         const actions = document.createElement('div');
         actions.className = 'anytable-toolbar-actions';
-        actions.style.width = `${BUTTON_WIDTH * 3}px`;
 
         const sortBtn = this._createButton('advancedSort', i18n.t('columnControl.sort.advanced'));
         sortBtn.addEventListener('click', () => this._openSort(table));
@@ -58,9 +58,16 @@ export class Toolbar {
         const statsBtn = this._createButton('statistics', i18n.t('columnControl.statistics'));
         statsBtn.addEventListener('click', () => this._openStatistics(table));
 
+        const exportBtn = this._createButton('download', i18n.t('columnControl.exportCsv'));
+        exportBtn.addEventListener('click', () => this._exportCsv(table));
+
+        const actionButtons = [sortBtn, filterBtn, statsBtn, exportBtn];
+        actions.style.width = `${BUTTON_WIDTH * actionButtons.length}px`;
+
         actions.appendChild(sortBtn);
         actions.appendChild(filterBtn);
         actions.appendChild(statsBtn);
+        actions.appendChild(exportBtn);
         toolbar.appendChild(toggleBtn);
         toolbar.appendChild(actions);
 
@@ -68,7 +75,7 @@ export class Toolbar {
         parent.insertBefore(surface.host, table);
 
         toolbarMap.set(table, {
-            buttons: [sortBtn, filterBtn, statsBtn],
+            buttons: actionButtons,
             toggleBtn,
             actions,
             destroy: surface.destroy,
@@ -93,10 +100,11 @@ export class Toolbar {
         const toolbarEntry = toolbarMap.get(table);
         if (!toolbarEntry) return;
 
-        const [sortBtn, filterBtn, statsBtn] = toolbarEntry.buttons;
+        const [sortBtn, filterBtn, statsBtn, exportBtn] = toolbarEntry.buttons;
         if (sortBtn) sortBtn.title = i18n.t('columnControl.sort.advanced');
         if (filterBtn) filterBtn.title = i18n.t('columnControl.filter.advanced');
         if (statsBtn) statsBtn.title = i18n.t('columnControl.statistics');
+        if (exportBtn) exportBtn.title = i18n.t('columnControl.exportCsv');
 
         const toggleTitle = i18n.t(toolbarEntry.isExpanded ? 'columnControl.toolbar.collapse' : 'columnControl.toolbar.expand');
         if (toolbarEntry.toggleBtn) {
@@ -221,5 +229,9 @@ export class Toolbar {
                 this.enhancer.applyStatistics(table, rules);
             }
         });
+    }
+
+    _exportCsv(table) {
+        downloadTableAsCsv(table);
     }
 }

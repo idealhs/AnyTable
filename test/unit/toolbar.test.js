@@ -141,10 +141,12 @@ function createFakeTable() {
 describe('Toolbar', () => {
     let Toolbar;
     let lastSurface;
+    let downloadTableAsCsvMock;
 
     beforeEach(async () => {
         vi.resetModules();
         lastSurface = null;
+        downloadTableAsCsvMock = vi.fn();
 
         globalThis.document = {
             createElement: (tagName) => new FakeElement(tagName)
@@ -162,6 +164,9 @@ describe('Toolbar', () => {
         }));
         vi.doMock('../../src/ui/statistics-panel.js', () => ({
             openStatisticsPanel: vi.fn()
+        }));
+        vi.doMock('../../src/core/csv-export.js', () => ({
+            downloadTableAsCsv: downloadTableAsCsvMock
         }));
         vi.doMock('../../src/core/table-data.js', () => ({
             getColumnValues: vi.fn(() => [])
@@ -226,14 +231,15 @@ describe('Toolbar', () => {
         const buttons = actions.children;
 
         expect(toolbarElement.classList.contains('toolbar-collapsed')).toBe(false);
-        expect(actions.style.width).toBe('144px');
+        expect(actions.style.width).toBe('192px');
         expect(actions.getAttribute('aria-hidden')).toBe('false');
         expect(toggleButton.getAttribute('aria-expanded')).toBe('true');
-        expect(Array.from(buttons, (button) => button.tabIndex)).toEqual([0, 0, 0]);
+        expect(Array.from(buttons, (button) => button.tabIndex)).toEqual([0, 0, 0, 0]);
         expect(Array.from(buttons, (button) => button.title)).toEqual([
             'columnControl.sort.advanced',
             'columnControl.filter.advanced',
-            'columnControl.statistics'
+            'columnControl.statistics',
+            'columnControl.exportCsv'
         ]);
 
         toggleButton.click();
@@ -243,7 +249,7 @@ describe('Toolbar', () => {
         expect(actions.getAttribute('aria-hidden')).toBe('true');
         expect(toggleButton.getAttribute('aria-expanded')).toBe('false');
         expect(toggleButton.dataset.icon).toBe('toolbarExpand');
-        expect(Array.from(buttons, (button) => button.tabIndex)).toEqual([-1, -1, -1]);
+        expect(Array.from(buttons, (button) => button.tabIndex)).toEqual([-1, -1, -1, -1]);
     });
 
     it('respects a collapsed default and expands buttons after clicking toggle', () => {
@@ -262,15 +268,32 @@ describe('Toolbar', () => {
         expect(actions.style.width).toBe('0px');
         expect(toggleButton.getAttribute('aria-expanded')).toBe('false');
         expect(toggleButton.dataset.icon).toBe('toolbarExpand');
-        expect(Array.from(buttons, (button) => button.tabIndex)).toEqual([-1, -1, -1]);
+        expect(Array.from(buttons, (button) => button.tabIndex)).toEqual([-1, -1, -1, -1]);
 
         toggleButton.click();
 
         expect(toolbarElement.classList.contains('toolbar-collapsed')).toBe(false);
-        expect(actions.style.width).toBe('144px');
+        expect(actions.style.width).toBe('192px');
         expect(actions.getAttribute('aria-hidden')).toBe('false');
         expect(toggleButton.getAttribute('aria-expanded')).toBe('true');
         expect(toggleButton.dataset.icon).toBe('toolbarCollapse');
-        expect(Array.from(buttons, (button) => button.tabIndex)).toEqual([0, 0, 0]);
+        expect(Array.from(buttons, (button) => button.tabIndex)).toEqual([0, 0, 0, 0]);
+    });
+
+    it('exports the current table as csv when clicking the export button', () => {
+        const enhancer = createEnhancer(true);
+        const toolbar = new Toolbar(enhancer);
+        const { table } = createFakeTable();
+
+        toolbar.createToolbar(table);
+
+        const toolbarElement = lastSurface.container.children[0];
+        const actions = toolbarElement.children[1];
+        const exportButton = actions.children[3];
+
+        exportButton.click();
+
+        expect(downloadTableAsCsvMock).toHaveBeenCalledTimes(1);
+        expect(downloadTableAsCsvMock).toHaveBeenCalledWith(table);
     });
 });

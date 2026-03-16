@@ -59,6 +59,7 @@ export default {
             advanced: '高级排序'
         },
         statistics: '统计',
+        exportCsv: '导出 CSV',
         toolbar: {
             expand: '展开工具栏',
             collapse: '收起工具栏'

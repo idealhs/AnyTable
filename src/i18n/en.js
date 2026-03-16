@@ -59,6 +59,7 @@ export default {
             advanced: 'Advanced Sort'
         },
         statistics: 'Statistics',
+        exportCsv: 'Export CSV',
         toolbar: {
             expand: 'Expand toolbar',
             collapse: 'Collapse toolbar'
