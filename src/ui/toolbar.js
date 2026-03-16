@@ -3,6 +3,7 @@ import { openAdvancedSortPanel } from './sort-panel.js';
 import { openStatisticsPanel } from './statistics-panel.js';
 import { getColumnValues } from '../core/table-data.js';
 import i18n from '../i18n/i18n.js';
+import { createShadowSurface } from './shadow-ui.js';
 
 const toolbarMap = new WeakMap();
 
@@ -13,6 +14,20 @@ export class Toolbar {
 
     createToolbar(table) {
         if (toolbarMap.has(table)) return;
+
+        const parent = table.parentNode;
+        if (!parent) return;
+
+        const surface = createShadowSurface({
+            parent,
+            hostStyles: {
+                position: 'relative',
+                height: '0',
+                overflow: 'visible',
+                'z-index': '2'
+            },
+            containerClassName: 'anytable-toolbar-surface'
+        });
 
         const toolbar = document.createElement('div');
         toolbar.className = 'anytable-toolbar';
@@ -30,26 +45,32 @@ export class Toolbar {
         toolbar.appendChild(sortBtn);
         toolbar.appendChild(statsBtn);
 
-        table.parentNode.insertBefore(toolbar, table);
-        toolbarMap.set(table, toolbar);
+        surface.container.appendChild(toolbar);
+        parent.insertBefore(surface.host, table);
+
+        toolbarMap.set(table, {
+            buttons: [filterBtn, sortBtn, statsBtn],
+            destroy: surface.destroy,
+            toolbar
+        });
     }
 
     removeToolbar(table) {
-        const toolbar = toolbarMap.get(table);
-        if (toolbar) {
-            toolbar.remove();
+        const toolbarEntry = toolbarMap.get(table);
+        if (toolbarEntry) {
+            toolbarEntry.destroy();
             toolbarMap.delete(table);
         }
     }
 
     updateTexts(table) {
-        const toolbar = toolbarMap.get(table);
-        if (!toolbar) return;
+        const toolbarEntry = toolbarMap.get(table);
+        if (!toolbarEntry) return;
 
-        const buttons = toolbar.querySelectorAll('.anytable-toolbar-button');
-        if (buttons[0]) buttons[0].title = i18n.t('columnControl.filter.advanced');
-        if (buttons[1]) buttons[1].title = i18n.t('columnControl.sort.advanced');
-        if (buttons[2]) buttons[2].title = i18n.t('columnControl.statistics');
+        const [filterBtn, sortBtn, statsBtn] = toolbarEntry.buttons;
+        if (filterBtn) filterBtn.title = i18n.t('columnControl.filter.advanced');
+        if (sortBtn) sortBtn.title = i18n.t('columnControl.sort.advanced');
+        if (statsBtn) statsBtn.title = i18n.t('columnControl.statistics');
     }
 
     _createButton(iconKey, title) {

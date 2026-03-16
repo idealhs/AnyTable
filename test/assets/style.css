@@ -1,0 +1,166 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 24px;
+    font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f5f7fb;
+    color: #1d2433;
+    line-height: 1.5;
+}
+
+h1,
+h2,
+h3 {
+    margin-top: 0;
+    color: #0f172a;
+}
+
+a {
+    color: #2563eb;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+.layout {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.card {
+    background: #fff;
+    border: 1px solid #dbe2f0;
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+}
+
+.tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #e0ecff;
+    color: #1d4ed8;
+    font-size: 12px;
+}
+
+.hint {
+    padding: 10px 12px;
+    border-left: 4px solid #2563eb;
+    background: #eff6ff;
+    border-radius: 4px;
+    margin-bottom: 12px;
+}
+
+.warning {
+    border-left-color: #d97706;
+    background: #fff7ed;
+}
+
+.checklist {
+    margin: 8px 0 0;
+    padding-left: 18px;
+}
+
+.checklist li {
+    margin: 6px 0;
+}
+
+.nav {
+    margin-bottom: 16px;
+}
+
+.nav a {
+    margin-right: 12px;
+}
+
+.grid {
+    display: grid;
+    gap: 16px;
+}
+
+.grid-two {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+}
+
+th,
+td {
+    border: 1px solid #d9e1ef;
+    padding: 8px 10px;
+    text-align: left;
+    vertical-align: top;
+}
+
+th {
+    background: #f0f4ff;
+    font-weight: 600;
+}
+
+tbody tr:nth-child(even) {
+    background: #fafcff;
+}
+
+.test-mat-check {
+    width: 16px;
+    height: 16px;
+    display: inline-block;
+    vertical-align: middle;
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2316a34a'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z'/%3E%3C/svg%3E");
+}
+
+code {
+    background: #eff2f8;
+    border: 1px solid #dbe2f0;
+    border-radius: 4px;
+    padding: 1px 6px;
+}
+
+.actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+button {
+    border: 1px solid #c5d1eb;
+    background: #fff;
+    color: #1e293b;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #f8fbff;
+}
+
+.target-area {
+    min-height: 120px;
+    border: 1px dashed #b8c6e3;
+    border-radius: 8px;
+    padding: 12px;
+    background: #fbfdff;
+}
+
+.muted {
+    color: #4b5563;
+}
+
+.small {
+    font-size: 13px;
+}

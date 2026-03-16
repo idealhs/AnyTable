@@ -1,4 +1,5 @@
-import { escapeHtml, createCloseIconSvg, setInnerHTML, translate, getColumnOptionsHtml, createOverlayAndDialog } from './panel-utils.js';
+import { closeDropdownPopup, getDropdownButtonValue, openDropdownPopup, setDropdownButtonValue } from './dropdown-popup.js';
+import { escapeHtml, createCloseIconSvg, setInnerHTML, translate, createOverlayAndDialog } from './panel-utils.js';
 
 const STAT_TYPES = ['count', 'sum', 'average', 'median', 'min', 'max', 'range', 'variance', 'stddev'];
 
@@ -6,40 +7,46 @@ function getStatTypeLabel(type) {
     return translate(`advancedPanel.statistics.type.${type}`) || type;
 }
 
-function getStatTypeOptionsHtml() {
-    return STAT_TYPES
-        .map(type => `<option value="${type}">${escapeHtml(getStatTypeLabel(type))}</option>`)
-        .join('');
+function getColumnLabel(columnTitles, columnIndex) {
+    return columnTitles[columnIndex]
+        || translate('advancedPanel.common.columnFallback', {index: columnIndex + 1});
 }
 
 function generateId(prefix) {
     return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function buildStatsRuleRowHtml(columnOptionsHtml, statTypeOptionsHtml, rule) {
+function buildOptionButtonHtml(className, value, label) {
+    return `<button type="button" class="anytable-adv-select-btn ${className}" data-value="${escapeHtml(String(value))}" aria-expanded="false">${escapeHtml(label)}</button>`;
+}
+
+function getColumnOptionGroups(columnTitles) {
+    return [columnTitles.map((title, index) => ({
+        value: String(index),
+        label: getColumnLabel(columnTitles, index)
+    }))];
+}
+
+function getStatTypeOptionGroups() {
+    return [STAT_TYPES.map((type) => ({
+        value: type,
+        label: getStatTypeLabel(type)
+    }))];
+}
+
+function buildStatsRuleRowHtml(columnTitles, rule) {
     const column = Number.isInteger(rule?.column) ? rule.column : 0;
     const statType = rule?.statType || 'count';
 
     return `
         <div class="anytable-adv-sort-row" data-stats-id="${escapeHtml(rule.id)}">
             <div class="anytable-adv-sort-grid">
-                <select class="anytable-adv-stats-column">${columnOptionsHtml}</select>
-                <select class="anytable-adv-stats-type">${statTypeOptionsHtml}</select>
+                ${buildOptionButtonHtml('anytable-adv-stats-column', column, getColumnLabel(columnTitles, column))}
+                ${buildOptionButtonHtml('anytable-adv-stats-type', statType, getStatTypeLabel(statType))}
                 <button type="button" class="anytable-adv-remove-sort-rule">${translate('advancedPanel.common.delete')}</button>
             </div>
         </div>
     `;
-}
-
-function fitSelectWidth(selectEl, minWidth = 0) {
-    const selected = selectEl.options[selectEl.selectedIndex];
-    if (!selected) return;
-    const measure = document.createElement('span');
-    measure.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;font:' + getComputedStyle(selectEl).font;
-    measure.textContent = selected.textContent;
-    document.body.appendChild(measure);
-    selectEl.style.width = Math.max(measure.offsetWidth + 28, minWidth) + 'px';
-    measure.remove();
 }
 
 export function openStatisticsPanel({
@@ -49,9 +56,7 @@ export function openStatisticsPanel({
     onApply,
     onCancel
 }) {
-    const {overlay, dialog} = createOverlayAndDialog();
-    const columnOptionsHtml = getColumnOptionsHtml(columnTitles);
-    const statTypeOptionsHtml = getStatTypeOptionsHtml();
+    const {overlay, dialog, destroy} = createOverlayAndDialog();
     const effectiveColumnIndex = columnIndex ?? 0;
     const seedRules = Array.isArray(initialRules) && initialRules.length
         ? initialRules
@@ -128,7 +133,8 @@ export function openStatisticsPanel({
     }
 
     function closePanel(triggerCancel = true) {
-        overlay.remove();
+        closeDropdownPopup();
+        destroy();
         if (triggerCancel && typeof onCancel === 'function') {
             onCancel();
         }
@@ -142,25 +148,38 @@ export function openStatisticsPanel({
 
     function bindStatsRow(row, rules, index) {
         const rule = rules[index];
-        const columnSelect = row.querySelector('.anytable-adv-stats-column');
-        const typeSelect = row.querySelector('.anytable-adv-stats-type');
+        const columnButton = row.querySelector('.anytable-adv-stats-column');
+        const typeButton = row.querySelector('.anytable-adv-stats-type');
 
-        columnSelect.value = String(rule.column);
-        typeSelect.value = rule.statType;
+        setDropdownButtonValue(columnButton, rule.column, getColumnLabel(columnTitles, rule.column));
+        setDropdownButtonValue(typeButton, rule.statType, getStatTypeLabel(rule.statType));
 
-        columnSelect.addEventListener('change', () => {
-            rule.column = Number(columnSelect.value);
-            fitSelectWidth(columnSelect);
+        columnButton.addEventListener('click', () => {
+            openDropdownPopup({
+                anchorButton: columnButton,
+                currentValue: String(rule.column),
+                groups: getColumnOptionGroups(columnTitles),
+                onSelect: (newValue) => {
+                    rule.column = Number(newValue);
+                    setDropdownButtonValue(columnButton, newValue, getColumnLabel(columnTitles, rule.column));
+                }
+            });
         });
-        typeSelect.addEventListener('change', () => {
-            rule.statType = typeSelect.value;
-            fitSelectWidth(typeSelect);
-        });
 
-        fitSelectWidth(columnSelect);
-        fitSelectWidth(typeSelect);
+        typeButton.addEventListener('click', () => {
+            openDropdownPopup({
+                anchorButton: typeButton,
+                currentValue: rule.statType,
+                groups: getStatTypeOptionGroups(),
+                onSelect: (newValue) => {
+                    rule.statType = newValue;
+                    setDropdownButtonValue(typeButton, newValue, getStatTypeLabel(newValue));
+                }
+            });
+        });
 
         row.querySelector('.anytable-adv-remove-sort-rule').addEventListener('click', () => {
+            closeDropdownPopup();
             if (rules.length <= 1) {
                 setHint(translate('advancedPanel.statistics.hint.keepOneRule'), true);
                 return;
@@ -173,7 +192,7 @@ export function openStatisticsPanel({
 
     function renderRules(rules) {
         const htmlString = rules
-            .map(rule => buildStatsRuleRowHtml(columnOptionsHtml, statTypeOptionsHtml, rule))
+            .map(rule => buildStatsRuleRowHtml(columnTitles, rule))
             .join('');
         setInnerHTML(ruleList, htmlString);
 
@@ -183,7 +202,7 @@ export function openStatisticsPanel({
 
     function appendRule(rule, rules) {
         const tmp = document.createElement('div');
-        setInnerHTML(tmp, buildStatsRuleRowHtml(columnOptionsHtml, statTypeOptionsHtml, rule));
+        setInnerHTML(tmp, buildStatsRuleRowHtml(columnTitles, rule));
         const row = tmp.firstElementChild;
         ruleList.appendChild(row);
         bindStatsRow(row, rules, rules.length - 1);

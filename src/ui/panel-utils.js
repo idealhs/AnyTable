@@ -1,4 +1,5 @@
 import i18n from '../i18n/i18n.js';
+import { createShadowSurface } from './shadow-ui.js';
 
 export function escapeHtml(text) {
     return (text ?? '')
@@ -52,13 +53,17 @@ export function translate(key, params = null) {
     );
 }
 
-export function getColumnOptionsHtml(columnTitles) {
-    return columnTitles
-        .map((title, index) => `<option value="${index}">${escapeHtml(title || translate('advancedPanel.common.columnFallback', {index: index + 1}))}</option>`)
-        .join('');
-}
-
 export function createOverlayAndDialog() {
+    const surface = createShadowSurface({
+        parent: document.body,
+        hostStyles: {
+            position: 'fixed',
+            inset: '0',
+            'z-index': '2147483646'
+        },
+        containerClassName: 'anytable-shadow-layer'
+    });
+
     const overlay = document.createElement('div');
     overlay.className = 'anytable-advanced-overlay';
 
@@ -66,7 +71,12 @@ export function createOverlayAndDialog() {
     dialog.className = 'anytable-advanced-dialog';
 
     overlay.appendChild(dialog);
-    document.body.appendChild(overlay);
+    surface.container.appendChild(overlay);
 
-    return {overlay, dialog};
+    return {
+        overlay,
+        dialog,
+        host: surface.host,
+        destroy: surface.destroy
+    };
 }

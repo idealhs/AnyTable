@@ -12,6 +12,19 @@ function getStatTypeLabel(statType) {
     return i18n.t(`advancedPanel.statistics.type.${statType}`) || statType;
 }
 
+function applyStatisticsRowStyles(row) {
+    row.style.background = '#f0f7ff';
+    row.style.borderBottom = '1px solid #d0e3f7';
+    row.style.fontSize = '12px';
+    row.style.fontWeight = '500';
+}
+
+function applyStatisticsCellStyles(cell) {
+    cell.style.padding = '4px 8px';
+    cell.style.color = '#1a5276';
+    cell.style.whiteSpace = 'nowrap';
+}
+
 export function renderStatisticsRows(table, statsData, totalColumns) {
     removeStatisticsRows(table);
 
@@ -24,10 +37,12 @@ export function renderStatisticsRows(table, statsData, totalColumns) {
         const tr = document.createElement('tr');
         tr.setAttribute('data-anytable-stats-row', statType);
         tr.className = 'anytable-stats-row';
+        applyStatisticsRowStyles(tr);
 
         for (let i = 0; i < totalColumns; i++) {
             const td = document.createElement('td');
             td.className = 'anytable-stats-cell';
+            applyStatisticsCellStyles(td);
             if (columnMap.has(i)) {
                 const label = getStatTypeLabel(statType);
                 const val = formatStatValue(columnMap.get(i));

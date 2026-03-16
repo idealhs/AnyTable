@@ -1,16 +1,174 @@
 import i18n from './i18n/i18n.js';
+import { createShadowSurface, eventPathIncludes } from './ui/shadow-ui.js';
 
 export class ControlPanelManager {
     constructor(enhancer) {
         this.enhancer = enhancer;
+        this.tableControls = new WeakMap();
+    }
+
+    attachTableControls(table) {
+        if (this.tableControls.has(table)) {
+            return;
+        }
+
+        const headers = Array.from(table.getElementsByTagName('th'));
+        const controls = headers.map((header, columnIndex) => this.createHeaderControl(table, header, columnIndex));
+        this.tableControls.set(table, controls);
+    }
+
+    getTableControls(table) {
+        return this.tableControls.get(table) || [];
+    }
+
+    getHeaderControl(table, columnIndex) {
+        return this.getTableControls(table)[columnIndex] || null;
+    }
+
+    updateTexts(table) {
+        this.getTableControls(table).forEach((control) => {
+            if (!control) {
+                return;
+            }
+
+            control.filterInput.placeholder = i18n.t('columnControl.filter.placeholder');
+            control.expandButton.title = i18n.t('columnControl.title');
+
+            const rules = this.enhancer.stateStore.getSortRules(table);
+            const rule = rules.find((item) => item.column === control.columnIndex);
+            control.sortButton.title = rule
+                ? (rule.direction === 'asc'
+                    ? i18n.t('columnControl.sort.ascending')
+                    : i18n.t('columnControl.sort.descending'))
+                : i18n.t('columnControl.sort.none');
+        });
+    }
+
+    setFilterInputsDisabledState(table, disabled) {
+        this.getTableControls(table).forEach((control) => {
+            if (control) {
+                control.filterInput.disabled = disabled;
+            }
+        });
     }
 
     showControlPanel(table, columnIndex) {
-        const header = table.getElementsByTagName('th')[columnIndex];
-        const existingPanel = header.querySelector('.anytable-control-panel');
-        if (existingPanel) {
+        const control = this.getHeaderControl(table, columnIndex);
+        if (!control || control.isOpen) {
             return;
         }
+
+        control.isOpen = true;
+        control.panel.classList.add('active');
+        this.enhancer.setExpandButtonIcon(control.expandButton, true);
+        this.updatePanelPosition(control);
+
+        control.documentClickHandler = (event) => {
+            if (eventPathIncludes(event, control.panel, control.expandButton)) {
+                return;
+            }
+            this.hideControlPanel(table, columnIndex);
+        };
+
+        document.addEventListener('click', control.documentClickHandler, true);
+    }
+
+    hideControlPanel(table, columnIndex) {
+        const control = this.getHeaderControl(table, columnIndex);
+        if (!control || !control.isOpen) {
+            return;
+        }
+
+        control.isOpen = false;
+        control.panel.classList.remove('active', 'right-aligned', 'left-aligned', 'center-aligned');
+        this.enhancer.setExpandButtonIcon(control.expandButton, false);
+
+        if (control.documentClickHandler) {
+            document.removeEventListener('click', control.documentClickHandler, true);
+            control.documentClickHandler = null;
+        }
+    }
+
+    toggleControlPanel(table, columnIndex) {
+        const control = this.getHeaderControl(table, columnIndex);
+        if (!control) {
+            return;
+        }
+
+        if (control.isOpen) {
+            this.hideControlPanel(table, columnIndex);
+            return;
+        }
+
+        this.getTableControls(table).forEach((item, index) => {
+            if (index !== columnIndex && item?.isOpen) {
+                this.hideControlPanel(table, index);
+            }
+        });
+
+        this.showControlPanel(table, columnIndex);
+    }
+
+    removeTableControls(table) {
+        const controls = this.tableControls.get(table);
+        if (!controls) {
+            return;
+        }
+
+        controls.forEach((control) => {
+            if (!control) {
+                return;
+            }
+
+            if (control.documentClickHandler) {
+                document.removeEventListener('click', control.documentClickHandler, true);
+            }
+            control.resizeObserver.disconnect();
+            control.destroy();
+
+            control.header.style.position = control.originalHeaderPosition;
+            control.header.style.paddingRight = control.originalHeaderPaddingRight;
+        });
+
+        this.tableControls.delete(table);
+    }
+
+    createHeaderControl(table, header, columnIndex) {
+        const originalHeaderPosition = header.style.position;
+        const originalHeaderPaddingRight = header.style.paddingRight;
+
+        header.style.position = 'relative';
+        header.style.paddingRight = '72px';
+
+        const surface = createShadowSurface({
+            parent: header,
+            hostStyles: {
+                position: 'absolute',
+                inset: '0',
+                overflow: 'visible',
+                'z-index': '1',
+                'pointer-events': 'none'
+            },
+            containerClassName: 'anytable-header-surface'
+        });
+
+        const expandContainer = document.createElement('div');
+        expandContainer.className = 'anytable-expand';
+
+        const sortButton = document.createElement('button');
+        sortButton.type = 'button';
+        sortButton.className = 'anytable-sort-button';
+        sortButton.title = i18n.t('columnControl.sort.none');
+        this.enhancer.setSortButtonIcon(sortButton, 'none');
+
+        const expandButton = document.createElement('button');
+        expandButton.type = 'button';
+        expandButton.className = 'anytable-expand-button';
+        expandButton.title = i18n.t('columnControl.title');
+        this.enhancer.setExpandButtonIcon(expandButton, false);
+
+        expandContainer.appendChild(sortButton);
+        expandContainer.appendChild(expandButton);
 
         const controlPanel = document.createElement('div');
         controlPanel.className = 'anytable-control-panel';
@@ -28,78 +186,80 @@ export class ControlPanelManager {
             filterInput.value = filterValues[columnIndex];
         }
 
-        if (this.enhancer.stateStore.getAdvancedFilterRules(table) !== null) {
-            filterInput.disabled = true;
-        }
+        filterInput.disabled = this.enhancer.stateStore.getAdvancedFilterRules(table) !== null;
 
         filterRow.appendChild(filterInput);
-
         controlPanel.appendChild(filterRow);
 
-        header.appendChild(controlPanel);
+        surface.container.appendChild(expandContainer);
+        surface.container.appendChild(controlPanel);
 
-        const checkPosition = () => {
-            const rect = controlPanel.getBoundingClientRect();
-            const viewportWidth = window.innerWidth;
-            const headerRect = header.getBoundingClientRect();
-
-            const panelWidth = Math.max(headerRect.width, 200);
-            const panelRight = headerRect.left + panelWidth;
-            const panelLeft = headerRect.right - panelWidth;
-
-            controlPanel.classList.remove('right-aligned', 'left-aligned', 'center-aligned');
-
-            if (panelRight > viewportWidth && panelLeft < 0) {
-                controlPanel.classList.add('center-aligned');
-            } else if (panelRight > viewportWidth) {
-                controlPanel.classList.add('right-aligned');
-            } else if (panelLeft < 0) {
-                controlPanel.classList.add('left-aligned');
-            }
-        };
-
-        controlPanel.classList.add('active');
-
-        requestAnimationFrame(checkPosition);
-
-        const resizeObserver = new ResizeObserver(() => {
-            checkPosition();
-        });
-        resizeObserver.observe(header);
-
-        filterInput.addEventListener('input', (e) => {
-            e.stopPropagation();
-            this.enhancer.stateStore.setFilterValue(table, columnIndex, e.target.value);
-            this.enhancer.filterTable(table, columnIndex, e.target.value);
+        sortButton.addEventListener('click', (event) => {
+            event.stopPropagation();
+            this.enhancer.sortTable(table, columnIndex);
         });
 
-        filterInput.addEventListener('keydown', (e) => {
-            e.stopPropagation();
-            if (e.key === 'Escape') {
+        expandButton.addEventListener('click', (event) => {
+            event.stopPropagation();
+            this.toggleControlPanel(table, columnIndex);
+        });
+
+        filterInput.addEventListener('input', (event) => {
+            event.stopPropagation();
+            this.enhancer.stateStore.setFilterValue(table, columnIndex, event.target.value);
+            this.enhancer.filterTable(table, columnIndex, event.target.value);
+        });
+
+        filterInput.addEventListener('keydown', (event) => {
+            event.stopPropagation();
+            if (event.key === 'Escape') {
                 filterInput.value = '';
                 this.enhancer.stateStore.setFilterValue(table, columnIndex, '');
                 this.enhancer.filterTable(table, columnIndex, '');
             }
         });
 
-        const closePanel = (e) => {
-            if (!controlPanel.contains(e.target) && !e.target.closest('.anytable-expand-button')) {
-                controlPanel.remove();
-                resizeObserver.disconnect();
-                document.removeEventListener('click', closePanel);
-
-                const expandButton = header.querySelector('.anytable-expand-button');
-                if (expandButton) {
-                    this.enhancer.setExpandButtonIcon(expandButton, false);
+        const control = {
+            columnIndex,
+            destroy: surface.destroy,
+            documentClickHandler: null,
+            expandButton,
+            filterInput,
+            header,
+            host: surface.host,
+            isOpen: false,
+            originalHeaderPaddingRight,
+            originalHeaderPosition,
+            panel: controlPanel,
+            resizeObserver: new ResizeObserver(() => {
+                if (control.isOpen) {
+                    this.updatePanelPosition(control);
                 }
-            }
+            }),
+            sortButton
         };
 
-        controlPanel._closePanelHandler = closePanel;
-        document.addEventListener('click', closePanel);
+        control.resizeObserver.observe(header);
 
-        controlPanel.addEventListener('click', (e) => {
-            e.stopPropagation();
-        });
+        return control;
+    }
+
+    updatePanelPosition(control) {
+        const {header, panel} = control;
+        const viewportWidth = window.innerWidth;
+        const headerRect = header.getBoundingClientRect();
+        const panelWidth = Math.max(headerRect.width, 200);
+        const panelRight = headerRect.left + panelWidth;
+        const panelLeft = headerRect.right - panelWidth;
+
+        panel.classList.remove('right-aligned', 'left-aligned', 'center-aligned');
+
+        if (panelRight > viewportWidth && panelLeft < 0) {
+            panel.classList.add('center-aligned');
+        } else if (panelRight > viewportWidth) {
+            panel.classList.add('right-aligned');
+        } else if (panelLeft < 0) {
+            panel.classList.add('left-aligned');
+        }
     }
 }

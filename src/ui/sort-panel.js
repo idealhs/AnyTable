@@ -1,5 +1,6 @@
 import { detectColumnUnitSystem } from '../core/type-parser.js';
-import { escapeHtml, createCloseIconSvg, setInnerHTML, translate, getColumnOptionsHtml, createOverlayAndDialog } from './panel-utils.js';
+import { closeDropdownPopup, fitDropdownButtonWidth, getDropdownButtonValue, openDropdownPopup, setDropdownButtonValue } from './dropdown-popup.js';
+import { escapeHtml, createCloseIconSvg, setInnerHTML, translate, createOverlayAndDialog } from './panel-utils.js';
 
 function detectColumnType(values) {
     if (!values || values.length === 0) return 'text';
@@ -13,8 +14,6 @@ const SORT_TYPE_GROUPS = [
      'temperature', 'pressure', 'energy', 'power', 'voltage',
      'current', 'resistance', 'frequency', 'dataSize', 'bitrate']
 ];
-
-const SORT_TYPE_OPTIONS = SORT_TYPE_GROUPS.flat();
 
 function getTypeLabel(type) {
     return translate(`advancedPanel.sort.type.${type}`) || type;
@@ -33,117 +32,14 @@ function getButtonLabel(type, getColumnValues, columnIndex) {
     return getTypeLabel(type);
 }
 
-function updateTypeButtonLabel(rowElement, getColumnValues) {
+function updateTypeButtonLabel(rowElement, getColumnValues, minWidth = 0) {
     const btn = rowElement.querySelector('.anytable-adv-sort-type-btn');
-    const columnSelect = rowElement.querySelector('.anytable-adv-sort-column');
+    const columnButton = rowElement.querySelector('.anytable-adv-sort-column');
     if (!btn) return;
 
-    const type = btn.getAttribute('data-sort-type') || 'auto';
-    const colIdx = Number(columnSelect.value);
-    btn.textContent = getButtonLabel(type, getColumnValues, colIdx);
-}
-
-function closeSortTypePopup() {
-    const existing = document.querySelector('.anytable-sort-type-popup');
-    if (existing) existing.remove();
-}
-
-function openSortTypePopup(anchorButton, currentType, onSelect) {
-    closeSortTypePopup();
-
-    const popup = document.createElement('div');
-    popup.className = 'anytable-sort-type-popup';
-
-    const searchInput = document.createElement('input');
-    searchInput.type = 'text';
-    searchInput.className = 'anytable-sort-type-search';
-    searchInput.placeholder = translate('advancedPanel.sort.typePopup.searchPlaceholder');
-    popup.appendChild(searchInput);
-
-    const optionsContainer = document.createElement('div');
-    optionsContainer.className = 'anytable-sort-type-options';
-    popup.appendChild(optionsContainer);
-
-    function renderOptions(filter) {
-        optionsContainer.textContent = '';
-        const lowerFilter = (filter || '').toLowerCase();
-
-        SORT_TYPE_GROUPS.forEach((group, groupIndex) => {
-            const filtered = group.filter(type => {
-                const label = getTypeLabel(type);
-                return !lowerFilter || label.toLowerCase().includes(lowerFilter) || type.toLowerCase().includes(lowerFilter);
-            });
-            if (filtered.length === 0) return;
-
-            if (groupIndex > 0 && optionsContainer.children.length > 0 && !lowerFilter) {
-                const divider = document.createElement('div');
-                divider.className = 'anytable-sort-type-divider';
-                optionsContainer.appendChild(divider);
-            }
-
-            for (const type of filtered) {
-                const option = document.createElement('div');
-                option.className = 'anytable-sort-type-option';
-                if (type === currentType) option.classList.add('selected');
-                option.textContent = getTypeLabel(type);
-                option.addEventListener('click', () => {
-                    onSelect(type);
-                    closePopup();
-                });
-                optionsContainer.appendChild(option);
-            }
-        });
-    }
-
-    renderOptions('');
-
-    searchInput.addEventListener('input', () => {
-        renderOptions(searchInput.value);
-    });
-
-    document.body.appendChild(popup);
-
-    // Position below the anchor button
-    const rect = anchorButton.getBoundingClientRect();
-    popup.style.top = (rect.bottom + 2) + 'px';
-    popup.style.left = rect.left + 'px';
-
-    // Adjust if popup goes off-screen
-    const popupRect = popup.getBoundingClientRect();
-    if (popupRect.right > window.innerWidth) {
-        popup.style.left = (window.innerWidth - popupRect.width - 4) + 'px';
-    }
-    if (popupRect.bottom > window.innerHeight) {
-        popup.style.top = (rect.top - popupRect.height - 2) + 'px';
-    }
-
-    searchInput.focus();
-
-    function closePopup() {
-        popup.remove();
-        document.removeEventListener('mousedown', outsideClickHandler, true);
-        document.removeEventListener('keydown', escHandler, true);
-    }
-
-    function outsideClickHandler(e) {
-        if (!popup.contains(e.target) && e.target !== anchorButton) {
-            closePopup();
-        }
-    }
-
-    function escHandler(e) {
-        if (e.key === 'Escape') {
-            e.stopPropagation();
-            e.preventDefault();
-            closePopup();
-        }
-    }
-
-    // Delay to avoid immediate close from the same click
-    setTimeout(() => {
-        document.addEventListener('mousedown', outsideClickHandler, true);
-        document.addEventListener('keydown', escHandler, true);
-    }, 0);
+    const type = getDropdownButtonValue(btn) || 'auto';
+    const colIdx = Number(getDropdownButtonValue(columnButton));
+    setDropdownButtonValue(btn, type, getButtonLabel(type, getColumnValues, colIdx), {minWidth});
 }
 
 function generateId(prefix) {
@@ -158,7 +54,31 @@ function getDirectionLabel(direction) {
     return text + arrow;
 }
 
-function buildSortRuleRowHtml(columnOptionsHtml, rule) {
+function getColumnLabel(columnTitles, columnIndex) {
+    return columnTitles[columnIndex]
+        || translate('advancedPanel.common.columnFallback', {index: columnIndex + 1});
+}
+
+function buildOptionButtonHtml(className, value, label) {
+    return `<button type="button" class="anytable-adv-select-btn ${className}" data-value="${escapeHtml(String(value))}" aria-expanded="false">${escapeHtml(label)}</button>`;
+}
+
+function getSortTypeOptionGroups() {
+    return SORT_TYPE_GROUPS.map((group) => group.map((type) => ({
+        value: type,
+        label: getTypeLabel(type)
+    })));
+}
+
+function getColumnOptionGroups(columnTitles, usedColumns, currentColumn) {
+    return [columnTitles.map((title, index) => ({
+        value: String(index),
+        label: getColumnLabel(columnTitles, index),
+        disabled: index !== currentColumn && usedColumns.has(index)
+    }))];
+}
+
+function buildSortRuleRowHtml(columnTitles, rule) {
     const column = Number.isInteger(rule?.column) ? rule.column : 0;
     const direction = rule?.direction === 'desc' ? 'desc' : 'asc';
     const type = rule?.type || 'auto';
@@ -168,9 +88,9 @@ function buildSortRuleRowHtml(columnOptionsHtml, rule) {
     return `
         <div class="anytable-adv-sort-row" data-sort-id="${escapeHtml(rule.id)}">
             <div class="anytable-adv-sort-grid">
-                <select class="anytable-adv-sort-column">${columnOptionsHtml}</select>
+                ${buildOptionButtonHtml('anytable-adv-sort-column', column, getColumnLabel(columnTitles, column))}
                 <button type="button" class="anytable-adv-sort-direction" data-sort-direction="${direction}">${dirLabel}</button>
-                <button type="button" class="anytable-adv-sort-type-btn" data-sort-type="${escapeHtml(type)}">${getTypeLabel(type)}</button>
+                ${buildOptionButtonHtml('anytable-adv-sort-type-btn', type, getTypeLabel(type))}
                 <button type="button" class="anytable-adv-remove-sort-rule">${translate('advancedPanel.common.delete')}</button>
             </div>
         </div>
@@ -178,7 +98,7 @@ function buildSortRuleRowHtml(columnOptionsHtml, rule) {
 }
 
 function parseSortRuleRow(rowElement) {
-    const column = Number(rowElement.querySelector('.anytable-adv-sort-column').value);
+    const column = Number(getDropdownButtonValue(rowElement.querySelector('.anytable-adv-sort-column')));
     if (Number.isNaN(column)) {
         return {error: translate('advancedPanel.sort.errors.invalidColumn')};
     }
@@ -186,7 +106,7 @@ function parseSortRuleRow(rowElement) {
     const dirBtn = rowElement.querySelector('.anytable-adv-sort-direction');
     const direction = dirBtn.getAttribute('data-sort-direction') === 'desc' ? 'desc' : 'asc';
     const typeBtn = rowElement.querySelector('.anytable-adv-sort-type-btn');
-    const type = (typeBtn && typeBtn.getAttribute('data-sort-type')) || 'auto';
+    const type = getDropdownButtonValue(typeBtn) || 'auto';
 
     const rule = {
         column,
@@ -198,17 +118,6 @@ function parseSortRuleRow(rowElement) {
     return {rule};
 }
 
-function fitSelectWidth(selectEl, minWidth = 0) {
-    const selected = selectEl.options[selectEl.selectedIndex];
-    if (!selected) return;
-    const measure = document.createElement('span');
-    measure.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;font:' + getComputedStyle(selectEl).font;
-    measure.textContent = selected.textContent;
-    document.body.appendChild(measure);
-    selectEl.style.width = Math.max(measure.offsetWidth + 28, minWidth) + 'px';
-    measure.remove();
-}
-
 export function openAdvancedSortPanel({
     columnIndex,
     columnTitles,
@@ -218,8 +127,7 @@ export function openAdvancedSortPanel({
     onApply,
     onCancel
 }) {
-    const {overlay, dialog} = createOverlayAndDialog();
-    const columnOptionsHtml = getColumnOptionsHtml(columnTitles);
+    const {overlay, dialog, destroy} = createOverlayAndDialog();
     const effectiveColumnIndex = columnIndex ?? 0;
     const seedRules = Array.isArray(initialRules) && initialRules.length
         ? initialRules
@@ -300,8 +208,8 @@ export function openAdvancedSortPanel({
     }
 
     function closePanel(triggerCancel = true) {
-        closeSortTypePopup();
-        overlay.remove();
+        closeDropdownPopup();
+        destroy();
         if (triggerCancel && typeof onCancel === 'function') {
             onCancel();
         }
@@ -317,20 +225,6 @@ export function openAdvancedSortPanel({
 
     function getUsedColumns(rules) {
         return new Set(rules.map(r => r.column));
-    }
-
-    function updateColumnOptions(rules) {
-        const used = getUsedColumns(rules);
-        const rows = Array.from(sortList.querySelectorAll('.anytable-adv-sort-row'));
-        rows.forEach((row, i) => {
-            const select = row.querySelector('.anytable-adv-sort-column');
-            if (!select) return;
-            const currentVal = Number(select.value);
-            Array.from(select.options).forEach(opt => {
-                const val = Number(opt.value);
-                opt.disabled = val !== currentVal && used.has(val);
-            });
-        });
     }
 
     function updateMultiColumnHint(rules) {
@@ -355,40 +249,54 @@ export function openAdvancedSortPanel({
 
     function bindSortRow(row, rules, index) {
         const rule = rules[index];
-        const columnSelect = row.querySelector('.anytable-adv-sort-column');
+        const columnButton = row.querySelector('.anytable-adv-sort-column');
         const directionBtn = row.querySelector('.anytable-adv-sort-direction');
         const typeBtn = row.querySelector('.anytable-adv-sort-type-btn');
 
-        columnSelect.value = String(rule.column);
+        setDropdownButtonValue(columnButton, rule.column, getColumnLabel(columnTitles, rule.column), {minWidth: selectMinWidth});
         directionBtn.setAttribute('data-sort-direction', rule.direction);
         directionBtn.textContent = getDirectionLabel(rule.direction);
-        typeBtn.setAttribute('data-sort-type', rule.type);
+        setDropdownButtonValue(typeBtn, rule.type, getTypeLabel(rule.type), {minWidth: selectMinWidth});
 
-        columnSelect.addEventListener('change', () => {
-            rule.column = Number(columnSelect.value);
-            fitSelectWidth(columnSelect, selectMinWidth);
-            updateColumnOptions(rules);
-            updateTypeButtonLabel(row, getColumnValues);
+        columnButton.addEventListener('click', () => {
+            openDropdownPopup({
+                anchorButton: columnButton,
+                currentValue: String(rule.column),
+                groups: getColumnOptionGroups(columnTitles, getUsedColumns(rules), rule.column),
+                onSelect: (newValue) => {
+                    rule.column = Number(newValue);
+                    setDropdownButtonValue(columnButton, newValue, getColumnLabel(columnTitles, rule.column), {minWidth: selectMinWidth});
+                    updateTypeButtonLabel(row, getColumnValues, selectMinWidth);
+                }
+            });
         });
+
         directionBtn.addEventListener('click', () => {
+            closeDropdownPopup();
             rule.direction = rule.direction === 'asc' ? 'desc' : 'asc';
             directionBtn.setAttribute('data-sort-direction', rule.direction);
             directionBtn.textContent = getDirectionLabel(rule.direction);
         });
 
         typeBtn.addEventListener('click', () => {
-            openSortTypePopup(typeBtn, rule.type, (newType) => {
-                rule.type = newType;
-                typeBtn.setAttribute('data-sort-type', newType);
-                updateTypeButtonLabel(row, getColumnValues);
+            openDropdownPopup({
+                anchorButton: typeBtn,
+                currentValue: rule.type,
+                groups: getSortTypeOptionGroups(),
+                searchable: true,
+                searchPlaceholder: translate('advancedPanel.sort.typePopup.searchPlaceholder'),
+                onSelect: (newType) => {
+                    rule.type = newType;
+                    updateTypeButtonLabel(row, getColumnValues, selectMinWidth);
+                }
             });
         });
 
-        fitSelectWidth(columnSelect, selectMinWidth);
-
-        updateTypeButtonLabel(row, getColumnValues);
+        fitDropdownButtonWidth(columnButton, selectMinWidth);
+        updateTypeButtonLabel(row, getColumnValues, selectMinWidth);
 
         row.querySelector('.anytable-adv-remove-sort-rule').addEventListener('click', () => {
+            closeDropdownPopup();
             if (rules.length <= 1) {
                 setHint(translate('advancedPanel.sort.hint.keepOneRule'), true);
                 return;
@@ -396,30 +304,27 @@ export function openAdvancedSortPanel({
             const idx = rules.indexOf(rule);
             if (idx >= 0) rules.splice(idx, 1);
             row.remove();
-            updateColumnOptions(rules);
             updateMultiColumnHint(rules);
         });
     }
 
     function renderSortRules(rules) {
         const htmlString = rules
-            .map((rule) => buildSortRuleRowHtml(columnOptionsHtml, rule))
+            .map((rule) => buildSortRuleRowHtml(columnTitles, rule))
             .join('');
         setInnerHTML(sortList, htmlString);
 
         const rows = Array.from(sortList.querySelectorAll('.anytable-adv-sort-row'));
         rows.forEach((row, index) => bindSortRow(row, rules, index));
-        updateColumnOptions(rules);
         updateMultiColumnHint(rules);
     }
 
     function appendSortRule(rule, rules) {
         const tmp = document.createElement('div');
-        setInnerHTML(tmp, buildSortRuleRowHtml(columnOptionsHtml, rule));
+        setInnerHTML(tmp, buildSortRuleRowHtml(columnTitles, rule));
         const row = tmp.firstElementChild;
         sortList.appendChild(row);
         bindSortRow(row, rules, rules.length - 1);
-        updateColumnOptions(rules);
         updateMultiColumnHint(rules);
     }
 

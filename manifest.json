@@ -26,9 +26,6 @@
             ],
             "js": [
                 "src/content-entry.js"
-            ],
-            "css": [
-                "src/styles.css"
             ]
         }
     ],
@@ -39,6 +36,7 @@
                 "src/constants/*.js",
                 "src/core/*.js",
                 "src/i18n/*.js",
+                "src/styles.css",
                 "src/state/*.js",
                 "src/ui/*.js"
             ],

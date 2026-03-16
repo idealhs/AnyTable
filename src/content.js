@@ -6,6 +6,7 @@ import { computeStatisticsData } from './core/statistics-engine.js';
 import { renderStatisticsRows, removeStatisticsRows } from './ui/statistics-renderer.js';
 import { PickingMode } from './picking-mode.js';
 import { ControlPanelManager } from './control-panel-manager.js';
+import { preloadShadowStyles } from './ui/shadow-ui.js';
 import { Toolbar } from './ui/toolbar.js';
 import { setupMessageHandler } from './message-handler.js';
 
@@ -50,35 +51,7 @@ class TableEnhancer {
 
     updateAllTexts() {
         this.enhancedTables.forEach(table => {
-            const headers = table.getElementsByTagName('th');
-            Array.from(headers).forEach((header, index) => {
-                const expandButton = header.querySelector('.anytable-expand-button');
-                if (expandButton) {
-                    expandButton.title = i18n.t('columnControl.title');
-                }
-
-                const controlPanel = header.querySelector('.anytable-control-panel');
-                if (controlPanel) {
-                    const filterInput = controlPanel.querySelector('.filter-input');
-                    if (filterInput) {
-                        filterInput.placeholder = i18n.t('columnControl.filter.placeholder');
-                    }
-
-                    const sortButton = header.querySelector('.anytable-sort-button');
-                    if (sortButton) {
-                        const rules = this.stateStore.getSortRules(table);
-                        const rule = rules.find(r => r.column === index);
-                        if (rule) {
-                            sortButton.title = rule.direction === 'asc' ? i18n.t('columnControl.sort.ascending') :
-                                            rule.direction === 'desc' ? i18n.t('columnControl.sort.descending') :
-                                            i18n.t('columnControl.sort.none');
-                        } else {
-                            sortButton.title = i18n.t('columnControl.sort.none');
-                        }
-                    }
-                }
-            });
-
+            this.controlPanelManager.updateTexts(table);
             this.toolbar.updateTexts(table);
         });
     }
@@ -174,10 +147,7 @@ class TableEnhancer {
 
     updateFilterInputsDisabledState(table) {
         const hasAdvanced = this.stateStore.getAdvancedFilterRules(table) !== null;
-        const inputs = table.querySelectorAll('.filter-input');
-        for (const input of inputs) {
-            input.disabled = hasAdvanced;
-        }
+        this.controlPanelManager.setFilterInputsDisabledState(table, hasAdvanced);
     }
 
     applySortRules(table, rules) {
@@ -235,6 +205,7 @@ class TableEnhancer {
         this.autoEnhance = result.autoEnhance !== false;
         this.multiColumnSort = result.multiColumnSort === true;
 
+        await preloadShadowStyles();
         setupMessageHandler(this);
 
         if (this.autoEnhance) {
@@ -251,64 +222,12 @@ class TableEnhancer {
 
     removeEnhancement(table) {
         this.toolbar.removeToolbar(table);
+        this.controlPanelManager.removeTableControls(table);
         removeStatisticsRows(table);
-
-        const expandButtons = table.querySelectorAll('.anytable-expand');
-        expandButtons.forEach(button => button.remove());
-
-        const controlPanels = table.querySelectorAll('.anytable-control-panel');
-        controlPanels.forEach(panel => panel.remove());
 
         table.classList.remove('anytable-enhanced');
         this.enhancedTables.delete(table);
         this.stateStore.clearTable(table);
-    }
-
-    addSortingAndFiltering(table) {
-        const headers = table.getElementsByTagName('th');
-        if (!headers.length) return;
-
-        this.stateStore.setSortRules(table, []);
-
-        Array.from(headers).forEach((header, index) => {
-            const expandContainer = document.createElement('div');
-            expandContainer.className = 'anytable-expand';
-
-            const sortButton = document.createElement('button');
-            sortButton.className = 'anytable-sort-button';
-            this.setSortButtonIcon(sortButton, 'none');
-            sortButton.title = i18n.t('columnControl.sort.none');
-
-            const expandButton = document.createElement('button');
-            expandButton.className = 'anytable-expand-button';
-            this.setExpandButtonIcon(expandButton, false);
-            expandButton.title = i18n.t('columnControl.title');
-
-            expandContainer.appendChild(sortButton);
-            expandContainer.appendChild(expandButton);
-
-            header.appendChild(expandContainer);
-
-            sortButton.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.sortTable(table, index);
-            });
-
-            expandButton.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const existingPanel = header.querySelector('.anytable-control-panel');
-                if (existingPanel) {
-                    if (existingPanel._closePanelHandler) {
-                        document.removeEventListener('click', existingPanel._closePanelHandler);
-                    }
-                    existingPanel.remove();
-                    this.setExpandButtonIcon(expandButton, false);
-                } else {
-                    this.controlPanelManager.showControlPanel(table, index);
-                    this.setExpandButtonIcon(expandButton, true);
-                }
-            });
-        });
     }
 
     enhanceTable(table) {
@@ -320,13 +239,8 @@ class TableEnhancer {
             this.stateStore.setOriginalRows(table, rows);
         }
 
-        const headers = table.getElementsByTagName('th');
-        Array.from(headers).forEach(header => {
-            header.style.position = 'relative';
-            header.style.paddingRight = '72px';
-        });
-
-        this.addSortingAndFiltering(table);
+        this.stateStore.setSortRules(table, []);
+        this.controlPanelManager.attachTableControls(table);
         this.enhancedTables.add(table);
         table.classList.add('anytable-enhanced');
         this.toolbar.createToolbar(table);
@@ -347,9 +261,8 @@ class TableEnhancer {
     }
 
     updateSortButton(table, columnIndex, direction, priority = null) {
-        const header = table.getElementsByTagName('th')[columnIndex];
-        if (!header) return;
-        const sortButton = header.querySelector('.anytable-sort-button');
+        const control = this.controlPanelManager.getHeaderControl(table, columnIndex);
+        const sortButton = control?.sortButton;
         if (sortButton) {
             this.setSortButtonIcon(sortButton, direction, priority);
             sortButton.classList.remove('sort-asc', 'sort-desc', 'sort-none');
@@ -394,7 +307,7 @@ class TableEnhancer {
                         tables.push(...node.querySelectorAll('table'));
                     }
                     for (const table of tables) {
-                        this.enhancedTables.delete(table);
+                        this.removeEnhancement(table);
                         this.selectedTables.delete(table);
                     }
                 }

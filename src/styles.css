@@ -1,6 +1,52 @@
-/* 表格增强功能的样式 */
-.anytable-enhanced {
+:host {
+    all: initial;
+}
+
+:host,
+:host *,
+:host *::before,
+:host *::after {
+    box-sizing: border-box;
+}
+
+:host button,
+:host input,
+:host select,
+:host textarea {
+    margin: 0;
+}
+
+.anytable-shadow-layer {
     position: relative;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #1f1f1f;
+}
+
+.anytable-toolbar-surface {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #1f1f1f;
+}
+
+.anytable-header-surface {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #1f1f1f;
+}
+
+.anytable-header-surface .anytable-expand,
+.anytable-header-surface .anytable-control-panel {
+    pointer-events: auto;
 }
 
 /* 悬浮工具栏 */
@@ -11,6 +57,7 @@
     overflow: visible;
     position: relative;
     z-index: 2;
+    pointer-events: auto;
 }
 
 .anytable-toolbar-button {
@@ -27,6 +74,11 @@
     transition: all 0.2s ease;
     position: relative;
     top: -26px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1;
+    color: #1f1f1f;
 }
 
 .anytable-toolbar-button + .anytable-toolbar-button {
@@ -64,6 +116,7 @@
     display: flex;
     align-items: center;
     gap: 4px;
+    pointer-events: auto;
 }
 
 .anytable-sort-button {
@@ -74,12 +127,16 @@
     border-radius: 3px;
     background: white;
     cursor: pointer;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 12px;
+    font-weight: 400;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 1px;
     transition: all 0.3s ease;
+    line-height: 1;
+    color: #666;
 }
 
 .anytable-sort-button.has-priority {
@@ -101,11 +158,15 @@
     border-radius: 3px;
     background: white;
     cursor: pointer;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 12px;
+    font-weight: 400;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
+    line-height: 1;
+    color: #1f1f1f;
 }
 
 .anytable-expand-button:hover {
@@ -132,6 +193,7 @@
     box-sizing: border-box;
     transform-origin: top left;
     overflow: hidden;
+    pointer-events: auto;
 }
 
 /* 当控制面板靠近右边缘时，向左延伸 */
@@ -195,6 +257,10 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-weight: 400;
+    line-height: normal;
+    color: #1f1f1f;
 }
 
 .filter-input:focus {
@@ -210,26 +276,9 @@
     border-color: #ddd;
 }
 
-/* 选择模式样式 */
-.anytable-pickable {
-    cursor: pointer !important;
-    outline: 2px dashed #4a90e2 !important;
-    outline-offset: 2px !important;
-}
-
-.anytable-picked {
-    outline: 2px solid #4a90e2 !important;
-    outline-offset: 2px !important;
-}
-
 /* 确保控制行内的所有元素都没有margin */
 .control-row > * {
     margin: 0 !important;
-}
-
-/* 确保控制面板在表头较窄时也能正常显示 */
-.anytable-enhanced th {
-    position: relative;
 }
 
 /* 排序按钮样式 */
@@ -306,6 +355,7 @@
     justify-content: center;
     padding: 16px;
     box-sizing: border-box;
+    pointer-events: auto;
 }
 
 .anytable-advanced-dialog {
@@ -318,6 +368,9 @@
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
     display: flex;
     flex-direction: column;
+    pointer-events: auto;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #1f1f1f;
 }
 
 .anytable-advanced-header {
@@ -345,6 +398,10 @@
     align-items: center;
     justify-content: center;
     color: #555;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1;
 }
 
 .anytable-advanced-close svg {
@@ -390,7 +447,11 @@
     border-radius: 4px;
     padding: 4px 8px;
     box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 12px;
+    font-weight: 400;
+    line-height: normal;
+    color: #1f1f1f;
 }
 
 .anytable-advanced-row textarea {
@@ -414,7 +475,10 @@
     height: 32px;
     min-width: 76px;
     padding: 0 10px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 12px;
+    font-weight: 400;
+    line-height: 1;
     cursor: pointer;
 }
 
@@ -476,8 +540,10 @@
     border: 1px solid #d0d0d0;
     border-radius: 4px;
     background: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 14px;
     font-weight: 700;
+    line-height: 1;
     color: #999;
     cursor: pointer;
     display: flex;
@@ -497,21 +563,9 @@
     width: auto;
     min-width: 0;
     flex-shrink: 0;
-    height: 32px;
-    border: 1px solid #d0d0d0;
-    border-radius: 4px;
-    padding: 0 6px;
-    font-size: 13px;
-    box-sizing: border-box;
 }
 
 .anytable-adv-rule-grid .anytable-adv-filter-column {
-    height: 32px;
-    border: 1px solid #d0d0d0;
-    border-radius: 4px;
-    padding: 0 6px;
-    font-size: 13px;
-    box-sizing: border-box;
     min-width: 0;
     flex-shrink: 0;
 }
@@ -523,7 +577,11 @@
     border: 1px solid #d0d0d0;
     border-radius: 4px;
     padding: 0 8px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 13px;
+    font-weight: 400;
+    line-height: normal;
+    color: #1f1f1f;
     box-sizing: border-box;
 }
 
@@ -534,7 +592,11 @@
     border: 1px solid #d0d0d0;
     border-radius: 4px;
     padding: 0 8px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 13px;
+    font-weight: 400;
+    line-height: normal;
+    color: #1f1f1f;
     box-sizing: border-box;
 }
 
@@ -545,7 +607,10 @@
     border-radius: 4px;
     background: #fff;
     color: #c1121f;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 13px;
+    font-weight: 400;
+    line-height: 1;
     cursor: pointer;
     padding: 0 8px;
     white-space: nowrap;
@@ -557,7 +622,10 @@
     border-radius: 4px;
     background: #fff;
     color: #c1121f;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 13px;
+    font-weight: 400;
+    line-height: 1;
     cursor: pointer;
     padding: 0 8px;
     white-space: nowrap;
@@ -572,7 +640,10 @@
     background: #edf7ee;
     color: #2e7d32;
     padding: 0 8px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 13px;
+    font-weight: 400;
+    line-height: 1;
     cursor: pointer;
     white-space: nowrap;
     box-sizing: border-box;
@@ -589,18 +660,27 @@
     color: #c1121f;
 }
 
-.anytable-adv-sort-type-btn {
+.anytable-adv-select-btn {
     height: 32px;
     border: 1px solid #d0d0d0;
     border-radius: 4px;
     background: #fff;
     padding: 0 24px 0 8px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 13px;
+    font-weight: 400;
+    line-height: 1;
     cursor: pointer;
     white-space: nowrap;
     position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
     text-align: left;
     min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
     box-sizing: border-box;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
@@ -608,11 +688,31 @@
     background-size: 16px 16px;
 }
 
-.anytable-adv-sort-type-btn:hover {
+.anytable-adv-select-btn:hover,
+.anytable-adv-select-btn[aria-expanded="true"] {
     border-color: #4a90e0;
+    box-shadow: 0 0 0 2px rgba(74,144,224,0.12);
 }
 
-.anytable-sort-type-popup {
+.anytable-adv-inline-operator {
+    background-color: #fafafa;
+}
+
+.anytable-adv-sort-grid .anytable-adv-select-btn,
+.anytable-adv-rule-grid .anytable-adv-filter-column,
+.anytable-adv-comparator,
+.anytable-adv-inline-operator {
+    min-width: 0;
+    flex-shrink: 0;
+}
+
+.anytable-adv-sort-grid .anytable-adv-stats-column,
+.anytable-adv-sort-grid .anytable-adv-stats-type {
+    min-width: 120px;
+    width: auto;
+}
+
+.anytable-adv-select-popup {
     position: fixed;
     z-index: 2147483647;
     background: #fff;
@@ -624,42 +724,58 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    pointer-events: auto;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #1f1f1f;
 }
 
-.anytable-sort-type-search {
+.anytable-adv-select-search {
     height: 32px;
     border: none;
     border-bottom: 1px solid #e6e6e6;
     padding: 0 10px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 13px;
+    font-weight: 400;
+    line-height: normal;
+    color: #1f1f1f;
     outline: none;
     box-sizing: border-box;
     flex-shrink: 0;
 }
 
-.anytable-sort-type-options {
+.anytable-adv-select-options {
     overflow-y: auto;
     flex: 1;
 }
 
-.anytable-sort-type-option {
+.anytable-adv-select-option {
     padding: 6px 10px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 13px;
+    font-weight: 400;
+    line-height: normal;
     cursor: pointer;
     white-space: nowrap;
 }
 
-.anytable-sort-type-option:hover {
+.anytable-adv-select-option:hover {
     background: #f0f5ff;
 }
 
-.anytable-sort-type-option.selected {
+.anytable-adv-select-option.selected {
     background: #e6f0ff;
     color: #1677ff;
     font-weight: 500;
 }
 
-.anytable-sort-type-divider {
+.anytable-adv-select-option.disabled {
+    color: #a0a0a0;
+    cursor: not-allowed;
+    background: transparent;
+}
+
+.anytable-adv-select-divider {
     height: 1px;
     background: #e6e6e6;
     margin: 2px 0;
@@ -679,7 +795,11 @@
     border: 1px solid #d0d0d0;
     border-radius: 4px;
     padding: 0 8px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 13px;
+    font-weight: 400;
+    line-height: normal;
+    color: #1f1f1f;
     box-sizing: border-box;
 }
 
@@ -689,36 +809,11 @@
     padding: 2px 0;
 }
 
-.anytable-adv-inline-operator {
-    height: 32px;
-    border: 1px solid #d0d0d0;
-    border-radius: 4px;
-    padding: 0 8px;
-    font-size: 13px;
-    background: #fafafa;
-    cursor: pointer;
-}
-
 .anytable-adv-sort-grid {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     align-items: start;
-}
-
-.anytable-adv-sort-grid select {
-    height: 32px;
-    border: 1px solid #d0d0d0;
-    border-radius: 4px;
-    padding: 0 6px;
-    font-size: 13px;
-    box-sizing: border-box;
-}
-
-.anytable-adv-sort-grid .anytable-adv-stats-column,
-.anytable-adv-sort-grid .anytable-adv-stats-type {
-    min-width: 120px;
-    width: auto;
 }
 
 /* 分组容器样式 */
@@ -758,7 +853,10 @@
     border-radius: 4px;
     background: #fff;
     color: #c1121f;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 12px;
+    font-weight: 400;
+    line-height: 1;
     cursor: pointer;
     padding: 0 8px;
     white-space: nowrap;
@@ -775,19 +873,6 @@
     display: flex;
     gap: 6px;
     padding: 0 8px 8px;
-}
-
-.anytable-stats-row {
-    background: #f0f7ff;
-    border-bottom: 1px solid #d0e3f7;
-    font-size: 12px;
-    font-weight: 500;
-}
-
-.anytable-stats-row td.anytable-stats-cell {
-    padding: 4px 8px;
-    color: #1a5276;
-    white-space: nowrap;
 }
 
 @media screen and (max-width: 768px) {
@@ -809,14 +894,16 @@
         flex-basis: 100%;
     }
 
-    .anytable-adv-sort-grid select {
+    .anytable-adv-sort-grid .anytable-adv-select-btn {
         flex: 1;
         min-width: 0;
         width: auto !important;
     }
 
-    .anytable-adv-sort-grid .anytable-adv-sort-type-btn {
-        flex: 1;
-        min-width: 0;
+    .anytable-adv-rule-grid .anytable-adv-filter-column,
+    .anytable-adv-rule-grid .anytable-adv-comparator,
+    .anytable-adv-rule-grid .anytable-adv-inline-operator {
+        width: auto !important;
+        max-width: 100%;
     }
 }

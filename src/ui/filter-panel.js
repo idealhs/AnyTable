@@ -1,12 +1,58 @@
-import { escapeHtml, createCloseIconSvg, setInnerHTML, parseNumberLike, translate, getColumnOptionsHtml, createOverlayAndDialog } from './panel-utils.js';
+import { closeDropdownPopup, getDropdownButtonValue, getDropdownOptionLabel, openDropdownPopup, setDropdownButtonValue } from './dropdown-popup.js';
+import { escapeHtml, createCloseIconSvg, setInnerHTML, parseNumberLike, translate, createOverlayAndDialog } from './panel-utils.js';
 
-function buildFilterOperatorHtml(operator) {
+const FILTER_COMPARATOR_VALUES = ['contains', 'startsWith', 'endsWith', 'equals', 'regex', '>', '>=', '<', '<=', 'between', 'isEmpty', 'isNotEmpty'];
+const FILTER_OPERATOR_VALUES = ['AND', 'OR'];
+
+function getColumnLabel(columnTitles, columnIndex) {
+    return columnTitles[columnIndex]
+        || translate('advancedPanel.common.columnFallback', {index: columnIndex + 1});
+}
+
+function buildOptionButtonHtml(className, value, label) {
+    return `<button type="button" class="anytable-adv-select-btn ${className}" data-value="${escapeHtml(String(value))}" aria-expanded="false">${escapeHtml(label)}</button>`;
+}
+
+function buildColumnOptionGroups(columnTitles) {
+    return [columnTitles.map((title, index) => ({
+        value: String(index),
+        label: getColumnLabel(columnTitles, index)
+    }))];
+}
+
+function buildComparatorOptionGroups() {
+    return [FILTER_COMPARATOR_VALUES.map((value) => ({
+        value,
+        label: translate(`advancedPanel.filter.comparator.${getComparatorTranslationKey(value)}`)
+    }))];
+}
+
+function buildOperatorOptionGroups() {
+    return [FILTER_OPERATOR_VALUES.map((value) => ({
+        value,
+        label: translate(`advancedPanel.filter.operator.${value.toLowerCase()}`)
+    }))];
+}
+
+function getComparatorTranslationKey(value) {
+    switch (value) {
+        case '>':
+            return 'gt';
+        case '>=':
+            return 'gte';
+        case '<':
+            return 'lt';
+        case '<=':
+            return 'lte';
+        default:
+            return value;
+    }
+}
+
+function buildFilterOperatorHtml(operator, operatorOptions) {
     return `
         <div class="anytable-adv-rule-operator">
-            <select class="anytable-adv-inline-operator">
-                <option value="AND">${translate('advancedPanel.filter.operator.and')}</option>
-                <option value="OR">${translate('advancedPanel.filter.operator.or')}</option>
-            </select>
+            ${buildOptionButtonHtml('anytable-adv-inline-operator', operator, getDropdownOptionLabel(operatorOptions, operator, operator))}
         </div>
     `;
 }
@@ -21,7 +67,7 @@ function generateId(prefix) {
     return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function buildFilterRuleRowHtml(rule, columnOptionsHtml) {
+function buildFilterRuleRowHtml(rule, optionSets) {
     const comparator = rule?.comparator || 'contains';
     const negated = rule?.negated || false;
     const value = rule?.value || '';
@@ -37,21 +83,8 @@ function buildFilterRuleRowHtml(rule, columnOptionsHtml) {
         <div class="anytable-adv-rule-row" data-rule-id="${escapeHtml(rule.id)}">
             <div class="anytable-adv-rule-grid">
                 <button type="button" class="anytable-adv-negate${negated ? ' active' : ''}" title="${translate('advancedPanel.filter.negateTooltip')}">!</button>
-                <select class="anytable-adv-filter-column">${columnOptionsHtml}</select>
-                <select class="anytable-adv-comparator">
-                    <option value="contains">${translate('advancedPanel.filter.comparator.contains')}</option>
-                    <option value="startsWith">${translate('advancedPanel.filter.comparator.startsWith')}</option>
-                    <option value="endsWith">${translate('advancedPanel.filter.comparator.endsWith')}</option>
-                    <option value="equals">${translate('advancedPanel.filter.comparator.equals')}</option>
-                    <option value="regex">${translate('advancedPanel.filter.comparator.regex')}</option>
-                    <option value=">">${translate('advancedPanel.filter.comparator.gt')}</option>
-                    <option value=">=">${translate('advancedPanel.filter.comparator.gte')}</option>
-                    <option value="<">${translate('advancedPanel.filter.comparator.lt')}</option>
-                    <option value="<=">${translate('advancedPanel.filter.comparator.lte')}</option>
-                    <option value="between">${translate('advancedPanel.filter.comparator.between')}</option>
-                    <option value="isEmpty">${translate('advancedPanel.filter.comparator.isEmpty')}</option>
-                    <option value="isNotEmpty">${translate('advancedPanel.filter.comparator.isNotEmpty')}</option>
-                </select>
+                ${buildOptionButtonHtml('anytable-adv-filter-column', rule.column ?? 0, getColumnLabel(optionSets.columnTitles, rule.column ?? 0))}
+                ${buildOptionButtonHtml('anytable-adv-comparator', comparator, getDropdownOptionLabel(optionSets.comparatorOptions, comparator, comparator))}
                 <input type="text" class="anytable-adv-value" placeholder="${translate('advancedPanel.filter.valuePlaceholder')}" style="display:${hideValue ? 'none' : ''};" value="${escapeHtml(value)}">
                 <div class="anytable-adv-range" style="display:${showRange ? '' : 'none'};">
                     <input type="text" class="anytable-adv-min" placeholder="${translate('advancedPanel.filter.minPlaceholder')}" value="${escapeHtml(min)}">
@@ -117,7 +150,7 @@ function ensureFilterRules(initialRuleGroup, fallbackColumnIndex) {
     return normalizeChildren(initialRuleGroup.children, fallbackColumnIndex, globalOperator);
 }
 
-function buildGroupHtml(groupNode, depth, columnOptionsHtml) {
+function buildGroupHtml(groupNode, depth, optionSets) {
     const negated = groupNode.negated || false;
     return `
         <div class="anytable-adv-rule-group" data-group-id="${escapeHtml(groupNode.id)}">
@@ -127,7 +160,7 @@ function buildGroupHtml(groupNode, depth, columnOptionsHtml) {
                 <button type="button" class="anytable-adv-remove-group">${translate('advancedPanel.common.delete')}</button>
             </div>
             <div class="anytable-adv-group-children">
-                ${buildChildrenHtml(groupNode.children, depth + 1, columnOptionsHtml)}
+                ${buildChildrenHtml(groupNode.children, depth + 1, optionSets)}
             </div>
             <div class="anytable-adv-group-actions">
                 <button type="button" class="anytable-advanced-btn anytable-adv-add-rule">${translate('advancedPanel.filter.addRule')}</button>
@@ -137,45 +170,54 @@ function buildGroupHtml(groupNode, depth, columnOptionsHtml) {
     `;
 }
 
-function buildChildrenHtml(children, depth, columnOptionsHtml) {
+function buildChildrenHtml(children, depth, optionSets) {
     let html = '';
     children.forEach((child, index) => {
         if (index > 0) {
-            html += buildFilterOperatorHtml(child.operator || 'AND');
+            html += buildFilterOperatorHtml(child.operator || 'AND', optionSets.operatorOptions);
         }
         if (isGroup(child)) {
-            html += buildGroupHtml(child, depth, columnOptionsHtml);
+            html += buildGroupHtml(child, depth, optionSets);
         } else {
-            html += buildFilterRuleRowHtml(child, columnOptionsHtml);
+            html += buildFilterRuleRowHtml(child, optionSets);
         }
     });
     return html;
 }
 
-function renderTree(containerEl, children, columnOptionsHtml, setHint) {
-    setInnerHTML(containerEl, buildChildrenHtml(children, 0, columnOptionsHtml));
+function renderTree(containerEl, children, optionSets, setHint) {
+    setInnerHTML(containerEl, buildChildrenHtml(children, 0, optionSets));
 
-    const reRender = () => renderTree(containerEl, children, columnOptionsHtml, setHint);
-    bindChildrenEvents(containerEl, children, 0, columnOptionsHtml, setHint, reRender);
+    const reRender = () => renderTree(containerEl, children, optionSets, setHint);
+    bindChildrenEvents(containerEl, children, 0, optionSets, setHint, reRender);
 }
 
 function findNodeIndex(children, id) {
     return children.findIndex((c) => c.id === id);
 }
 
-function bindChildrenEvents(containerEl, children, depth, columnOptionsHtml, setHint, reRender) {
+function bindChildrenEvents(containerEl, children, depth, optionSets, setHint, reRender) {
     const directChildren = Array.from(containerEl.children);
 
     for (const el of directChildren) {
         if (el.classList.contains('anytable-adv-rule-operator')) {
-            const select = el.querySelector('.anytable-adv-inline-operator');
+            const button = el.querySelector('.anytable-adv-inline-operator');
             const ruleId = getNextSiblingNodeId(el);
-            if (select && ruleId !== null) {
+            if (button && ruleId !== null) {
                 const idx = findNodeIndex(children, ruleId);
                 if (idx >= 0) {
-                    select.value = children[idx].operator || 'AND';
-                    select.addEventListener('change', () => {
-                        children[idx].operator = select.value;
+                    const currentValue = children[idx].operator || 'AND';
+                    setDropdownButtonValue(button, currentValue, getDropdownOptionLabel(optionSets.operatorOptions, currentValue, currentValue));
+                    button.addEventListener('click', () => {
+                        openDropdownPopup({
+                            anchorButton: button,
+                            currentValue: children[idx].operator || 'AND',
+                            groups: optionSets.operatorOptions,
+                            onSelect: (newValue) => {
+                                children[idx].operator = newValue;
+                                setDropdownButtonValue(button, newValue, getDropdownOptionLabel(optionSets.operatorOptions, newValue, newValue));
+                            }
+                        });
                     });
                 }
             }
@@ -190,17 +232,25 @@ function bindChildrenEvents(containerEl, children, depth, columnOptionsHtml, set
             if (idx < 0) continue;
             const rule = children[idx];
 
-            const columnSelect = el.querySelector('.anytable-adv-filter-column');
-            if (columnSelect) {
-                columnSelect.value = String(rule.column);
-                columnSelect.addEventListener('change', () => {
-                    rule.column = Number(columnSelect.value);
+            const columnButton = el.querySelector('.anytable-adv-filter-column');
+            if (columnButton) {
+                setDropdownButtonValue(columnButton, rule.column, getColumnLabel(optionSets.columnTitles, rule.column));
+                columnButton.addEventListener('click', () => {
+                    openDropdownPopup({
+                        anchorButton: columnButton,
+                        currentValue: String(rule.column),
+                        groups: optionSets.columnOptions,
+                        onSelect: (newValue) => {
+                            rule.column = Number(newValue);
+                            setDropdownButtonValue(columnButton, newValue, getColumnLabel(optionSets.columnTitles, rule.column));
+                        }
+                    });
                 });
             }
 
-            const comparatorSelect = el.querySelector('.anytable-adv-comparator');
-            if (comparatorSelect) {
-                comparatorSelect.value = rule.comparator;
+            const comparatorButton = el.querySelector('.anytable-adv-comparator');
+            if (comparatorButton) {
+                setDropdownButtonValue(comparatorButton, rule.comparator, getDropdownOptionLabel(optionSets.comparatorOptions, rule.comparator, rule.comparator));
             }
             setupFilterComparatorVisibility(el);
 
@@ -212,9 +262,18 @@ function bindChildrenEvents(containerEl, children, depth, columnOptionsHtml, set
                 });
             }
 
-            if (comparatorSelect) {
-                comparatorSelect.addEventListener('change', () => {
-                    rule.comparator = comparatorSelect.value;
+            if (comparatorButton) {
+                comparatorButton.addEventListener('click', () => {
+                    openDropdownPopup({
+                        anchorButton: comparatorButton,
+                        currentValue: rule.comparator,
+                        groups: optionSets.comparatorOptions,
+                        onSelect: (newValue) => {
+                            rule.comparator = newValue;
+                            setDropdownButtonValue(comparatorButton, newValue, getDropdownOptionLabel(optionSets.comparatorOptions, newValue, newValue));
+                            setupFilterComparatorVisibility(el);
+                        }
+                    });
                 });
             }
 
@@ -251,6 +310,7 @@ function bindChildrenEvents(containerEl, children, depth, columnOptionsHtml, set
             const removeBtn = el.querySelector('.anytable-adv-remove-rule');
             if (removeBtn) {
                 removeBtn.addEventListener('click', () => {
+                    closeDropdownPopup();
                     if (children.length <= 1) {
                         setHint(translate('advancedPanel.filter.hint.keepOneRule'), true);
                         return;
@@ -278,6 +338,7 @@ function bindChildrenEvents(containerEl, children, depth, columnOptionsHtml, set
             const removeGroupBtn = el.querySelector(':scope > .anytable-adv-group-header > .anytable-adv-remove-group');
             if (removeGroupBtn) {
                 removeGroupBtn.addEventListener('click', () => {
+                    closeDropdownPopup();
                     if (children.length <= 1) {
                         setHint(translate('advancedPanel.filter.hint.keepOneRule'), true);
                         return;
@@ -293,6 +354,7 @@ function bindChildrenEvents(containerEl, children, depth, columnOptionsHtml, set
             const addRuleBtn = el.querySelector(':scope > .anytable-adv-group-actions > .anytable-adv-add-rule');
             if (addRuleBtn) {
                 addRuleBtn.addEventListener('click', () => {
+                    closeDropdownPopup();
                     const newRule = createDefaultFilterRule(0);
                     newRule.operator = 'AND';
                     groupNode.children.push(newRule);
@@ -304,6 +366,7 @@ function bindChildrenEvents(containerEl, children, depth, columnOptionsHtml, set
             const addGroupBtn = el.querySelector(':scope > .anytable-adv-group-actions > .anytable-adv-add-group');
             if (addGroupBtn) {
                 addGroupBtn.addEventListener('click', () => {
+                    closeDropdownPopup();
                     if (depth + 1 >= MAX_NESTING_DEPTH) {
                         setHint(translate('advancedPanel.filter.hint.maxDepth', {max: MAX_NESTING_DEPTH}), true);
                         return;
@@ -318,7 +381,7 @@ function bindChildrenEvents(containerEl, children, depth, columnOptionsHtml, set
 
             const groupChildrenContainer = el.querySelector(':scope > .anytable-adv-group-children');
             if (groupChildrenContainer) {
-                bindChildrenEvents(groupChildrenContainer, groupNode.children, depth + 1, columnOptionsHtml, setHint, reRender);
+                bindChildrenEvents(groupChildrenContainer, groupNode.children, depth + 1, optionSets, setHint, reRender);
             }
         }
     }
@@ -379,9 +442,9 @@ function collectRuleTree(containerEl, children) {
 }
 
 function parseFilterRuleRow(rowElement) {
-    const comparator = rowElement.querySelector('.anytable-adv-comparator').value;
+    const comparator = getDropdownButtonValue(rowElement.querySelector('.anytable-adv-comparator'));
     const negated = rowElement.querySelector('.anytable-adv-negate').classList.contains('active');
-    const column = Number(rowElement.querySelector('.anytable-adv-filter-column').value);
+    const column = Number(getDropdownButtonValue(rowElement.querySelector('.anytable-adv-filter-column')));
 
     const rule = {
         id: `leaf-${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -441,13 +504,13 @@ function parseFilterRuleRow(rowElement) {
 }
 
 function setupFilterComparatorVisibility(rowElement) {
-    const comparatorSelect = rowElement.querySelector('.anytable-adv-comparator');
+    const comparatorButton = rowElement.querySelector('.anytable-adv-comparator');
     const valueInput = rowElement.querySelector('.anytable-adv-value');
     const rangeBox = rowElement.querySelector('.anytable-adv-range');
     const flagsInput = rowElement.querySelector('.anytable-adv-flags');
 
     const applyVisibility = () => {
-        const comparator = comparatorSelect.value;
+        const comparator = getDropdownButtonValue(comparatorButton);
         const showRange = comparator === 'between';
         const showRegex = comparator === 'regex';
         const hideValue = comparator === 'between' || comparator === 'isEmpty' || comparator === 'isNotEmpty';
@@ -457,7 +520,6 @@ function setupFilterComparatorVisibility(rowElement) {
         valueInput.style.display = hideValue ? 'none' : '';
     };
 
-    comparatorSelect.addEventListener('change', applyVisibility);
     applyVisibility();
 }
 
@@ -467,8 +529,13 @@ export function openAdvancedFilterPanel({
     onApply,
     onCancel
 }) {
-    const {overlay, dialog} = createOverlayAndDialog();
-    const columnOptionsHtml = getColumnOptionsHtml(columnTitles);
+    const {overlay, dialog, destroy} = createOverlayAndDialog();
+    const optionSets = {
+        columnTitles,
+        columnOptions: buildColumnOptionGroups(columnTitles),
+        comparatorOptions: buildComparatorOptionGroups(),
+        operatorOptions: buildOperatorOptionGroups()
+    };
     const currentRules = ensureFilterRules(initialRuleGroup, 0);
 
     // 创建 header
@@ -550,14 +617,15 @@ export function openAdvancedFilterPanel({
     }
 
     function closePanel(triggerCancel = true) {
-        overlay.remove();
+        closeDropdownPopup();
+        destroy();
         if (triggerCancel && typeof onCancel === 'function') {
             onCancel();
         }
     }
 
     function doRender() {
-        renderTree(ruleList, currentRules, columnOptionsHtml, setHint);
+        renderTree(ruleList, currentRules, optionSets, setHint);
     }
 
     doRender();
@@ -565,6 +633,7 @@ export function openAdvancedFilterPanel({
     const rootActions = dialog.querySelector('.anytable-advanced-body > .anytable-adv-group-actions');
 
     rootActions.querySelector('.anytable-adv-add-rule').addEventListener('click', () => {
+        closeDropdownPopup();
         const newRule = createDefaultFilterRule(0);
         if (currentRules.length > 0) {
             newRule.operator = 'AND';
@@ -575,6 +644,7 @@ export function openAdvancedFilterPanel({
     });
 
     rootActions.querySelector('.anytable-adv-add-group').addEventListener('click', () => {
+        closeDropdownPopup();
         const newGroup = createDefaultGroup(0);
         if (currentRules.length > 0) {
             newGroup.operator = 'AND';
@@ -587,6 +657,7 @@ export function openAdvancedFilterPanel({
     dialog.querySelector('.anytable-advanced-close').addEventListener('click', () => closePanel(true));
     dialog.querySelector('.anytable-advanced-cancel').addEventListener('click', () => closePanel(true));
     dialog.querySelector('.anytable-advanced-reset').addEventListener('click', () => {
+        closeDropdownPopup();
         currentRules.length = 0;
         currentRules.push(createDefaultFilterRule(0));
         doRender();
