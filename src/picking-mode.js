@@ -13,6 +13,8 @@ export class PickingMode {
     }
 
     startPicking() {
+        if (this.isPicking) return;
+
         this.isPicking = true;
         document.addEventListener('mousemove', this.handleMouseMove);
         document.addEventListener('click', this.handleClick);
@@ -43,15 +45,18 @@ export class PickingMode {
             e.preventDefault();
             e.stopPropagation();
 
-            if (this.selectedTables.has(table)) {
+            if (this.enhancedTables.has(table)) {
                 this.selectedTables.delete(table);
                 table.classList.remove('anytable-picked');
+                this.removeEnhancement(table);
             } else {
                 this.selectedTables.add(table);
                 table.classList.add('anytable-picked');
                 this.enhanceTable(table);
             }
+
             this.syncHighlightStyles(table);
+            this.stopPicking();
         }
     }
 
@@ -68,10 +73,8 @@ export class PickingMode {
         document.removeEventListener('keydown', this.handleKeyDown);
 
         document.querySelectorAll('.anytable-pickable').forEach(table => {
-            if (!this.selectedTables.has(table)) {
-                table.classList.remove('anytable-pickable');
-                this.syncHighlightStyles(table);
-            }
+            table.classList.remove('anytable-pickable');
+            this.syncHighlightStyles(table);
         });
     }
 
