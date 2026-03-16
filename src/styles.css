@@ -99,6 +99,18 @@
     box-shadow: 0 0 0 2px rgba(74, 144, 224, 0.2);
 }
 
+.anytable-toolbar-button.toolbar-active {
+    color: #0f766e;
+    border-color: #14b8a6;
+    background: #f0fdfa;
+}
+
+.anytable-toolbar-button.toolbar-active:hover {
+    border-color: #0f766e;
+    background: #ccfbf1;
+    box-shadow: 0 0 0 2px rgba(20,184,166,0.18);
+}
+
 .anytable-toolbar-button svg {
     width: 16px;
     height: 16px;

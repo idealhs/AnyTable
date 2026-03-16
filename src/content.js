@@ -143,6 +143,7 @@ class TableEnhancer {
         applyCombinedFilters(table, filterValues, advancedRuleGroup);
         this.updateFilterInputsDisabledState(table);
         this.controlPanelManager.refreshFilterButtons(table);
+        this.toolbar.refreshActiveStates(table);
         this.refreshStatistics(table);
     }
 
@@ -196,6 +197,7 @@ class TableEnhancer {
         this.stateStore.setAdvancedSortRules(table, normalizedRules);
         this.stateStore.setSortRules(table, normalizedRules);
         this.refreshSortButtons(table);
+        this.toolbar.refreshActiveStates(table);
 
         this.applySortRules(table, normalizedRules);
     }
@@ -257,6 +259,7 @@ class TableEnhancer {
         this.stateStore.setAdvancedSortRules(table, []);
 
         this.refreshSortButtons(table);
+        this.toolbar.refreshActiveStates(table);
 
         this.applySortRules(table, rules);
     }
@@ -284,6 +287,7 @@ class TableEnhancer {
 
     applyStatistics(table, rules) {
         this.stateStore.setStatisticsRules(table, rules);
+        this.toolbar.refreshActiveStates(table);
         this.refreshStatistics(table);
     }
 

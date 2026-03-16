@@ -32,27 +32,29 @@ export class Toolbar {
         const toolbar = document.createElement('div');
         toolbar.className = 'anytable-toolbar';
 
-        const filterBtn = this._createButton('advancedFilter', i18n.t('columnControl.filter.advanced'));
-        filterBtn.addEventListener('click', () => this._openFilter(table));
-
         const sortBtn = this._createButton('advancedSort', i18n.t('columnControl.sort.advanced'));
         sortBtn.addEventListener('click', () => this._openSort(table));
+
+        const filterBtn = this._createButton('advancedFilter', i18n.t('columnControl.filter.advanced'));
+        filterBtn.addEventListener('click', () => this._openFilter(table));
 
         const statsBtn = this._createButton('statistics', i18n.t('columnControl.statistics'));
         statsBtn.addEventListener('click', () => this._openStatistics(table));
 
-        toolbar.appendChild(filterBtn);
         toolbar.appendChild(sortBtn);
+        toolbar.appendChild(filterBtn);
         toolbar.appendChild(statsBtn);
 
         surface.container.appendChild(toolbar);
         parent.insertBefore(surface.host, table);
 
         toolbarMap.set(table, {
-            buttons: [filterBtn, sortBtn, statsBtn],
+            buttons: [sortBtn, filterBtn, statsBtn],
             destroy: surface.destroy,
             toolbar
         });
+
+        this.refreshActiveStates(table);
     }
 
     removeToolbar(table) {
@@ -67,10 +69,24 @@ export class Toolbar {
         const toolbarEntry = toolbarMap.get(table);
         if (!toolbarEntry) return;
 
-        const [filterBtn, sortBtn, statsBtn] = toolbarEntry.buttons;
-        if (filterBtn) filterBtn.title = i18n.t('columnControl.filter.advanced');
+        const [sortBtn, filterBtn, statsBtn] = toolbarEntry.buttons;
         if (sortBtn) sortBtn.title = i18n.t('columnControl.sort.advanced');
+        if (filterBtn) filterBtn.title = i18n.t('columnControl.filter.advanced');
         if (statsBtn) statsBtn.title = i18n.t('columnControl.statistics');
+    }
+
+    refreshActiveStates(table) {
+        const toolbarEntry = toolbarMap.get(table);
+        if (!toolbarEntry) return;
+
+        const [sortBtn, filterBtn, statsBtn] = toolbarEntry.buttons;
+        const hasAdvancedSort = this.enhancer.stateStore.getAdvancedSortRules(table).length > 0;
+        const hasAdvancedFilter = this.enhancer.stateStore.getAdvancedFilterRules(table) !== null;
+        const hasStatistics = this.enhancer.stateStore.getStatisticsRules(table).length > 0;
+
+        if (sortBtn) sortBtn.classList.toggle('toolbar-active', hasAdvancedSort);
+        if (filterBtn) filterBtn.classList.toggle('toolbar-active', hasAdvancedFilter);
+        if (statsBtn) statsBtn.classList.toggle('toolbar-active', hasStatistics);
     }
 
     _createButton(iconKey, title) {
