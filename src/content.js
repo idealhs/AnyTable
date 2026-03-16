@@ -15,8 +15,8 @@ const MATERIAL_ICON_PATHS = {
     sortAsc: 'M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12 12 4z',
     sortDesc: 'M4 12l1.41-1.41L11 16.17V4h2v12.17l5.58-5.59L20 12l-8 8z',
     sortNone: 'M12 5.83L15.17 9 16.59 7.59 12 3 7.41 7.59 8.83 9zm0 12.34L8.83 15l-1.42 1.41L12 21l4.59-4.59L15.17 15z',
-    expandClosed: 'M7.41 8.59 12 13.17 16.59 8.59 18 10l-6 6-6-6z',
-    expandOpened: 'M7.41 15.41 12 10.83 16.59 15.41 18 14l-6-6-6 6z',
+    filterToggleClosed: 'M7.41 8.59 12 13.17 16.59 8.59 18 10l-6 6-6-6z',
+    filterToggleOpened: 'M7.41 15.41 12 10.83 16.59 15.41 18 14l-6-6-6 6z',
     advancedFilter: 'M3 17v2h6v-2H3zm0-12v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zm-4-8H3v2h6v2h2v-6H9v2zm12 2v-2h-6v2h6zm-4-8V5h4V3h-4V1h-2v6h2z',
     advancedSort: 'M16 17.01V10h-2v7.01h-3L15 21l4-3.99zM9 3 5 6.99h3V14h2V6.99h3z',
     statistics: 'M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z'
@@ -104,9 +104,9 @@ class TableEnhancer {
         button.classList.toggle('has-priority', showPriority);
     }
 
-    setExpandButtonIcon(button, expanded) {
+    setFilterToggleButtonIcon(button, expanded) {
         if (!button) return;
-        this.setButtonIcon(button, expanded ? 'expandOpened' : 'expandClosed');
+        this.setButtonIcon(button, expanded ? 'filterToggleOpened' : 'filterToggleClosed');
     }
 
     refreshSortButtons(table) {
@@ -142,6 +142,7 @@ class TableEnhancer {
         const advancedRuleGroup = this.stateStore.getAdvancedFilterRules(table);
         applyCombinedFilters(table, filterValues, advancedRuleGroup);
         this.updateFilterInputsDisabledState(table);
+        this.controlPanelManager.refreshFilterButtons(table);
         this.refreshStatistics(table);
     }
 

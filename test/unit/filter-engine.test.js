@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { matchesBasicFilters, matchesRuleTree } from '../../src/core/filter-engine.js';
+import { getRuleTreeColumns, matchesBasicFilters, matchesRuleTree } from '../../src/core/filter-engine.js';
 
 function mockRow(...values) {
     return { cells: values.map(v => ({ textContent: String(v) })) };
@@ -320,5 +320,43 @@ describe('matchesRuleTree', () => {
         };
         // NOT (bob AND >25) = NOT (false AND true) = NOT false = true
         expect(matchesRuleTree(row, rule)).toBe(true);
+    });
+});
+
+describe('getRuleTreeColumns', () => {
+    it('collects leaf columns from nested advanced filter groups', () => {
+        const columns = getRuleTreeColumns({
+            operator: 'AND',
+            children: [
+                { column: 2, comparator: 'contains', value: 'eng' },
+                {
+                    operator: 'OR',
+                    children: [
+                        { column: 0, comparator: 'equals', value: 'alice' },
+                        { column: 4, comparator: '>', value: '10' }
+                    ]
+                }
+            ]
+        });
+
+        expect([...columns]).toEqual([2, 0, 4]);
+    });
+
+    it('deduplicates repeated columns and ignores invalid ones', () => {
+        const columns = getRuleTreeColumns({
+            children: [
+                { column: 1, comparator: 'contains', value: 'a' },
+                { column: '1', comparator: 'contains', value: 'b' },
+                { column: 'not-a-number', comparator: 'contains', value: 'c' },
+                { comparator: 'contains', value: 'd' }
+            ]
+        });
+
+        expect([...columns]).toEqual([1]);
+    });
+
+    it('returns an empty set for empty rule groups', () => {
+        expect([...getRuleTreeColumns(null)]).toEqual([]);
+        expect([...getRuleTreeColumns({ children: [] })]).toEqual([]);
     });
 });

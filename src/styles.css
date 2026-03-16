@@ -106,7 +106,7 @@
     fill: currentColor;
 }
 
-/* 展开按钮样式 */
+/* 筛选切换按钮样式 */
 .anytable-expand {
     position: absolute;
     right: 4px;
@@ -150,7 +150,7 @@
     box-shadow: 0 0 0 2px rgba(74,144,224,0.2);
 }
 
-.anytable-expand-button {
+.anytable-filter-toggle-button {
     width: 24px;
     height: 24px;
     padding: 0;
@@ -169,9 +169,21 @@
     color: #1f1f1f;
 }
 
-.anytable-expand-button:hover {
+.anytable-filter-toggle-button:hover {
     border-color: #4a90e0;
     box-shadow: 0 0 0 2px rgba(74,144,224,0.2);
+}
+
+.anytable-filter-toggle-button.filter-active {
+    color: #0f766e;
+    border-color: #14b8a6;
+    background: #f0fdfa;
+}
+
+.anytable-filter-toggle-button.filter-active:hover {
+    border-color: #0f766e;
+    background: #ccfbf1;
+    box-shadow: 0 0 0 2px rgba(20,184,166,0.18);
 }
 
 /* 控制面板样式 */
@@ -310,13 +322,13 @@
 
 /* 确保排序按钮的箭头图标大小合适 */
 .anytable-sort-button,
-.anytable-expand-button {
+.anytable-filter-toggle-button {
     font-size: 12px;
     line-height: 1;
 }
 
 .anytable-sort-button svg,
-.anytable-expand-button svg {
+.anytable-filter-toggle-button svg {
     width: 16px;
     height: 16px;
     display: block;

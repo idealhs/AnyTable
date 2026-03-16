@@ -41,9 +41,10 @@ export default {
     
     // 表格控制面板
     columnControl: {
-        title: '列控制',
         filter: {
             placeholder: '输入筛选条件...',
+            showPanel: '显示筛选输入框',
+            hidePanel: '隐藏筛选输入框',
             advanced: '高级筛选'
         },
         sort: {

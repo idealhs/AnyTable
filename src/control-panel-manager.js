@@ -1,4 +1,5 @@
 import i18n from './i18n/i18n.js';
+import { getRuleTreeColumns } from './core/filter-engine.js';
 import { createShadowSurface, eventPathIncludes } from './ui/shadow-ui.js';
 
 export class ControlPanelManager {
@@ -15,6 +16,7 @@ export class ControlPanelManager {
         const headers = Array.from(table.getElementsByTagName('th'));
         const controls = headers.map((header, columnIndex) => this.createHeaderControl(table, header, columnIndex));
         this.tableControls.set(table, controls);
+        this.refreshFilterButtons(table);
     }
 
     getTableControls(table) {
@@ -32,7 +34,7 @@ export class ControlPanelManager {
             }
 
             control.filterInput.placeholder = i18n.t('columnControl.filter.placeholder');
-            control.expandButton.title = i18n.t('columnControl.title');
+            this.updateFilterToggleButtonTitle(control);
 
             const rules = this.enhancer.stateStore.getSortRules(table);
             const rule = rules.find((item) => item.column === control.columnIndex);
@@ -52,6 +54,23 @@ export class ControlPanelManager {
         });
     }
 
+    refreshFilterButtons(table) {
+        const advancedRuleGroup = this.enhancer.stateStore.getAdvancedFilterRules(table);
+        const advancedFilterColumns = getRuleTreeColumns(advancedRuleGroup);
+        const filterValues = this.enhancer.stateStore.getFilterValues(table);
+
+        this.getTableControls(table).forEach((control) => {
+            if (!control) {
+                return;
+            }
+
+            const hasBasicFilter = this.hasActiveFilterValue(filterValues[control.columnIndex]);
+            const hasAdvancedFilter = advancedFilterColumns.has(control.columnIndex);
+            control.filterToggleButton.classList.toggle('filter-active', hasBasicFilter || hasAdvancedFilter);
+            this.updateFilterToggleButtonTitle(control);
+        });
+    }
+
     showControlPanel(table, columnIndex) {
         const control = this.getHeaderControl(table, columnIndex);
         if (!control || control.isOpen) {
@@ -60,11 +79,12 @@ export class ControlPanelManager {
 
         control.isOpen = true;
         control.panel.classList.add('active');
-        this.enhancer.setExpandButtonIcon(control.expandButton, true);
+        this.enhancer.setFilterToggleButtonIcon(control.filterToggleButton, true);
+        this.updateFilterToggleButtonTitle(control);
         this.updatePanelPosition(control);
 
         control.documentClickHandler = (event) => {
-            if (eventPathIncludes(event, control.panel, control.expandButton)) {
+            if (eventPathIncludes(event, control.panel, control.filterToggleButton)) {
                 return;
             }
             this.hideControlPanel(table, columnIndex);
@@ -81,7 +101,8 @@ export class ControlPanelManager {
 
         control.isOpen = false;
         control.panel.classList.remove('active', 'right-aligned', 'left-aligned', 'center-aligned');
-        this.enhancer.setExpandButtonIcon(control.expandButton, false);
+        this.enhancer.setFilterToggleButtonIcon(control.filterToggleButton, false);
+        this.updateFilterToggleButtonTitle(control);
 
         if (control.documentClickHandler) {
             document.removeEventListener('click', control.documentClickHandler, true);
@@ -152,8 +173,8 @@ export class ControlPanelManager {
             containerClassName: 'anytable-header-surface'
         });
 
-        const expandContainer = document.createElement('div');
-        expandContainer.className = 'anytable-expand';
+        const actionContainer = document.createElement('div');
+        actionContainer.className = 'anytable-expand';
 
         const sortButton = document.createElement('button');
         sortButton.type = 'button';
@@ -161,14 +182,13 @@ export class ControlPanelManager {
         sortButton.title = i18n.t('columnControl.sort.none');
         this.enhancer.setSortButtonIcon(sortButton, 'none');
 
-        const expandButton = document.createElement('button');
-        expandButton.type = 'button';
-        expandButton.className = 'anytable-expand-button';
-        expandButton.title = i18n.t('columnControl.title');
-        this.enhancer.setExpandButtonIcon(expandButton, false);
+        const filterToggleButton = document.createElement('button');
+        filterToggleButton.type = 'button';
+        filterToggleButton.className = 'anytable-filter-toggle-button';
+        this.enhancer.setFilterToggleButtonIcon(filterToggleButton, false);
 
-        expandContainer.appendChild(sortButton);
-        expandContainer.appendChild(expandButton);
+        actionContainer.appendChild(sortButton);
+        actionContainer.appendChild(filterToggleButton);
 
         const controlPanel = document.createElement('div');
         controlPanel.className = 'anytable-control-panel';
@@ -191,7 +211,7 @@ export class ControlPanelManager {
         filterRow.appendChild(filterInput);
         controlPanel.appendChild(filterRow);
 
-        surface.container.appendChild(expandContainer);
+        surface.container.appendChild(actionContainer);
         surface.container.appendChild(controlPanel);
 
         sortButton.addEventListener('click', (event) => {
@@ -199,7 +219,7 @@ export class ControlPanelManager {
             this.enhancer.sortTable(table, columnIndex);
         });
 
-        expandButton.addEventListener('click', (event) => {
+        filterToggleButton.addEventListener('click', (event) => {
             event.stopPropagation();
             this.toggleControlPanel(table, columnIndex);
         });
@@ -223,7 +243,7 @@ export class ControlPanelManager {
             columnIndex,
             destroy: surface.destroy,
             documentClickHandler: null,
-            expandButton,
+            filterToggleButton,
             filterInput,
             header,
             host: surface.host,
@@ -240,8 +260,23 @@ export class ControlPanelManager {
         };
 
         control.resizeObserver.observe(header);
+        this.updateFilterToggleButtonTitle(control);
 
         return control;
+    }
+
+    updateFilterToggleButtonTitle(control) {
+        if (!control?.filterToggleButton) {
+            return;
+        }
+
+        control.filterToggleButton.title = control.isOpen
+            ? i18n.t('columnControl.filter.hidePanel')
+            : i18n.t('columnControl.filter.showPanel');
+    }
+
+    hasActiveFilterValue(value) {
+        return value !== null && value !== undefined && String(value) !== '';
     }
 
     updatePanelPosition(control) {

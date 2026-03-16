@@ -41,9 +41,10 @@ export default {
     
     // Column Control Panel
     columnControl: {
-        title: 'Column Control',
         filter: {
             placeholder: 'Enter filter criteria...',
+            showPanel: 'Show filter input',
+            hidePanel: 'Hide filter input',
             advanced: 'Advanced Filter'
         },
         sort: {

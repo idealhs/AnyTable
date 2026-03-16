@@ -113,6 +113,24 @@ function evaluateRuleTree(row, ruleNode) {
     return result;
 }
 
+function collectRuleColumns(ruleNode, columns) {
+    if (!ruleNode) {
+        return columns;
+    }
+
+    if (Array.isArray(ruleNode.children)) {
+        ruleNode.children.forEach((child) => collectRuleColumns(child, columns));
+        return columns;
+    }
+
+    const columnIndex = Number(ruleNode.column);
+    if (Number.isInteger(columnIndex) && columnIndex >= 0) {
+        columns.add(columnIndex);
+    }
+
+    return columns;
+}
+
 export function matchesBasicFilters(row, filterValues) {
     for (let index = 0; index < row.cells.length; index++) {
         const filterValue = safeToLowerCase(filterValues[index]);
@@ -132,6 +150,10 @@ export function matchesRuleTree(row, ruleGroup) {
     }
 
     return evaluateRuleTree(row, ruleGroup);
+}
+
+export function getRuleTreeColumns(ruleGroup) {
+    return collectRuleColumns(ruleGroup, new Set());
 }
 
 export function applyCombinedFilters(table, filterValues = {}, advancedRuleGroup = null) {
