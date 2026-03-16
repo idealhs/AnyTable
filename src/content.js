@@ -3,6 +3,7 @@ import { TableStateStore } from './state/table-state.js';
 import { applyCombinedFilters } from './core/filter-engine.js';
 import { buildNextSortRules, normalizeAdvancedSortRules, sortRowsByRules } from './core/sort-engine.js';
 import { computeStatisticsData } from './core/statistics-engine.js';
+import { isLikelyDataTable } from './core/table-detector.js';
 import { getTableColumnCount, getTableColumnTitles } from './core/table-structure.js';
 import { renderStatisticsRows, removeStatisticsRows } from './ui/statistics-renderer.js';
 import { PickingMode } from './picking-mode.js';
@@ -217,15 +218,22 @@ class TableEnhancer {
         setupMessageHandler(this);
 
         if (this.autoEnhance) {
-            const tables = document.getElementsByTagName('table');
-            for (const table of tables) {
-                if (!this.enhancedTables.has(table)) {
-                    this.enhanceTable(table);
-                }
-            }
+            this.autoEnhanceTables(document.getElementsByTagName('table'));
         }
 
         this.observeDOMChanges();
+    }
+
+    shouldAutoEnhanceTable(table) {
+        return isLikelyDataTable(table);
+    }
+
+    autoEnhanceTables(tables) {
+        for (const table of tables) {
+            if (!this.enhancedTables.has(table) && this.shouldAutoEnhanceTable(table)) {
+                this.enhanceTable(table);
+            }
+        }
     }
 
     removeEnhancement(table) {
@@ -326,12 +334,10 @@ class TableEnhancer {
                 for (const node of mutation.addedNodes) {
                     if (node.nodeType !== Node.ELEMENT_NODE) continue;
                     if (node.nodeName === 'TABLE') {
-                        if (!this.enhancedTables.has(node)) this.enhanceTable(node);
+                        this.autoEnhanceTables([node]);
                     }
                     if (node.querySelectorAll) {
-                        for (const table of node.querySelectorAll('table')) {
-                            if (!this.enhancedTables.has(table)) this.enhanceTable(table);
-                        }
+                        this.autoEnhanceTables(node.querySelectorAll('table'));
                     }
                 }
             }

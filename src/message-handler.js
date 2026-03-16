@@ -18,12 +18,7 @@ export function setupMessageHandler(enhancer) {
                     case MessageAction.SET_AUTO_ENHANCE:
                         enhancer.autoEnhance = request.enabled;
                         if (request.enabled) {
-                            const tables = document.getElementsByTagName('table');
-                            for (const table of tables) {
-                                if (!enhancer.enhancedTables.has(table)) {
-                                    enhancer.enhanceTable(table);
-                                }
-                            }
+                            enhancer.autoEnhanceTables(document.getElementsByTagName('table'));
                         } else {
                             enhancer.enhancedTables.forEach(table => {
                                 if (!enhancer.selectedTables.has(table)) {

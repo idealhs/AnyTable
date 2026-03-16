@@ -136,6 +136,9 @@ describe('content init', () => {
         vi.doMock('../../src/core/statistics-engine.js', () => ({
             computeStatisticsData: vi.fn(() => [])
         }));
+        vi.doMock('../../src/core/table-detector.js', () => ({
+            isLikelyDataTable: vi.fn(() => true)
+        }));
         vi.doMock('../../src/core/table-structure.js', () => ({
             getTableColumnCount: vi.fn(() => 0),
             getTableColumnTitles: vi.fn(() => [])
