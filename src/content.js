@@ -3,6 +3,7 @@ import { TableStateStore } from './state/table-state.js';
 import { applyCombinedFilters } from './core/filter-engine.js';
 import { buildNextSortRules, normalizeAdvancedSortRules, sortRowsByRules } from './core/sort-engine.js';
 import { computeStatisticsData } from './core/statistics-engine.js';
+import { getTableColumnCount, getTableColumnTitles } from './core/table-structure.js';
 import { renderStatisticsRows, removeStatisticsRows } from './ui/statistics-renderer.js';
 import { PickingMode } from './picking-mode.js';
 import { ControlPanelManager } from './control-panel-manager.js';
@@ -130,11 +131,10 @@ class TableEnhancer {
     }
 
     getColumnTitles(table) {
-        const headers = table.getElementsByTagName('th');
-        return Array.from(headers).map((header, index) => {
-            const headerText = header.childNodes[0]?.textContent?.trim() || header.textContent?.trim() || '';
-            return headerText || i18n.t('advancedPanel.common.columnFallback').replace('{index}', String(index + 1));
-        });
+        return getTableColumnTitles(
+            table,
+            (index) => i18n.t('advancedPanel.common.columnFallback').replace('{index}', String(index + 1))
+        );
     }
 
     applyAllFilters(table) {
@@ -293,8 +293,7 @@ class TableEnhancer {
             return;
         }
         const statsData = computeStatisticsData(rules, table);
-        const headers = table.getElementsByTagName('th');
-        renderStatisticsRows(table, statsData, headers.length);
+        renderStatisticsRows(table, statsData, getTableColumnCount(table));
     }
 
     observeDOMChanges() {
