@@ -19,7 +19,9 @@ const MATERIAL_ICON_PATHS = {
     filterToggleOpened: 'M7.41 15.41 12 10.83 16.59 15.41 18 14l-6-6-6 6z',
     advancedFilter: 'M3 17v2h6v-2H3zm0-12v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zm-4-8H3v2h6v2h2v-6H9v2zm12 2v-2h-6v2h6zm-4-8V5h4V3h-4V1h-2v6h2z',
     advancedSort: 'M16 17.01V10h-2v7.01h-3L15 21l4-3.99zM9 3 5 6.99h3V14h2V6.99h3z',
-    statistics: 'M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z'
+    statistics: 'M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z',
+    toolbarCollapse: 'M10 6l-1.41 1.41L13.17 12l-4.58 4.59L10 18l6-6z',
+    toolbarExpand: 'M14 6l1.41 1.41L10.83 12l4.58 4.59L14 18l-6-6z'
 };
 
 class TableEnhancer {
@@ -29,6 +31,7 @@ class TableEnhancer {
         this.selectedTables = new Set();
         this.autoEnhance = true;
         this.multiColumnSort = false;
+        this.toolbarDefaultExpanded = true;
         this.sortTable = this.sortTable.bind(this);
 
         this.pickingMode = new PickingMode({
@@ -204,9 +207,10 @@ class TableEnhancer {
 
     async init() {
         const browser = window.browser || chrome;
-        const result = await browser.storage.local.get(['autoEnhance', 'multiColumnSort']);
+        const result = await browser.storage.local.get(['autoEnhance', 'multiColumnSort', 'toolbarDefaultExpanded']);
         this.autoEnhance = result.autoEnhance !== false;
         this.multiColumnSort = result.multiColumnSort === true;
+        this.toolbarDefaultExpanded = result.toolbarDefaultExpanded !== false;
 
         await preloadShadowStyles();
         setupMessageHandler(this);

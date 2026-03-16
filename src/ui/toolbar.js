@@ -6,6 +6,12 @@ import i18n from '../i18n/i18n.js';
 import { createShadowSurface } from './shadow-ui.js';
 
 const toolbarMap = new WeakMap();
+const BUTTON_WIDTH = 48;
+
+function queueNextFrame(callback) {
+    const raf = globalThis.requestAnimationFrame || ((cb) => setTimeout(cb, 0));
+    return raf(callback);
+}
 
 export class Toolbar {
     constructor(enhancer) {
@@ -32,6 +38,17 @@ export class Toolbar {
         const toolbar = document.createElement('div');
         toolbar.className = 'anytable-toolbar';
 
+        const toggleBtn = this._createToggleButton();
+        toggleBtn.addEventListener('click', () => {
+            const toolbarEntry = toolbarMap.get(table);
+            if (!toolbarEntry) return;
+            this.setExpanded(table, !toolbarEntry.isExpanded);
+        });
+
+        const actions = document.createElement('div');
+        actions.className = 'anytable-toolbar-actions';
+        actions.style.width = `${BUTTON_WIDTH * 3}px`;
+
         const sortBtn = this._createButton('advancedSort', i18n.t('columnControl.sort.advanced'));
         sortBtn.addEventListener('click', () => this._openSort(table));
 
@@ -41,20 +58,27 @@ export class Toolbar {
         const statsBtn = this._createButton('statistics', i18n.t('columnControl.statistics'));
         statsBtn.addEventListener('click', () => this._openStatistics(table));
 
-        toolbar.appendChild(sortBtn);
-        toolbar.appendChild(filterBtn);
-        toolbar.appendChild(statsBtn);
+        actions.appendChild(sortBtn);
+        actions.appendChild(filterBtn);
+        actions.appendChild(statsBtn);
+        toolbar.appendChild(toggleBtn);
+        toolbar.appendChild(actions);
 
         surface.container.appendChild(toolbar);
         parent.insertBefore(surface.host, table);
 
         toolbarMap.set(table, {
             buttons: [sortBtn, filterBtn, statsBtn],
+            toggleBtn,
+            actions,
             destroy: surface.destroy,
-            toolbar
+            toolbar,
+            isExpanded: true
         });
 
+        this.setExpanded(table, this.enhancer.toolbarDefaultExpanded !== false, { skipAnimation: true });
         this.refreshActiveStates(table);
+        this.updateTexts(table);
     }
 
     removeToolbar(table) {
@@ -73,6 +97,16 @@ export class Toolbar {
         if (sortBtn) sortBtn.title = i18n.t('columnControl.sort.advanced');
         if (filterBtn) filterBtn.title = i18n.t('columnControl.filter.advanced');
         if (statsBtn) statsBtn.title = i18n.t('columnControl.statistics');
+
+        const toggleTitle = i18n.t(toolbarEntry.isExpanded ? 'columnControl.toolbar.collapse' : 'columnControl.toolbar.expand');
+        if (toolbarEntry.toggleBtn) {
+            toolbarEntry.toggleBtn.title = toggleTitle;
+            toolbarEntry.toggleBtn.setAttribute('aria-label', toggleTitle);
+            this.enhancer.setButtonIcon(
+                toolbarEntry.toggleBtn,
+                toolbarEntry.isExpanded ? 'toolbarCollapse' : 'toolbarExpand'
+            );
+        }
     }
 
     refreshActiveStates(table) {
@@ -89,11 +123,51 @@ export class Toolbar {
         if (statsBtn) statsBtn.classList.toggle('toolbar-active', hasStatistics);
     }
 
+    setExpanded(table, expanded, { skipAnimation = false } = {}) {
+        const toolbarEntry = toolbarMap.get(table);
+        if (!toolbarEntry) return;
+
+        if (skipAnimation) {
+            toolbarEntry.toolbar.classList.add('toolbar-no-transition');
+        }
+
+        toolbarEntry.isExpanded = expanded;
+        toolbarEntry.toolbar.classList.toggle('toolbar-collapsed', !expanded);
+        toolbarEntry.actions.style.width = expanded ? `${toolbarEntry.buttons.length * BUTTON_WIDTH}px` : '0px';
+        toolbarEntry.actions.setAttribute('aria-hidden', String(!expanded));
+        toolbarEntry.toggleBtn.setAttribute('aria-expanded', String(expanded));
+        toolbarEntry.buttons.forEach((button) => {
+            button.tabIndex = expanded ? 0 : -1;
+        });
+
+        if (skipAnimation) {
+            queueNextFrame(() => {
+                toolbarEntry.toolbar.classList.remove('toolbar-no-transition');
+            });
+        }
+
+        this.updateTexts(table);
+    }
+
+    setAllExpanded(expanded) {
+        this.enhancer.enhancedTables.forEach((table) => {
+            this.setExpanded(table, expanded);
+        });
+    }
+
     _createButton(iconKey, title) {
         const button = document.createElement('button');
-        button.className = 'anytable-toolbar-button';
+        button.className = 'anytable-toolbar-control anytable-toolbar-button';
+        button.type = 'button';
         button.title = title;
         this.enhancer.setButtonIcon(button, iconKey);
+        return button;
+    }
+
+    _createToggleButton() {
+        const button = document.createElement('button');
+        button.className = 'anytable-toolbar-control anytable-toolbar-toggle-button';
+        button.type = 'button';
         return button;
     }
 

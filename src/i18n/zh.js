@@ -36,6 +36,11 @@ export default {
             label: '启用多列排序',
             enabled: '已启用多列排序',
             disabled: '已禁用多列排序'
+        },
+        toolbarDefaultExpanded: {
+            label: '工具栏默认展开',
+            expanded: '工具栏默认行为已设为展开',
+            collapsed: '工具栏默认行为已设为收起'
         }
     },
     
@@ -53,7 +58,11 @@ export default {
             none: '不排序',
             advanced: '高级排序'
         },
-        statistics: '统计'
+        statistics: '统计',
+        toolbar: {
+            expand: '展开工具栏',
+            collapse: '收起工具栏'
+        }
     },
 
     // 高级面板

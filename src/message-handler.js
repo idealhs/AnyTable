@@ -38,6 +38,10 @@ export function setupMessageHandler(enhancer) {
                             enhancer.refreshSortButtons(table);
                         });
                         return { success: true };
+                    case MessageAction.SET_TOOLBAR_DEFAULT_EXPANDED:
+                        enhancer.toolbarDefaultExpanded = request.enabled !== false;
+                        enhancer.toolbar.setAllExpanded(enhancer.toolbarDefaultExpanded);
+                        return { success: true };
                     default:
                         return { success: false, error: '未知的操作' };
                 }

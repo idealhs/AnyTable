@@ -53,27 +53,25 @@
 .anytable-toolbar {
     display: flex;
     justify-content: flex-end;
+    align-items: flex-start;
     height: 0;
     overflow: visible;
     position: relative;
+    top: -26px;
     z-index: 2;
     pointer-events: auto;
 }
 
-.anytable-toolbar-button {
-    width: 48px;
+.anytable-toolbar-control {
     height: 24px;
     padding: 0;
     border: 1px solid #c4d9f2;
-    border-radius: 0;
     background: #f0f5ff;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
-    position: relative;
-    top: -26px;
+    transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 12px;
     font-weight: 400;
@@ -81,19 +79,60 @@
     color: #1f1f1f;
 }
 
-.anytable-toolbar-button + .anytable-toolbar-button {
-    border-left: none;
-}
-
-.anytable-toolbar-button:first-child {
+.anytable-toolbar-toggle-button {
+    width: 20px;
+    flex: 0 0 20px;
     border-radius: 3px 0 0 3px;
 }
 
-.anytable-toolbar-button:last-child {
+.anytable-toolbar:not(.toolbar-collapsed) .anytable-toolbar-toggle-button {
+    border-right: none;
+}
+
+.anytable-toolbar-actions {
+    display: flex;
+    overflow: hidden;
+    opacity: 1;
+    transform: translateX(0);
+    transform-origin: right center;
+    transition: width 0.24s ease, opacity 0.18s ease, transform 0.24s ease;
+}
+
+.anytable-toolbar.toolbar-collapsed .anytable-toolbar-actions {
+    opacity: 0;
+    transform: translateX(8px);
+    pointer-events: none;
+}
+
+.anytable-toolbar.toolbar-collapsed .anytable-toolbar-toggle-button {
+    border-right: 1px solid #c4d9f2;
+    border-radius: 3px;
+}
+
+.anytable-toolbar.toolbar-no-transition .anytable-toolbar-actions,
+.anytable-toolbar.toolbar-no-transition .anytable-toolbar-control {
+    transition: none !important;
+}
+
+.anytable-toolbar-button {
+    width: 48px;
+    min-width: 48px;
+    border-radius: 0;
+}
+
+.anytable-toolbar-actions .anytable-toolbar-button + .anytable-toolbar-button {
+    border-left: none;
+}
+
+.anytable-toolbar-actions .anytable-toolbar-button:first-child {
+    border-radius: 0;
+}
+
+.anytable-toolbar-actions .anytable-toolbar-button:last-child {
     border-radius: 0 3px 3px 0;
 }
 
-.anytable-toolbar-button:hover {
+.anytable-toolbar-control:hover {
     border-color: #4a90e0;
     background-color: #e0ecff;
     box-shadow: 0 0 0 2px rgba(74, 144, 224, 0.2);
@@ -111,11 +150,16 @@
     box-shadow: 0 0 0 2px rgba(20,184,166,0.18);
 }
 
-.anytable-toolbar-button svg {
+.anytable-toolbar-control svg {
     width: 16px;
     height: 16px;
     display: block;
     fill: currentColor;
+}
+
+.anytable-toolbar-toggle-button svg {
+    width: 14px;
+    height: 14px;
 }
 
 /* 筛选切换按钮样式 */

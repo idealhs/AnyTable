@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const languageSelect = document.getElementById('languageSelect');
     const autoEnhanceSwitch = document.getElementById('autoEnhance');
     const multiColumnSortSwitch = document.getElementById('multiColumnSort');
+    const toolbarDefaultExpandedSwitch = document.getElementById('toolbarDefaultExpanded');
 
     // 初始化 i18n
     await i18n.init();
@@ -50,7 +51,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         // 更新状态
-        statusDiv.textContent = i18n.t(enabled ? 'popup.autoEnhance.enabled' : 'popup.autoEnhance.disabled');
+        showStatus(i18n.t(enabled ? 'popup.autoEnhance.enabled' : 'popup.autoEnhance.disabled'), 'success');
     });
 
     // 多列排序开关变更事件
@@ -68,7 +69,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         // 更新状态
-        statusDiv.textContent = i18n.t(enabled ? 'popup.multiColumnSort.enabled' : 'popup.multiColumnSort.disabled');
+        showStatus(i18n.t(enabled ? 'popup.multiColumnSort.enabled' : 'popup.multiColumnSort.disabled'), 'success');
+    });
+
+    toolbarDefaultExpandedSwitch.addEventListener('change', async (e) => {
+        const enabled = e.target.checked;
+        await browser.storage.local.set({ toolbarDefaultExpanded: enabled });
+
+        const tab = await getCurrentTab();
+        if (tab) {
+            browser.tabs.sendMessage(tab.id, {
+                action: MessageAction.SET_TOOLBAR_DEFAULT_EXPANDED,
+                enabled
+            });
+        }
+
+        showStatus(
+            i18n.t(
+            enabled ? 'popup.toolbarDefaultExpanded.expanded' : 'popup.toolbarDefaultExpanded.collapsed'
+            ),
+            'success'
+        );
     });
 
     // 获取当前标签页
@@ -152,13 +173,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function loadSettings() {
         try {
             const browser = window.browser || chrome;
-            const result = await browser.storage.local.get(['autoEnhance', 'multiColumnSort']);
+            const result = await browser.storage.local.get(['autoEnhance', 'multiColumnSort', 'toolbarDefaultExpanded']);
             autoEnhanceSwitch.checked = result.autoEnhance !== false;
             multiColumnSortSwitch.checked = result.multiColumnSort === true;
+            toolbarDefaultExpandedSwitch.checked = result.toolbarDefaultExpanded !== false;
         } catch (error) {
             console.error('加载设置失败:', error);
             autoEnhanceSwitch.checked = true;
             multiColumnSortSwitch.checked = false;
+            toolbarDefaultExpandedSwitch.checked = true;
         }
     }
 

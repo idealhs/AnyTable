@@ -3,5 +3,6 @@ export const MessageAction = Object.freeze({
     CLEAR_SELECTION: 'clearSelection',
     GET_SELECTION_STATE: 'getSelectionState',
     SET_AUTO_ENHANCE: 'setAutoEnhance',
-    SET_MULTI_COLUMN_SORT: 'setMultiColumnSort'
+    SET_MULTI_COLUMN_SORT: 'setMultiColumnSort',
+    SET_TOOLBAR_DEFAULT_EXPANDED: 'setToolbarDefaultExpanded'
 });

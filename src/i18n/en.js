@@ -36,6 +36,11 @@ export default {
             label: 'Enable multi-column sort',
             enabled: 'Multi-column sort enabled',
             disabled: 'Multi-column sort disabled'
+        },
+        toolbarDefaultExpanded: {
+            label: 'Toolbar expanded by default',
+            expanded: 'Toolbar default set to expanded',
+            collapsed: 'Toolbar default set to collapsed'
         }
     },
     
@@ -53,7 +58,11 @@ export default {
             none: 'No Sort',
             advanced: 'Advanced Sort'
         },
-        statistics: 'Statistics'
+        statistics: 'Statistics',
+        toolbar: {
+            expand: 'Expand toolbar',
+            collapse: 'Collapse toolbar'
+        }
     },
 
     // Advanced Panel
