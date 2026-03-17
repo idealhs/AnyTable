@@ -16,6 +16,7 @@ export class ControlPanelManager {
         const headers = Array.from(table.getElementsByTagName('th'));
         const controls = headers.map((header, columnIndex) => this.createHeaderControl(table, header, columnIndex));
         this.tableControls.set(table, controls);
+        this.setFilterInputsDisabledState(table, this.enhancer.stateStore.getAdvancedFilterRules(table) !== null);
         this.refreshFilterButtons(table);
     }
 
@@ -27,6 +28,17 @@ export class ControlPanelManager {
         return this.getTableControls(table)[columnIndex] || null;
     }
 
+    syncFilterInputValues(table, filterValues = {}) {
+        this.getTableControls(table).forEach((control) => {
+            if (!control) {
+                return;
+            }
+
+            const value = filterValues[control.columnIndex];
+            control.filterInput.value = value === null || value === undefined ? '' : String(value);
+        });
+    }
+
     updateTexts(table) {
         this.getTableControls(table).forEach((control) => {
             if (!control) {
@@ -34,7 +46,7 @@ export class ControlPanelManager {
             }
 
             control.filterInput.placeholder = i18n.t('columnControl.filter.placeholder');
-            this.updateFilterToggleButtonTitle(control);
+            this.updateFilterToggleButtonTitle(table, control);
 
             const rules = this.enhancer.stateStore.getSortRules(table);
             const rule = rules.find((item) => item.column === control.columnIndex);
@@ -48,9 +60,18 @@ export class ControlPanelManager {
 
     setFilterInputsDisabledState(table, disabled) {
         this.getTableControls(table).forEach((control) => {
-            if (control) {
-                control.filterInput.disabled = disabled;
+            if (!control) {
+                return;
             }
+
+            if (disabled && control.isOpen) {
+                this.hideControlPanel(table, control.columnIndex);
+            }
+
+            control.filterInput.disabled = disabled;
+            control.filterToggleButton.setAttribute('aria-disabled', String(disabled));
+            control.filterToggleButton.tabIndex = disabled ? -1 : 0;
+            this.updateFilterToggleButtonTitle(table, control);
         });
     }
 
@@ -67,20 +88,20 @@ export class ControlPanelManager {
             const hasBasicFilter = this.hasActiveFilterValue(filterValues[control.columnIndex]);
             const hasAdvancedFilter = advancedFilterColumns.has(control.columnIndex);
             control.filterToggleButton.classList.toggle('filter-active', hasBasicFilter || hasAdvancedFilter);
-            this.updateFilterToggleButtonTitle(control);
+            this.updateFilterToggleButtonTitle(table, control);
         });
     }
 
     showControlPanel(table, columnIndex) {
         const control = this.getHeaderControl(table, columnIndex);
-        if (!control || control.isOpen) {
+        if (!control || control.isOpen || control.filterToggleButton.getAttribute('aria-disabled') === 'true') {
             return;
         }
 
         control.isOpen = true;
         control.panel.classList.add('active');
         this.enhancer.setFilterToggleButtonIcon(control.filterToggleButton, true);
-        this.updateFilterToggleButtonTitle(control);
+        this.updateFilterToggleButtonTitle(table, control);
         this.updatePanelPosition(control);
 
         control.documentClickHandler = (event) => {
@@ -102,7 +123,7 @@ export class ControlPanelManager {
         control.isOpen = false;
         control.panel.classList.remove('active', 'right-aligned', 'left-aligned', 'center-aligned');
         this.enhancer.setFilterToggleButtonIcon(control.filterToggleButton, false);
-        this.updateFilterToggleButtonTitle(control);
+        this.updateFilterToggleButtonTitle(table, control);
 
         if (control.documentClickHandler) {
             document.removeEventListener('click', control.documentClickHandler, true);
@@ -112,7 +133,7 @@ export class ControlPanelManager {
 
     toggleControlPanel(table, columnIndex) {
         const control = this.getHeaderControl(table, columnIndex);
-        if (!control) {
+        if (!control || control.filterToggleButton.getAttribute('aria-disabled') === 'true') {
             return;
         }
 
@@ -206,7 +227,10 @@ export class ControlPanelManager {
             filterInput.value = filterValues[columnIndex];
         }
 
-        filterInput.disabled = this.enhancer.stateStore.getAdvancedFilterRules(table) !== null;
+        const hasAdvancedFilter = this.enhancer.stateStore.getAdvancedFilterRules(table) !== null;
+        filterInput.disabled = hasAdvancedFilter;
+        filterToggleButton.setAttribute('aria-disabled', String(hasAdvancedFilter));
+        filterToggleButton.tabIndex = hasAdvancedFilter ? -1 : 0;
 
         filterRow.appendChild(filterInput);
         controlPanel.appendChild(filterRow);
@@ -221,6 +245,10 @@ export class ControlPanelManager {
 
         filterToggleButton.addEventListener('click', (event) => {
             event.stopPropagation();
+            if (filterToggleButton.getAttribute('aria-disabled') === 'true') {
+                event.preventDefault();
+                return;
+            }
             this.toggleControlPanel(table, columnIndex);
         });
 
@@ -260,19 +288,24 @@ export class ControlPanelManager {
         };
 
         control.resizeObserver.observe(header);
-        this.updateFilterToggleButtonTitle(control);
+        this.updateFilterToggleButtonTitle(table, control);
 
         return control;
     }
 
-    updateFilterToggleButtonTitle(control) {
+    updateFilterToggleButtonTitle(table, control) {
         if (!control?.filterToggleButton) {
             return;
         }
 
-        control.filterToggleButton.title = control.isOpen
-            ? i18n.t('columnControl.filter.hidePanel')
-            : i18n.t('columnControl.filter.showPanel');
+        const title = this.enhancer.stateStore.getAdvancedFilterRules(table) !== null
+            ? i18n.t('columnControl.filter.locked')
+            : (control.isOpen
+                ? i18n.t('columnControl.filter.hidePanel')
+                : i18n.t('columnControl.filter.showPanel'));
+
+        control.filterToggleButton.title = title;
+        control.filterToggleButton.setAttribute('aria-label', title);
     }
 
     hasActiveFilterValue(value) {

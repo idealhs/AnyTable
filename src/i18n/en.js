@@ -92,6 +92,7 @@ export default {
             placeholder: 'Enter filter criteria...',
             showPanel: 'Show filter input',
             hidePanel: 'Hide filter input',
+            locked: 'Advanced filter is enabled',
             advanced: 'Advanced Filter'
         },
         sort: {

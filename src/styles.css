@@ -257,6 +257,28 @@
     box-shadow: 0 0 0 2px rgba(20,184,166,0.18);
 }
 
+.anytable-filter-toggle-button[aria-disabled="true"] {
+    cursor: not-allowed;
+    opacity: 0.72;
+}
+
+.anytable-filter-toggle-button[aria-disabled="true"]:hover {
+    border-color: #ccc;
+    background: white;
+    box-shadow: none;
+}
+
+.anytable-filter-toggle-button.filter-active[aria-disabled="true"] {
+    border-color: #14b8a6;
+    background: #f0fdfa;
+}
+
+.anytable-filter-toggle-button.filter-active[aria-disabled="true"]:hover {
+    border-color: #14b8a6;
+    background: #f0fdfa;
+    box-shadow: none;
+}
+
 /* 控制面板样式 */
 .anytable-control-panel {
     position: absolute;

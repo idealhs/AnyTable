@@ -14,6 +14,36 @@ function queueNextFrame(callback) {
     return raf(callback);
 }
 
+function hasActiveFilterValue(value) {
+    return value !== null && value !== undefined && String(value) !== '';
+}
+
+function createSeedId(prefix) {
+    return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function buildRuleGroupFromBasicFilters(filterValues) {
+    const activeEntries = Object.entries(filterValues || {})
+        .filter(([, value]) => hasActiveFilterValue(value))
+        .sort(([left], [right]) => Number(left) - Number(right));
+
+    if (activeEntries.length === 0) {
+        return null;
+    }
+
+    return {
+        id: createSeedId('group'),
+        children: activeEntries.map(([columnIndex, value], index) => ({
+            id: createSeedId('leaf'),
+            column: Number(columnIndex),
+            comparator: 'contains',
+            value: String(value),
+            options: {},
+            operator: index === 0 ? undefined : 'AND'
+        }))
+    };
+}
+
 export class Toolbar {
     constructor(enhancer) {
         this.enhancer = enhancer;
@@ -181,22 +211,16 @@ export class Toolbar {
 
     _openFilter(table) {
         const columnTitles = this.enhancer.getColumnTitles(table);
-        const initialRuleGroup = this.enhancer.stateStore.getAdvancedFilterRules(table) || {
-            id: `group-${Date.now()}`,
-            operator: 'AND',
-            children: [{
-                id: `leaf-${Date.now()}`,
-                column: 0,
-                comparator: 'contains',
-                value: '',
-                options: {}
-            }]
-        };
+        const advancedRuleGroup = this.enhancer.stateStore.getAdvancedFilterRules(table);
+        const filterValues = this.enhancer.stateStore.getFilterValues(table);
+        const initialRuleGroup = advancedRuleGroup || buildRuleGroupFromBasicFilters(filterValues);
 
         openAdvancedFilterPanel({
             columnTitles,
             initialRuleGroup,
             onApply: (ruleGroup) => {
+                this.enhancer.stateStore.setFilterValues(table, {});
+                this.enhancer.controlPanelManager.syncFilterInputValues(table, {});
                 this.enhancer.stateStore.setAdvancedFilterRules(table, ruleGroup);
                 this.enhancer.applyAllFilters(table);
             }
@@ -205,7 +229,10 @@ export class Toolbar {
 
     _openSort(table) {
         const columnTitles = this.enhancer.getColumnTitles(table);
-        const initialRules = this.enhancer.stateStore.getAdvancedSortRules(table);
+        const advancedRules = this.enhancer.stateStore.getAdvancedSortRules(table);
+        const initialRules = advancedRules.length > 0
+            ? advancedRules
+            : this.enhancer.stateStore.getSortRules(table);
 
         openAdvancedSortPanel({
             columnTitles,
