@@ -1,51 +1,29 @@
-import { MessageAction } from './constants/messages.js';
+import {
+    createMessageErrorResponse,
+    createMessageProtocolError,
+    createMessageSuccessResponse,
+    isMessageRequest,
+    MessageErrorCode
+} from './constants/messages.js';
 
-export function setupMessageHandler(enhancer) {
+export function setupMessageHandler(commandService) {
     const browser = window.browser || chrome;
 
     browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const handleMessage = async () => {
+            if (!isMessageRequest(request)) {
+                return createMessageErrorResponse(
+                    createMessageProtocolError('无效的消息请求', MessageErrorCode.INVALID_REQUEST),
+                    request?.requestId ?? null
+                );
+            }
+
             try {
-                switch (request.action) {
-                    case MessageAction.START_PICKING:
-                        enhancer.pickingMode.startPicking();
-                        return { success: true };
-                    case MessageAction.CLEAR_SELECTION:
-                        enhancer.pickingMode.clearSelection();
-                        return { success: true };
-                    case MessageAction.GET_SELECTION_STATE:
-                        return {
-                            hasSelection: enhancer.selectedTables.size > 0,
-                            enhancedCount: enhancer.enhancedTables.size
-                        };
-                    case MessageAction.SET_AUTO_ENHANCE:
-                        enhancer.autoEnhance = request.enabled;
-                        if (request.enabled) {
-                            enhancer.autoEnhanceTables(document.getElementsByTagName('table'));
-                        } else {
-                            enhancer.enhancedTables.forEach(table => {
-                                if (!enhancer.selectedTables.has(table)) {
-                                    enhancer.removeEnhancement(table);
-                                }
-                            });
-                        }
-                        return { success: true };
-                    case MessageAction.SET_MULTI_COLUMN_SORT:
-                        enhancer.multiColumnSort = request.enabled;
-                        enhancer.enhancedTables.forEach((table) => {
-                            enhancer.refreshSortButtons(table);
-                        });
-                        return { success: true };
-                    case MessageAction.SET_TOOLBAR_DEFAULT_EXPANDED:
-                        enhancer.toolbarDefaultExpanded = request.enabled !== false;
-                        enhancer.toolbar.setAllExpanded(enhancer.toolbarDefaultExpanded);
-                        return { success: true };
-                    default:
-                        return { success: false, error: '未知的操作' };
-                }
+                const data = await commandService.execute(request.action, request.payload || {}, { sender });
+                return createMessageSuccessResponse(data, request.requestId);
             } catch (error) {
                 console.error('处理消息失败:', error);
-                return { success: false, error: error.message };
+                return createMessageErrorResponse(error, request.requestId);
             }
         };
 

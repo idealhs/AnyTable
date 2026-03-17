@@ -14,6 +14,7 @@ import { ControlPanelManager } from './control-panel-manager.js';
 import { preloadShadowStyles } from './ui/shadow-ui.js';
 import { Toolbar } from './ui/toolbar.js';
 import { setupMessageHandler } from './message-handler.js';
+import { createCommandService } from './services/command-service.js';
 
 const MATERIAL_ICON_PATHS = {
     sortAsc: 'M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12 12 4z',
@@ -304,13 +305,71 @@ class TableEnhancer {
         this.toolbarDefaultExpanded = result.toolbarDefaultExpanded !== false;
 
         await preloadShadowStyles();
-        setupMessageHandler(this);
+        setupMessageHandler(createCommandService(this));
 
         if (this.autoEnhance) {
             this.autoEnhanceTables(document.getElementsByTagName('table'));
         }
 
         this.observeDOMChanges();
+    }
+
+    getSelectionState() {
+        return {
+            hasSelection: this.selectedTables.size > 0,
+            enhancedCount: this.enhancedTables.size
+        };
+    }
+
+    startPicking() {
+        this.pickingMode.startPicking();
+        return {
+            picking: true
+        };
+    }
+
+    clearSelection() {
+        this.pickingMode.clearSelection();
+        return this.getSelectionState();
+    }
+
+    setAutoEnhanceEnabled(enabled) {
+        this.autoEnhance = enabled;
+
+        if (enabled) {
+            this.autoEnhanceTables(document.getElementsByTagName('table'));
+        } else {
+            this.enhancedTables.forEach((table) => {
+                if (!this.selectedTables.has(table)) {
+                    this.removeEnhancement(table);
+                }
+            });
+        }
+
+        return {
+            autoEnhance: this.autoEnhance,
+            ...this.getSelectionState()
+        };
+    }
+
+    setMultiColumnSortEnabled(enabled) {
+        this.multiColumnSort = enabled;
+        this.enhancedTables.forEach((table) => {
+            this.refreshSortButtons(table);
+        });
+
+        return {
+            multiColumnSort: this.multiColumnSort
+        };
+    }
+
+    setToolbarDefaultExpanded(enabled) {
+        this.toolbarDefaultExpanded = enabled;
+        this.toolbar.setAllExpanded(this.toolbarDefaultExpanded);
+
+        return {
+            toolbarDefaultExpanded: this.toolbarDefaultExpanded
+        };
     }
 
     shouldAutoEnhanceTable(table) {

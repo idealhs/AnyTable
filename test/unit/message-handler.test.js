@@ -1,15 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MessageAction } from '../../src/constants/messages.js';
+import {
+    createMessageErrorResponse,
+    createMessageProtocolError,
+    createMessageRequest,
+    createMessageSuccessResponse,
+    MessageAction,
+    MessageErrorCode
+} from '../../src/constants/messages.js';
 import { setupMessageHandler } from '../../src/message-handler.js';
 
 describe('setupMessageHandler', () => {
     let addListener;
     let messageListener;
+    let commandService;
 
     beforeEach(() => {
         addListener = vi.fn((listener) => {
             messageListener = listener;
         });
+        commandService = {
+            execute: vi.fn()
+        };
 
         globalThis.window = {};
         globalThis.chrome = {
@@ -27,31 +38,44 @@ describe('setupMessageHandler', () => {
         delete globalThis.chrome;
     });
 
-    it('updates toolbar default state and applies it to existing toolbars', async () => {
-        const enhancer = {
-            toolbarDefaultExpanded: true,
-            toolbar: {
-                setAllExpanded: vi.fn()
-            },
-            enhancedTables: new Set(),
-            refreshSortButtons: vi.fn(),
-            pickingMode: {
-                startPicking: vi.fn(),
-                clearSelection: vi.fn()
-            },
-            selectedTables: new Set()
-        };
+    it('wraps successful command execution in a unified response envelope', async () => {
+        commandService.execute.mockResolvedValue({
+            toolbarDefaultExpanded: false
+        });
 
-        setupMessageHandler(enhancer);
+        setupMessageHandler(commandService);
 
         expect(addListener).toHaveBeenCalledOnce();
 
+        const request = createMessageRequest(
+            MessageAction.SET_TOOLBAR_DEFAULT_EXPANDED,
+            { enabled: false },
+            'req-1'
+        );
+        const sendResponse = vi.fn();
+        const keepChannelOpen = messageListener(request, null, sendResponse);
+
+        expect(keepChannelOpen).toBe(true);
+
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(commandService.execute).toHaveBeenCalledWith(
+            MessageAction.SET_TOOLBAR_DEFAULT_EXPANDED,
+            { enabled: false },
+            { sender: null }
+        );
+        expect(sendResponse).toHaveBeenCalledWith(
+            createMessageSuccessResponse({ toolbarDefaultExpanded: false }, 'req-1')
+        );
+    });
+
+    it('returns a protocol error envelope for invalid requests', async () => {
+        setupMessageHandler(commandService);
+
         const sendResponse = vi.fn();
         const keepChannelOpen = messageListener(
-            {
-                action: MessageAction.SET_TOOLBAR_DEFAULT_EXPANDED,
-                enabled: false
-            },
+            { action: MessageAction.GET_SELECTION_STATE },
             null,
             sendResponse
         );
@@ -59,9 +83,14 @@ describe('setupMessageHandler', () => {
         expect(keepChannelOpen).toBe(true);
 
         await Promise.resolve();
+        await Promise.resolve();
 
-        expect(enhancer.toolbarDefaultExpanded).toBe(false);
-        expect(enhancer.toolbar.setAllExpanded).toHaveBeenCalledWith(false);
-        expect(sendResponse).toHaveBeenCalledWith({ success: true });
+        expect(commandService.execute).not.toHaveBeenCalled();
+        expect(sendResponse).toHaveBeenCalledWith(
+            createMessageErrorResponse(
+                createMessageProtocolError('无效的消息请求', MessageErrorCode.INVALID_REQUEST),
+                null
+            )
+        );
     });
 });

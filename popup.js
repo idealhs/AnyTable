@@ -1,6 +1,7 @@
 import i18n from './src/i18n/i18n.js';
 import { MessageAction } from './src/constants/messages.js';
 import { LOCALE_DEFINITIONS, getLocaleDefinition } from './src/i18n/locale-config.js';
+import { sendTabCommand } from './src/services/message-client.js';
 
 const STATUS_HIDE_DELAY = 2600;
 const LOCALE_CHECK_ICON = `
@@ -196,20 +197,37 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    async function sendMessageToCurrentPage(message, silent = false) {
+    async function sendCommandToCurrentPage(action, payload = {}, silent = false) {
         const tab = state.currentTab || await getCurrentTab();
-        if (!tab?.id) {
-            return null;
+        return sendTabCommand({
+            tabsApi: browserApi.tabs,
+            tabId: tab?.id || null,
+            action,
+            payload,
+            silent
+        });
+    }
+
+    function hasFailedResponse(response, context, silent = false) {
+        if (response?.success !== false) {
+            return false;
         }
 
-        try {
-            return await browserApi.tabs.sendMessage(tab.id, message);
-        } catch (error) {
-            if (!silent) {
-                console.error('发送消息失败:', error);
-            }
-            return null;
+        if (!silent) {
+            console.error(`${context}失败:`, response.error);
         }
+
+        return true;
+    }
+
+    function applySelectionState(selectionState) {
+        state.hasSelection = selectionState?.hasSelection === true;
+        state.enhancedCount = Number.isInteger(selectionState?.enhancedCount) ? selectionState.enhancedCount : 0;
+    }
+
+    function clearSelectionState() {
+        state.hasSelection = false;
+        state.enhancedCount = 0;
     }
 
     function isSupportedTab(tab) {
@@ -240,19 +258,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        const response = await sendMessageToCurrentPage(
-            { action: MessageAction.GET_SELECTION_STATE },
-            true
-        );
+        const response = await sendCommandToCurrentPage(MessageAction.GET_SELECTION_STATE, {}, true);
 
-        if (response && typeof response.hasSelection === 'boolean') {
+        if (!hasFailedResponse(response, '获取页面状态', true) && response?.data && typeof response.data.hasSelection === 'boolean') {
             state.pageStatus = 'ready';
-            state.hasSelection = response.hasSelection;
-            state.enhancedCount = Number.isInteger(response.enhancedCount) ? response.enhancedCount : 0;
+            applySelectionState(response.data);
         } else {
             state.pageStatus = 'unavailable';
-            state.hasSelection = false;
-            state.enhancedCount = 0;
+            clearSelectionState();
         }
 
         renderPageState();
@@ -311,13 +324,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        let syncFailed = false;
         try {
-            await sendMessageToCurrentPage({ action, enabled: nextValue }, true);
+            const response = await sendCommandToCurrentPage(action, { enabled: nextValue }, true);
+            syncFailed = state.pageStatus === 'ready' && hasFailedResponse(response, '同步页面设置');
         } finally {
             state.pendingSettingKey = null;
             await refreshPageContext();
             renderControls();
             syncPopupRootSize();
+        }
+
+        if (syncFailed) {
+            showStatus(i18n.t('popup.status.error'), 'error');
+            return;
         }
 
         showStatus(
@@ -336,8 +356,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderControls();
 
         try {
-            const response = await sendMessageToCurrentPage({ action: MessageAction.START_PICKING });
-            if (response?.success) {
+            const response = await sendCommandToCurrentPage(MessageAction.START_PICKING);
+            if (!hasFailedResponse(response, '启动选择器') && response?.data?.picking) {
                 showStatus(i18n.t('popup.status.picking'), 'picking', false);
                 window.close();
                 return;
@@ -364,9 +384,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderControls();
 
         try {
-            const response = await sendMessageToCurrentPage({ action: MessageAction.CLEAR_SELECTION });
-            if (response?.success) {
-                state.hasSelection = false;
+            const response = await sendCommandToCurrentPage(MessageAction.CLEAR_SELECTION);
+            if (!hasFailedResponse(response, '清除选择') && response?.data) {
+                applySelectionState(response.data);
                 renderPageState();
                 renderControls();
                 syncPopupRootSize();
