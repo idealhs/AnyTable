@@ -23,6 +23,22 @@ function appendRows(target, rows) {
     rows.forEach((row) => target.appendChild(row));
 }
 
+export function buildTableBodyGroupsFromRows(tableModel, rows) {
+    const orderedRows = Array.isArray(rows) ? rows : [];
+    let offset = 0;
+
+    return tableModel.tbodyGroups.map((group) => {
+        const rowCount = group.rows.length;
+        const groupRows = orderedRows.slice(offset, offset + rowCount);
+        offset += rowCount;
+
+        return {
+            tbody: group.tbody,
+            rows: groupRows
+        };
+    });
+}
+
 export function buildGloballySortedTableBodyGroups(tableModel, rules) {
     const sortedRows = sortRowsByRules(
         tableModel.bodyRows.map((rowModel) => rowModel.row),
@@ -30,18 +46,7 @@ export function buildGloballySortedTableBodyGroups(tableModel, rules) {
         {tableModel}
     );
 
-    let offset = 0;
-
-    return tableModel.tbodyGroups.map((group) => {
-        const rowCount = group.rows.length;
-        const rows = sortedRows.slice(offset, offset + rowCount);
-        offset += rowCount;
-
-        return {
-            tbody: group.tbody,
-            rows
-        };
-    });
+    return buildTableBodyGroupsFromRows(tableModel, sortedRows);
 }
 
 export function applyTableBodyGroups(tableModel, targetGroups) {

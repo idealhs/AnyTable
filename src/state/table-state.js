@@ -1,19 +1,19 @@
 export class TableStateStore {
     constructor() {
         this.sortRulesByTable = new WeakMap();
-        this.originalRowsByTable = new WeakMap();
+        this.originalRowOrderByTable = new WeakMap();
         this.filterValuesByTable = new WeakMap();
         this.advancedFilterRulesByTable = new WeakMap();
         this.advancedSortRulesByTable = new WeakMap();
         this.statisticsRulesByTable = new WeakMap();
     }
 
-    initTable(table, originalRows = []) {
+    initTable(table, originalRowOrder = null) {
         if (!this.sortRulesByTable.has(table)) {
             this.sortRulesByTable.set(table, []);
         }
-        if (!this.originalRowsByTable.has(table)) {
-            this.originalRowsByTable.set(table, [...originalRows]);
+        if (!this.originalRowOrderByTable.has(table)) {
+            this.originalRowOrderByTable.set(table, originalRowOrder || null);
         }
         if (!this.filterValuesByTable.has(table)) {
             this.filterValuesByTable.set(table, {});
@@ -22,7 +22,7 @@ export class TableStateStore {
 
     clearTable(table) {
         this.sortRulesByTable.delete(table);
-        this.originalRowsByTable.delete(table);
+        this.originalRowOrderByTable.delete(table);
         this.filterValuesByTable.delete(table);
         this.advancedFilterRulesByTable.delete(table);
         this.advancedSortRulesByTable.delete(table);
@@ -37,12 +37,12 @@ export class TableStateStore {
         this.sortRulesByTable.set(table, Array.isArray(rules) ? [...rules] : []);
     }
 
-    getOriginalRows(table) {
-        return this.originalRowsByTable.get(table) || [];
+    getOriginalRowOrder(table) {
+        return this.originalRowOrderByTable.get(table) || null;
     }
 
-    setOriginalRows(table, rows) {
-        this.originalRowsByTable.set(table, Array.isArray(rows) ? [...rows] : []);
+    setOriginalRowOrder(table, rowOrderState) {
+        this.originalRowOrderByTable.set(table, rowOrderState || null);
     }
 
     getFilterValues(table) {
@@ -84,4 +84,3 @@ export class TableStateStore {
         this.statisticsRulesByTable.set(table, Array.isArray(rules) ? [...rules] : []);
     }
 }
-

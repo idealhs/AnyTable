@@ -4,7 +4,8 @@ import { applyCombinedFilters } from './core/filter-engine.js';
 import { buildNextSortRules, normalizeAdvancedSortRules } from './core/sort-engine.js';
 import { computeStatisticsData } from './core/statistics-engine.js';
 import { isLikelyDataTable } from './core/table-detector.js';
-import { applyTableBodyGroups, buildGloballySortedTableBodyGroups } from './core/table-group-sort.js';
+import { applyTableBodyGroups, buildGloballySortedTableBodyGroups, buildTableBodyGroupsFromRows } from './core/table-group-sort.js';
+import { createOriginalRowOrderState, getRowsInOriginalOrder, syncOriginalRowOrderState } from './core/row-order-index.js';
 import { buildTableModel } from './core/table-model.js';
 import { getTableColumnCount, getTableColumnTitles } from './core/table-structure.js';
 import { renderStatisticsRows, removeStatisticsRows } from './ui/statistics-renderer.js';
@@ -30,6 +31,11 @@ const MATERIAL_ICON_PATHS = {
 
 function normalizeCollection(collection) {
     return Array.from(collection || []);
+}
+
+function isElementNode(node) {
+    const elementNodeType = typeof Node === 'undefined' ? 1 : Node.ELEMENT_NODE;
+    return node?.nodeType === elementNodeType;
 }
 
 function getTableBodyElements(table) {
@@ -79,11 +85,29 @@ function appendRows(target, rows) {
     rows.forEach((row) => target.appendChild(row));
 }
 
-function captureOriginalRowGroups(table) {
-    return buildTableModel(table).tbodyGroups.map((group) => ({
-        tbody: group.tbody,
-        rows: group.rows.map((rowModel) => rowModel.row)
-    }));
+function findClosestTableElement(node) {
+    let currentNode = node;
+    while (currentNode) {
+        if (currentNode.nodeName === 'TABLE') {
+            return currentNode;
+        }
+        currentNode = currentNode.parentNode;
+    }
+
+    return null;
+}
+
+function collectNestedTableElements(node) {
+    if (!isElementNode(node)) {
+        return [];
+    }
+
+    const tables = node.nodeName === 'TABLE' ? [node] : [];
+    if (typeof node.querySelectorAll === 'function') {
+        tables.push(...node.querySelectorAll('table'));
+    }
+
+    return tables;
 }
 
 function hasProcessableRows(table) {
@@ -230,7 +254,12 @@ class TableEnhancer {
         removeRows(statsRows);
 
         if (!Array.isArray(rules) || rules.length === 0) {
-            const originalRowGroups = this.stateStore.getOriginalRows(table);
+            const originalRowOrder = this.stateStore.getOriginalRowOrder(table)
+                || createOriginalRowOrderState(tableModel);
+            this.stateStore.setOriginalRowOrder(table, originalRowOrder);
+            syncOriginalRowOrderState(originalRowOrder, tableModel);
+            const originalRows = getRowsInOriginalOrder(tableModel, originalRowOrder);
+            const originalRowGroups = buildTableBodyGroupsFromRows(tableModel, originalRows);
             applyTableBodyGroups(tableModel, originalRowGroups);
         } else {
             const sortedGroups = buildGloballySortedTableBodyGroups(tableModel, rules);
@@ -259,6 +288,7 @@ class TableEnhancer {
         }
 
         this.stateStore.setAdvancedSortRules(table, normalizedRules);
+        this.syncOriginalRowOrder(table);
         this.stateStore.setSortRules(table, normalizedRules);
         this.refreshSortButtons(table);
         this.toolbar.refreshActiveStates(table);
@@ -305,10 +335,20 @@ class TableEnhancer {
         this.stateStore.clearTable(table);
     }
 
+    syncOriginalRowOrder(table) {
+        if (!this.enhancedTables.has(table)) return;
+
+        const tableModel = buildTableModel(table);
+        const originalRowOrder = this.stateStore.getOriginalRowOrder(table)
+            || createOriginalRowOrderState(tableModel);
+        syncOriginalRowOrderState(originalRowOrder, tableModel);
+        this.stateStore.setOriginalRowOrder(table, originalRowOrder);
+    }
+
     enhanceTable(table) {
         if (this.enhancedTables.has(table)) return;
 
-        this.stateStore.setOriginalRows(table, captureOriginalRowGroups(table));
+        this.stateStore.setOriginalRowOrder(table, createOriginalRowOrderState(buildTableModel(table)));
 
         this.stateStore.setSortRules(table, []);
         this.controlPanelManager.attachTableControls(table);
@@ -320,6 +360,7 @@ class TableEnhancer {
     sortTable(table, columnIndex) {
         if (!hasProcessableRows(table)) return;
 
+        this.syncOriginalRowOrder(table);
         const currentRules = this.stateStore.getSortRules(table);
         const {rules} = buildNextSortRules(currentRules, columnIndex, this.multiColumnSort);
         this.stateStore.setSortRules(table, rules);
@@ -369,31 +410,48 @@ class TableEnhancer {
 
     observeDOMChanges() {
         const observer = new MutationObserver((mutations) => {
+            const tablesToSync = new Set();
+
             for (const mutation of mutations) {
+                const mutationTable = findClosestTableElement(mutation.target);
+                if (this.enhancedTables.has(mutationTable)) {
+                    tablesToSync.add(mutationTable);
+                }
+
                 for (const node of mutation.removedNodes) {
-                    if (node.nodeType !== Node.ELEMENT_NODE) continue;
-                    const tables = node.nodeName === 'TABLE' ? [node] : [];
-                    if (node.querySelectorAll) {
-                        tables.push(...node.querySelectorAll('table'));
-                    }
+                    const tables = collectNestedTableElements(node);
                     for (const table of tables) {
                         this.removeEnhancement(table);
                         this.selectedTables.delete(table);
                     }
                 }
 
-                if (!this.autoEnhance) continue;
-
                 for (const node of mutation.addedNodes) {
-                    if (node.nodeType !== Node.ELEMENT_NODE) continue;
-                    if (node.nodeName === 'TABLE') {
-                        this.autoEnhanceTables([node]);
+                    if (!isElementNode(node)) continue;
+
+                    if (this.autoEnhance) {
+                        if (node.nodeName === 'TABLE') {
+                            this.autoEnhanceTables([node]);
+                        }
+                        if (node.querySelectorAll) {
+                            this.autoEnhanceTables(node.querySelectorAll('table'));
+                        }
                     }
-                    if (node.querySelectorAll) {
-                        this.autoEnhanceTables(node.querySelectorAll('table'));
+
+                    const table = findClosestTableElement(node);
+                    if (this.enhancedTables.has(table)) {
+                        tablesToSync.add(table);
                     }
+
+                    collectNestedTableElements(node).forEach((nestedTable) => {
+                        if (this.enhancedTables.has(nestedTable)) {
+                            tablesToSync.add(nestedTable);
+                        }
+                    });
                 }
             }
+
+            tablesToSync.forEach((table) => this.syncOriginalRowOrder(table));
         });
 
         observer.observe(document.body, {

@@ -86,16 +86,16 @@ describe('content init', () => {
         vi.doMock('../../src/state/table-state.js', () => ({
             TableStateStore: class {
                 constructor() {
-                    this.originalRowsByTable = new Map();
+                    this.originalRowOrderByTable = new Map();
                     this.sortRulesByTable = new Map();
                 }
 
-                setOriginalRows(tableElement, rows) {
-                    this.originalRowsByTable.set(tableElement, rows);
+                setOriginalRowOrder(tableElement, rowOrderState) {
+                    this.originalRowOrderByTable.set(tableElement, rowOrderState);
                 }
 
-                getOriginalRows(tableElement) {
-                    return this.originalRowsByTable.get(tableElement) || [];
+                getOriginalRowOrder(tableElement) {
+                    return this.originalRowOrderByTable.get(tableElement) || null;
                 }
 
                 setSortRules(tableElement, rules) {
