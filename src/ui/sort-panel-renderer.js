@@ -59,14 +59,14 @@ export function getSortTypeButtonLabel(type, getColumnValues, columnIndex) {
     return getSortTypeLabel(type);
 }
 
-export function updateSortTypeButtonLabel(rowElement, getColumnValues, minWidth = 0) {
+export function updateSortTypeButtonLabel(rowElement, getColumnValues, minWidth = 0, explicitType = null) {
     const typeButton = rowElement.querySelector('.anytable-adv-sort-type-btn');
     const columnButton = rowElement.querySelector('.anytable-adv-sort-column');
     if (!typeButton) {
         return;
     }
 
-    const type = getDropdownButtonValue(typeButton) || 'auto';
+    const type = explicitType || getDropdownButtonValue(typeButton) || 'auto';
     const columnIndex = Number(getDropdownButtonValue(columnButton));
     setDropdownButtonValue(typeButton, type, getSortTypeButtonLabel(type, getColumnValues, columnIndex), {minWidth});
 }

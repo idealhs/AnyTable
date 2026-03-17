@@ -97,7 +97,7 @@ export function openAdvancedSortPanel({
                 searchPlaceholder: translate('advancedPanel.sort.typePopup.searchPlaceholder'),
                 onSelect: (newType) => {
                     rule.type = newType;
-                    updateSortTypeButtonLabel(row, getColumnValues, selectMinWidth);
+                    updateSortTypeButtonLabel(row, getColumnValues, selectMinWidth, newType);
                 }
             });
         });

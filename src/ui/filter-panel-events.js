@@ -10,6 +10,17 @@ import {
 import { getPanelColumnLabel } from './advanced-panel-common.js';
 import { translate } from './panel-utils.js';
 
+function findDirectChildByClass(containerElement, className) {
+    return Array.from(containerElement?.children || []).find((element) => (
+        element.classList?.contains(className)
+    )) || null;
+}
+
+function findDirectNestedChildByClass(containerElement, parentClassName, childClassName) {
+    const parentElement = findDirectChildByClass(containerElement, parentClassName);
+    return findDirectChildByClass(parentElement, childClassName);
+}
+
 function getNextSiblingNodeId(operatorElement) {
     let nextElement = operatorElement.nextElementSibling;
     while (nextElement) {
@@ -194,7 +205,11 @@ export function bindFilterTreeEvents({
             continue;
         }
 
-        const negateButton = element.querySelector(':scope > .anytable-adv-group-header > .anytable-adv-negate');
+        const negateButton = findDirectNestedChildByClass(
+            element,
+            'anytable-adv-group-header',
+            'anytable-adv-negate'
+        );
         if (negateButton) {
             negateButton.addEventListener('click', () => {
                 groupNode.negated = !groupNode.negated;
@@ -202,7 +217,11 @@ export function bindFilterTreeEvents({
             });
         }
 
-        const removeGroupButton = element.querySelector(':scope > .anytable-adv-group-header > .anytable-adv-remove-group');
+        const removeGroupButton = findDirectNestedChildByClass(
+            element,
+            'anytable-adv-group-header',
+            'anytable-adv-remove-group'
+        );
         if (removeGroupButton) {
             removeGroupButton.addEventListener('click', () => {
                 closeDropdownPopup();
@@ -217,7 +236,11 @@ export function bindFilterTreeEvents({
             });
         }
 
-        const addRuleButton = element.querySelector(':scope > .anytable-adv-group-actions > .anytable-adv-add-rule');
+        const addRuleButton = findDirectNestedChildByClass(
+            element,
+            'anytable-adv-group-actions',
+            'anytable-adv-add-rule'
+        );
         if (addRuleButton) {
             addRuleButton.addEventListener('click', () => {
                 closeDropdownPopup();
@@ -229,7 +252,11 @@ export function bindFilterTreeEvents({
             });
         }
 
-        const addGroupButton = element.querySelector(':scope > .anytable-adv-group-actions > .anytable-adv-add-group');
+        const addGroupButton = findDirectNestedChildByClass(
+            element,
+            'anytable-adv-group-actions',
+            'anytable-adv-add-group'
+        );
         if (addGroupButton) {
             addGroupButton.addEventListener('click', () => {
                 closeDropdownPopup();
@@ -246,7 +273,7 @@ export function bindFilterTreeEvents({
             });
         }
 
-        const childContainer = element.querySelector(':scope > .anytable-adv-group-children');
+        const childContainer = findDirectChildByClass(element, 'anytable-adv-group-children');
         if (childContainer) {
             bindFilterTreeEvents({
                 containerElement: childContainer,

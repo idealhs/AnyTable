@@ -6,10 +6,13 @@
     "build": "node build.js",
     "pack": "node build.js",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.0",
     "archiver": "^7.0.0",
+    "jsdom": "^29.0.0",
     "vitest": "^4.1.0"
   },
   "keywords": [

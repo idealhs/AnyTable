@@ -2,12 +2,10 @@ import { getDropdownButtonValue } from './dropdown-popup.js';
 import { parseNumberLike, translate } from './panel-utils.js';
 import { isFilterGroup } from './filter-panel-state.js';
 
-function escapeSelector(value) {
-    if (globalThis.CSS?.escape) {
-        return globalThis.CSS.escape(value);
-    }
-
-    return String(value).replace(/["\\]/g, '\\$&');
+function findDirectChildByAttribute(containerElement, attributeName, expectedValue) {
+    return Array.from(containerElement?.children || []).find((element) => (
+        element.getAttribute?.(attributeName) === expectedValue
+    )) || null;
 }
 
 export function parseFilterRuleRow(rowElement) {
@@ -77,12 +75,14 @@ export function collectFilterRuleTree(containerElement, children) {
         const child = children[index];
 
         if (isFilterGroup(child)) {
-            const groupElement = containerElement.querySelector(`:scope > [data-group-id="${escapeSelector(child.id)}"]`);
+            const groupElement = findDirectChildByAttribute(containerElement, 'data-group-id', child.id);
             if (!groupElement) {
                 continue;
             }
 
-            const childContainer = groupElement.querySelector(':scope > .anytable-adv-group-children');
+            const childContainer = Array.from(groupElement.children).find((element) => (
+                element.classList?.contains('anytable-adv-group-children')
+            )) || null;
             const result = collectFilterRuleTree(childContainer, child.children);
             if (result.error) {
                 return result;
@@ -90,7 +90,7 @@ export function collectFilterRuleTree(containerElement, children) {
 
             const groupRule = {
                 id: child.id,
-                negated: groupElement.querySelector(':scope > .anytable-adv-group-header > .anytable-adv-negate')?.classList.contains('active') || false,
+                negated: groupElement.querySelector('.anytable-adv-group-header > .anytable-adv-negate')?.classList.contains('active') || false,
                 children: result.rules
             };
             if (index > 0) {
@@ -100,7 +100,7 @@ export function collectFilterRuleTree(containerElement, children) {
             continue;
         }
 
-        const rowElement = containerElement.querySelector(`:scope > [data-rule-id="${escapeSelector(child.id)}"]`);
+        const rowElement = findDirectChildByAttribute(containerElement, 'data-rule-id', child.id);
         if (!rowElement) {
             continue;
         }

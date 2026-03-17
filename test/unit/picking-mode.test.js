@@ -144,4 +144,80 @@ describe('PickingMode', () => {
         expect(pickingMode.isPicking).toBe(false);
         expect(eventListeners.remove.map(({ type }) => type)).toEqual(['mousemove', 'click', 'keydown']);
     });
+
+    it('highlights the table under the cursor and clears previous pickable styles', () => {
+        const previousTable = createTable();
+        previousTable.classList.add('anytable-pickable');
+
+        const currentTable = createTable();
+        const nestedCell = {
+            tagName: 'TD',
+            parentElement: currentTable
+        };
+        tables.push(previousTable, currentTable);
+
+        const pickingMode = new PickingMode({
+            enhancedTables: new Set(),
+            selectedTables: new Set(),
+            enhanceTable: vi.fn(),
+            removeEnhancement: vi.fn()
+        });
+
+        pickingMode.startPicking();
+        pickingMode.syncHighlightStyles(previousTable);
+        pickingMode.handleMouseMove({target: nestedCell});
+
+        expect(previousTable.classList.contains('anytable-pickable')).toBe(false);
+        expect(previousTable.style.outline).toBe('');
+        expect(currentTable.classList.contains('anytable-pickable')).toBe(true);
+        expect(currentTable.style.cursor).toBe('pointer');
+        expect(currentTable.style.outline).toBe('2px dashed #4a90e2');
+        expect(currentTable.style.outlineOffset).toBe('2px');
+    });
+
+    it('does not register duplicate listeners and stops picking on Escape', () => {
+        const pickingMode = new PickingMode({
+            enhancedTables: new Set(),
+            selectedTables: new Set(),
+            enhanceTable: vi.fn(),
+            removeEnhancement: vi.fn()
+        });
+
+        pickingMode.startPicking();
+        pickingMode.startPicking();
+        expect(eventListeners.add.map(({type}) => type)).toEqual(['mousemove', 'click', 'keydown']);
+
+        pickingMode.handleKeyDown({key: 'Escape'});
+
+        expect(pickingMode.isPicking).toBe(false);
+        expect(eventListeners.remove.map(({type}) => type)).toEqual(['mousemove', 'click', 'keydown']);
+    });
+
+    it('clears all selected tables and removes their enhancement', () => {
+        const firstTable = createTable();
+        const secondTable = createTable();
+        firstTable.classList.add('anytable-picked');
+        secondTable.classList.add('anytable-picked');
+        tables.push(firstTable, secondTable);
+
+        const selectedTables = new Set([firstTable, secondTable]);
+        const removeEnhancement = vi.fn();
+        const pickingMode = new PickingMode({
+            enhancedTables: new Set([firstTable, secondTable]),
+            selectedTables,
+            enhanceTable: vi.fn(),
+            removeEnhancement
+        });
+
+        pickingMode.startPicking();
+        pickingMode.clearSelection();
+
+        expect(removeEnhancement).toHaveBeenCalledTimes(2);
+        expect(removeEnhancement).toHaveBeenCalledWith(firstTable);
+        expect(removeEnhancement).toHaveBeenCalledWith(secondTable);
+        expect(selectedTables.size).toBe(0);
+        expect(firstTable.classList.contains('anytable-picked')).toBe(false);
+        expect(secondTable.classList.contains('anytable-picked')).toBe(false);
+        expect(pickingMode.isPicking).toBe(false);
+    });
 });

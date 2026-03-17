@@ -291,4 +291,72 @@ describe('sortRowsByRules', () => {
 
         expect(sorted.map((row) => row.cells[0].textContent)).toEqual(['Beta', 'Alpha']);
     });
+
+    it('sorts values with a custom unit mapping', () => {
+        const rows = [mockRow('2kg'), mockRow('500g'), mockRow('1kg')];
+        const rules = [{
+            column: 0,
+            direction: 'asc',
+            type: 'custom',
+            unitConfig: {
+                mapping: {
+                    g: 1,
+                    kg: 1000
+                }
+            }
+        }];
+
+        const sorted = sortRowsByRules(rows, rules);
+
+        expect(sorted.map((row) => row.cells[0].textContent)).toEqual(['500g', '1kg', '2kg']);
+    });
+
+    it('sorts explicit unit-system types using the shared converter', () => {
+        const rows = [mockRow('2h'), mockRow('30min'), mockRow('90min')];
+        const rules = [{ column: 0, direction: 'asc', type: 'duration' }];
+
+        const sorted = sortRowsByRules(rows, rules);
+
+        expect(sorted.map((row) => row.cells[0].textContent)).toEqual(['30min', '90min', '2h']);
+    });
+
+    it('uses pre-resolved auto rules without running detection again', () => {
+        const rows = [mockRow('30'), mockRow('10'), mockRow('20')];
+        const rules = [{
+            column: 0,
+            direction: 'asc',
+            type: 'auto',
+            _resolvedType: 'number'
+        }];
+
+        const sorted = sortRowsByRules(rows, rules);
+
+        expect(sorted.map((row) => row.cells[0].textContent)).toEqual(['10', '20', '30']);
+    });
+
+    it('falls back to numeric parsing when auto rules are explicitly marked unresolved', () => {
+        const rows = [mockRow('30'), mockRow('10'), mockRow('20')];
+        const rules = [{
+            column: 0,
+            direction: 'asc',
+            type: 'auto',
+            _resolvedType: 'auto'
+        }];
+
+        const sorted = sortRowsByRules(rows, rules);
+
+        expect(sorted.map((row) => row.cells[0].textContent)).toEqual(['10', '20', '30']);
+    });
+
+    it('preserves the original order when all compared values are equal', () => {
+        const first = mockRow('Alpha', '10');
+        const second = mockRow('Beta', '10');
+        const third = mockRow('Gamma', '10');
+        const rows = [first, second, third];
+        const rules = [{ column: 1, direction: 'asc', type: 'number' }];
+
+        const sorted = sortRowsByRules(rows, rules);
+
+        expect(sorted).toEqual([first, second, third]);
+    });
 });

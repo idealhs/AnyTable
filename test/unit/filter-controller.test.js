@@ -87,6 +87,114 @@ describe('FilterController', () => {
         expect(applyAllFiltersSpy).toHaveBeenCalledWith(table);
     });
 
+    it('applies combined filters and refreshes dependent UI state', () => {
+        const table = {};
+        const advancedRuleGroup = {id: 'group-1', children: []};
+        const stateStore = {
+            getFilterValues: vi.fn(() => ({0: 'Alice'})),
+            getAdvancedFilterRules: vi.fn(() => advancedRuleGroup),
+            getStatisticsRules: vi.fn(() => [{column: 1, operation: 'count'}])
+        };
+        const controlPanelManager = {
+            refreshFilterButtons: vi.fn(),
+            setFilterInputsDisabledState: vi.fn()
+        };
+        const toolbar = {
+            refreshActiveStates: vi.fn()
+        };
+        const controller = new FilterController({
+            stateStore,
+            controlPanelManager,
+            toolbar
+        });
+
+        controller.applyAllFilters(table);
+
+        expect(applyCombinedFiltersMock).toHaveBeenCalledWith(table, {0: 'Alice'}, advancedRuleGroup);
+        expect(controlPanelManager.setFilterInputsDisabledState).toHaveBeenCalledWith(table, true);
+        expect(controlPanelManager.refreshFilterButtons).toHaveBeenCalledWith(table);
+        expect(toolbar.refreshActiveStates).toHaveBeenCalledWith(table);
+        expect(computeStatisticsDataMock).toHaveBeenCalledWith([{column: 1, operation: 'count'}], table);
+    });
+
+    it('toggles filter input disabled state based on whether advanced rules exist', () => {
+        const table = {};
+        const stateStore = {
+            getAdvancedFilterRules: vi.fn()
+        };
+        const controlPanelManager = {
+            setFilterInputsDisabledState: vi.fn()
+        };
+        const controller = new FilterController({
+            stateStore,
+            controlPanelManager,
+            toolbar: {
+                refreshActiveStates: vi.fn()
+            }
+        });
+
+        stateStore.getAdvancedFilterRules.mockReturnValueOnce(null);
+        controller.updateFilterInputsDisabledState(table);
+
+        stateStore.getAdvancedFilterRules.mockReturnValueOnce({id: 'group-2', children: []});
+        controller.updateFilterInputsDisabledState(table);
+
+        expect(controlPanelManager.setFilterInputsDisabledState).toHaveBeenNthCalledWith(1, table, false);
+        expect(controlPanelManager.setFilterInputsDisabledState).toHaveBeenNthCalledWith(2, table, true);
+    });
+
+    it('skips filtering when the table has no processable rows', () => {
+        const table = mockTable({
+            theadRows: [mockRow([mockCell('Name', {tagName: 'TH'})])],
+            bodySections: [[]]
+        });
+        const stateStore = {
+            setFilterValue: vi.fn()
+        };
+        const controller = new FilterController({
+            stateStore,
+            controlPanelManager: {
+                refreshFilterButtons: vi.fn(),
+                setFilterInputsDisabledState: vi.fn()
+            },
+            toolbar: {
+                refreshActiveStates: vi.fn()
+            }
+        });
+        const applyAllFiltersSpy = vi.spyOn(controller, 'applyAllFilters').mockImplementation(() => {});
+
+        controller.filterTable(table, 0, 'ali');
+
+        expect(stateStore.setFilterValue).not.toHaveBeenCalled();
+        expect(applyAllFiltersSpy).not.toHaveBeenCalled();
+    });
+
+    it('stores statistics rules and refreshes toolbar plus statistics rows', () => {
+        const table = {};
+        const stateStore = {
+            setStatisticsRules: vi.fn()
+        };
+        const toolbar = {
+            refreshActiveStates: vi.fn()
+        };
+        const controller = new FilterController({
+            stateStore,
+            controlPanelManager: {
+                refreshFilterButtons: vi.fn(),
+                setFilterInputsDisabledState: vi.fn()
+            },
+            toolbar
+        });
+        const refreshStatisticsSpy = vi.spyOn(controller, 'refreshStatistics').mockImplementation(() => {});
+        const rules = [{column: 0, operation: 'sum'}];
+
+        controller.applyStatistics(table, rules);
+
+        expect(stateStore.setStatisticsRules).toHaveBeenCalledWith(table, rules);
+        expect(toolbar.refreshActiveStates).toHaveBeenCalledWith(table);
+        expect(refreshStatisticsSpy).toHaveBeenCalledWith(table);
+    });
+
     it('renders statistics rows using the shared table column model', () => {
         const table = {};
         const stateStore = {
