@@ -5,8 +5,8 @@ function normalizeValue(value) {
     return (value ?? '').toString().trim();
 }
 
-// Legacy type migration map
-const TYPE_MIGRATION = { time: 'duration', weight: 'mass', unit: 'auto' };
+// Legacy or removed type migration map
+const TYPE_MIGRATION = { time: 'duration', weight: 'mass', unit: 'auto', custom: 'auto' };
 
 // All known unit system type names
 const UNIT_SYSTEM_TYPES = new Set([
@@ -15,43 +15,12 @@ const UNIT_SYSTEM_TYPES = new Set([
     'current', 'resistance', 'frequency', 'dataSize', 'bitrate'
 ]);
 
-function parseWithCustomUnitConfig(value, unitConfig) {
-    const normalized = normalizeValue(value);
-    const match = normalized.match(/^([-+]?\d*\.?\d+)\s*([^\d\s]+)$/);
-    if (!match) {
-        return { success: false, value: NaN, kind: 'custom-unit' };
-    }
-
-    const numberValue = Number(match[1]);
-    if (Number.isNaN(numberValue)) {
-        return { success: false, value: NaN, kind: 'custom-unit' };
-    }
-
-    const unit = match[2].toLowerCase();
-    const mapping = unitConfig?.mapping || {};
-    const factor = mapping[unit];
-    if (typeof factor !== 'number') {
-        return { success: false, value: NaN, kind: 'custom-unit' };
-    }
-
-    return { success: true, value: numberValue * factor, kind: 'custom-unit' };
-}
-
 function compareValues(aValue, bValue, rule) {
     const type = rule?.type || 'text';
 
     // Text comparison
     if (type === 'text') {
         return aValue.localeCompare(bValue);
-    }
-
-    // Custom unit config
-    if (type === 'custom' && rule?.unitConfig) {
-        const parsedA = parseWithCustomUnitConfig(aValue, rule.unitConfig);
-        const parsedB = parseWithCustomUnitConfig(bValue, rule.unitConfig);
-        if (parsedA.success && parsedB.success && parsedA.value !== parsedB.value) {
-            return parsedA.value - parsedB.value;
-        }
     }
 
     // Number
@@ -171,8 +140,7 @@ export function buildNextSortRules(currentRules, columnIndex, multiColumnSort) {
             rules: [{
                 column: columnIndex,
                 direction,
-                type: 'auto',
-                unitConfig: null
+                type: 'auto'
             }],
             direction
         };
@@ -196,8 +164,7 @@ export function buildNextSortRules(currentRules, columnIndex, multiColumnSort) {
         rules: [...rules, {
             column: columnIndex,
             direction,
-            type: 'auto',
-            unitConfig: null
+            type: 'auto'
         }],
         direction
     };
@@ -217,9 +184,8 @@ export function normalizeAdvancedSortRules(rules) {
             if (TYPE_MIGRATION[type]) {
                 type = TYPE_MIGRATION[type];
             }
-            const unitConfig = rule.unitConfig || null;
 
-            return { column, direction, type, unitConfig };
+            return { column, direction, type };
         })
         .filter(Boolean);
 }

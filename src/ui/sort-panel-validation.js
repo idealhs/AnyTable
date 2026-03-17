@@ -14,8 +14,7 @@ export function parseSortRuleRow(rowElement) {
         rule: {
             column,
             direction: directionButton.getAttribute('data-sort-direction') === 'desc' ? 'desc' : 'asc',
-            type: getDropdownButtonValue(typeButton) || 'auto',
-            unitConfig: null
+            type: getDropdownButtonValue(typeButton) || 'auto'
         }
     };
 }

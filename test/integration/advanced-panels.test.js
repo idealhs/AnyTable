@@ -156,14 +156,12 @@ describe('高级面板真实 DOM 交互', () => {
             {
                 column: 0,
                 direction: 'asc',
-                type: 'auto',
-                unitConfig: null
+                type: 'auto'
             },
             {
                 column: 1,
                 direction: 'desc',
-                type: 'number',
-                unitConfig: null
+                type: 'number'
             }
         ]);
     }, 15000);

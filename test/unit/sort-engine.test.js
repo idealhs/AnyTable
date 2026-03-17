@@ -45,21 +45,21 @@ describe('buildNextSortRules', () => {
         });
 
         it('toggles asc → desc for existing column', () => {
-            const existing = [{ column: 0, direction: 'asc', type: 'auto', unitConfig: null }];
+            const existing = [{ column: 0, direction: 'asc', type: 'auto' }];
             const result = buildNextSortRules(existing, 0, false);
             expect(result.direction).toBe('desc');
             expect(result.rules[0].direction).toBe('desc');
         });
 
         it('clears rules when cycling to none', () => {
-            const existing = [{ column: 0, direction: 'desc', type: 'auto', unitConfig: null }];
+            const existing = [{ column: 0, direction: 'desc', type: 'auto' }];
             const result = buildNextSortRules(existing, 0, false);
             expect(result.direction).toBe('none');
             expect(result.rules).toHaveLength(0);
         });
 
         it('replaces all rules in single-column mode', () => {
-            const existing = [{ column: 1, direction: 'asc', type: 'auto', unitConfig: null }];
+            const existing = [{ column: 1, direction: 'asc', type: 'auto' }];
             const result = buildNextSortRules(existing, 0, false);
             expect(result.rules).toHaveLength(1);
             expect(result.rules[0].column).toBe(0);
@@ -68,7 +68,7 @@ describe('buildNextSortRules', () => {
 
     describe('multi-column mode', () => {
         it('adds new column to existing rules', () => {
-            const existing = [{ column: 0, direction: 'asc', type: 'auto', unitConfig: null }];
+            const existing = [{ column: 0, direction: 'asc', type: 'auto' }];
             const result = buildNextSortRules(existing, 1, true);
             expect(result.rules).toHaveLength(2);
             expect(result.rules[1]).toMatchObject({ column: 1, direction: 'asc' });
@@ -76,8 +76,8 @@ describe('buildNextSortRules', () => {
 
         it('toggles direction for existing column in multi-column', () => {
             const existing = [
-                { column: 0, direction: 'asc', type: 'auto', unitConfig: null },
-                { column: 1, direction: 'asc', type: 'auto', unitConfig: null }
+                { column: 0, direction: 'asc', type: 'auto' },
+                { column: 1, direction: 'asc', type: 'auto' }
             ];
             const result = buildNextSortRules(existing, 1, true);
             expect(result.rules).toHaveLength(2);
@@ -86,8 +86,8 @@ describe('buildNextSortRules', () => {
 
         it('removes column when cycling to none in multi-column', () => {
             const existing = [
-                { column: 0, direction: 'asc', type: 'auto', unitConfig: null },
-                { column: 1, direction: 'desc', type: 'auto', unitConfig: null }
+                { column: 0, direction: 'asc', type: 'auto' },
+                { column: 1, direction: 'desc', type: 'auto' }
             ];
             const result = buildNextSortRules(existing, 1, true);
             expect(result.rules).toHaveLength(1);
@@ -96,7 +96,7 @@ describe('buildNextSortRules', () => {
     });
 
     it('does not mutate input rules array', () => {
-        const existing = [{ column: 0, direction: 'asc', type: 'auto', unitConfig: null }];
+        const existing = [{ column: 0, direction: 'asc', type: 'auto' }];
         const copy = [...existing];
         buildNextSortRules(existing, 1, true);
         expect(existing).toEqual(copy);
@@ -121,12 +121,14 @@ describe('normalizeAdvancedSortRules', () => {
         const rules = [
             { column: 0, direction: 'asc', type: 'time' },
             { column: 1, direction: 'asc', type: 'weight' },
-            { column: 2, direction: 'asc', type: 'unit' }
+            { column: 2, direction: 'asc', type: 'unit' },
+            { column: 3, direction: 'asc', type: 'custom' }
         ];
         const result = normalizeAdvancedSortRules(rules);
         expect(result[0].type).toBe('duration');
         expect(result[1].type).toBe('mass');
         expect(result[2].type).toBe('auto');
+        expect(result[3].type).toBe('auto');
     });
 
     it('filters out invalid column indices', () => {
@@ -290,25 +292,6 @@ describe('sortRowsByRules', () => {
         const sorted = sortRowsByRules(rows, rules, {tableModel});
 
         expect(sorted.map((row) => row.cells[0].textContent)).toEqual(['Beta', 'Alpha']);
-    });
-
-    it('sorts values with a custom unit mapping', () => {
-        const rows = [mockRow('2kg'), mockRow('500g'), mockRow('1kg')];
-        const rules = [{
-            column: 0,
-            direction: 'asc',
-            type: 'custom',
-            unitConfig: {
-                mapping: {
-                    g: 1,
-                    kg: 1000
-                }
-            }
-        }];
-
-        const sorted = sortRowsByRules(rows, rules);
-
-        expect(sorted.map((row) => row.cells[0].textContent)).toEqual(['500g', '1kg', '2kg']);
     });
 
     it('sorts explicit unit-system types using the shared converter', () => {

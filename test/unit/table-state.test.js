@@ -2,10 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { TableStateStore } from '../../src/state/table-state.js';
 
 describe('TableStateStore', () => {
-    it('returns default values for unknown tables and initializes missing state once', () => {
+    it('returns default values for unknown tables', () => {
         const store = new TableStateStore();
         const table = {};
-        const originalRowOrder = { rows: [1, 2, 3] };
 
         expect(store.getSortRules(table)).toEqual([]);
         expect(store.getOriginalRowOrder(table)).toBe(null);
@@ -13,19 +12,6 @@ describe('TableStateStore', () => {
         expect(store.getAdvancedFilterRules(table)).toBe(null);
         expect(store.getAdvancedSortRules(table)).toEqual([]);
         expect(store.getStatisticsRules(table)).toEqual([]);
-
-        store.initTable(table, originalRowOrder);
-        expect(store.getSortRules(table)).toEqual([]);
-        expect(store.getOriginalRowOrder(table)).toBe(originalRowOrder);
-        expect(store.getFilterValues(table)).toEqual({});
-
-        store.setSortRules(table, [{ column: 0, direction: 'asc' }]);
-        store.setFilterValues(table, { 0: 'alice' });
-        store.initTable(table, { rows: ['should-not-overwrite'] });
-
-        expect(store.getSortRules(table)).toEqual([{ column: 0, direction: 'asc' }]);
-        expect(store.getOriginalRowOrder(table)).toBe(originalRowOrder);
-        expect(store.getFilterValues(table)).toEqual({ 0: 'alice' });
     });
 
     it('clones mutable inputs, supports per-table updates, and clears all state', () => {

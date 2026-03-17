@@ -5,8 +5,7 @@ export function createSortRule(rule = null, fallbackColumnIndex = 0) {
         id: createPanelNodeId('sort'),
         column: Number.isInteger(rule?.column) ? rule.column : fallbackColumnIndex,
         direction: rule?.direction === 'desc' ? 'desc' : 'asc',
-        type: rule?.type || 'auto',
-        unitConfig: rule?.unitConfig || null
+        type: rule?.type || 'auto'
     };
 }
 

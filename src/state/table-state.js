@@ -8,18 +8,6 @@ export class TableStateStore {
         this.statisticsRulesByTable = new WeakMap();
     }
 
-    initTable(table, originalRowOrder = null) {
-        if (!this.sortRulesByTable.has(table)) {
-            this.sortRulesByTable.set(table, []);
-        }
-        if (!this.originalRowOrderByTable.has(table)) {
-            this.originalRowOrderByTable.set(table, originalRowOrder || null);
-        }
-        if (!this.filterValuesByTable.has(table)) {
-            this.filterValuesByTable.set(table, {});
-        }
-    }
-
     clearTable(table) {
         this.sortRulesByTable.delete(table);
         this.originalRowOrderByTable.delete(table);
