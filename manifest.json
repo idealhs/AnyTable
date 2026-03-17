@@ -46,13 +46,15 @@
     "browser_specific_settings": {
         "gecko": {
             "id": "anytable@idealhs.onmicrosoft.com",
-            "strict_min_version": "109.0"
+            "strict_min_version": "109.0",
+            "data_collection_permissions": {
+                "required": [
+                    "none"
+                ]
+            }
         },
         "gecko_android": {
             "strict_min_version": "109.0"
         }
-    },
-    "data_collection_permissions": {
-        "data_collection": false
     }
 }
