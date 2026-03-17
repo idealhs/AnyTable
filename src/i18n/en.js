@@ -20,8 +20,47 @@ export default {
     // Popup
     popup: {
         title: 'AnyTable',
+        controlCenter: 'Table Control Center',
+        subtitle: 'Quickly pick, clear, and configure table enhancement for the current page.',
         pickTable: 'Pick Table',
         clearSelection: 'Clear Selection',
+        footerHint: 'Changes are saved immediately and applied to table enhancement on the current page.',
+        language: {
+            label: 'Interface language'
+        },
+        state: {
+            enabled: 'On',
+            disabled: 'Off',
+            expanded: 'Open',
+            collapsed: 'Closed'
+        },
+        page: {
+            eyebrow: 'Current Page',
+            title: 'Page Status',
+            ready: 'Connected',
+            unsupported: 'Unsupported',
+            unavailable: 'Unavailable',
+            enhancedCount: '{count} tables enhanced',
+            unsupportedDescription: 'This page does not allow extension scripts.',
+            unavailableDescription: 'Unable to connect to the current page. Refresh and try again.',
+            modeAutoOn: 'Auto-Enhance On',
+            modeAutoOff: 'Auto-Enhance Off',
+            hostFallback: 'Current Tab',
+            titleFallback: 'Untitled Page',
+            localFile: 'Local File'
+        },
+        actions: {
+            eyebrow: 'Quick Actions',
+            title: 'Page Actions',
+            description: 'Pick the table you want to enhance, then adjust behavior to match your workflow.',
+            pickDescription: 'Go back to the page and click the target table.',
+            clearDescription: 'Clear the table currently selected on this page.'
+        },
+        settings: {
+            eyebrow: 'Preferences',
+            title: 'Behavior Settings',
+            description: 'These preferences are saved immediately and synced to the current tab.'
+        },
         status: {
             picking: 'Click on a table to enhance...',
             success: 'Selection cleared',
@@ -29,16 +68,19 @@ export default {
         },
         autoEnhance: {
             label: 'Auto-enhance all tables',
+            description: 'Automatically enhance all detected data tables.',
             enabled: 'Auto-enhancement enabled for all tables',
             disabled: 'Auto-enhancement disabled for all tables'
         },
         multiColumnSort: {
             label: 'Enable multi-column sort',
+            description: 'Sort by priority based on the click order.',
             enabled: 'Multi-column sort enabled',
             disabled: 'Multi-column sort disabled'
         },
         toolbarDefaultExpanded: {
             label: 'Toolbar expanded by default',
+            description: 'Automatically expand the tool set at the top-right of the table.',
             expanded: 'Toolbar default set to expanded',
             collapsed: 'Toolbar default set to collapsed'
         }

@@ -20,8 +20,47 @@ export default {
     // 弹出窗口
     popup: {
         title: 'AnyTable',
+        controlCenter: '表格控制中心',
+        subtitle: '为当前页面快速选择、清理并配置表格增强行为。',
         pickTable: '选择表格',
         clearSelection: '清除选择',
+        footerHint: '更改会立即保存到浏览器，并影响当前页面的表格增强行为。',
+        language: {
+            label: '界面语言'
+        },
+        state: {
+            enabled: '开启',
+            disabled: '关闭',
+            expanded: '展开',
+            collapsed: '收起'
+        },
+        page: {
+            eyebrow: '当前页面',
+            title: '页面状态',
+            ready: '已连接',
+            unsupported: '不可用',
+            unavailable: '未连接',
+            enhancedCount: '已增强{count}个表格',
+            unsupportedDescription: '该页面不允许注入扩展脚本。',
+            unavailableDescription: '未能连接当前页面，请刷新后重试。',
+            modeAutoOn: '自动增强开启',
+            modeAutoOff: '自动增强关闭',
+            hostFallback: '当前标签页',
+            titleFallback: '未命名页面',
+            localFile: '本地文件'
+        },
+        actions: {
+            eyebrow: '快速操作',
+            title: '本页操作',
+            description: '先选择需要增强的表格，再按你的偏好调整行为。',
+            pickDescription: '返回页面后点击目标表格即可增强。',
+            clearDescription: '清除当前页面中已选中的表格。'
+        },
+        settings: {
+            eyebrow: '偏好设置',
+            title: '行为偏好',
+            description: '这些设置会立即保存，并同步到当前标签页。'
+        },
         status: {
             picking: '请点击要增强的表格...',
             success: '已清除所有选择',
@@ -29,16 +68,19 @@ export default {
         },
         autoEnhance: {
             label: '自动增强所有表格',
+            description: '自动增强检测到的所有数据表格',
             enabled: '已启用自动增强所有表格',
             disabled: '已禁用自动增强所有表格'
         },
         multiColumnSort: {
             label: '启用多列排序',
+            description: '按照点选顺序进行优先级排序',
             enabled: '已启用多列排序',
             disabled: '已禁用多列排序'
         },
         toolbarDefaultExpanded: {
             label: '工具栏默认展开',
+            description: '自动展开表格右上角的工具集',
             expanded: '工具栏默认行为已设为展开',
             collapsed: '工具栏默认行为已设为收起'
         }

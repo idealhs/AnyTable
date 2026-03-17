@@ -1,3 +1,5 @@
+import { LOCALE_MAP } from './locale-config.js';
+
 // i18n 工具类
 class I18n {
     constructor() {
@@ -6,11 +8,7 @@ class I18n {
         this.loaded = false;
         this.storageListenerRegistered = false;
         this.pendingLocale = null;
-        // 语言包映射
-        this.localeMap = {
-            'zh': () => import('./zh.js'),
-            'en': () => import('./en.js')
-        };
+        this.localeMap = LOCALE_MAP;
     }
 
     // 初始化 i18n

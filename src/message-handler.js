@@ -14,7 +14,10 @@ export function setupMessageHandler(enhancer) {
                         enhancer.pickingMode.clearSelection();
                         return { success: true };
                     case MessageAction.GET_SELECTION_STATE:
-                        return { hasSelection: enhancer.selectedTables.size > 0 };
+                        return {
+                            hasSelection: enhancer.selectedTables.size > 0,
+                            enhancedCount: enhancer.enhancedTables.size
+                        };
                     case MessageAction.SET_AUTO_ENHANCE:
                         enhancer.autoEnhance = request.enabled;
                         if (request.enabled) {
