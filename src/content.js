@@ -1,20 +1,16 @@
 import i18n from './i18n/i18n.js';
 import { TableStateStore } from './state/table-state.js';
-import { applyCombinedFilters } from './core/filter-engine.js';
-import { buildNextSortRules, normalizeAdvancedSortRules } from './core/sort-engine.js';
-import { computeStatisticsData } from './core/statistics-engine.js';
-import { isLikelyDataTable } from './core/table-detector.js';
-import { applyTableBodyGroups, buildGloballySortedTableBodyGroups, buildTableBodyGroupsFromRows } from './core/table-group-sort.js';
-import { createOriginalRowOrderState, getRowsInOriginalOrder, syncOriginalRowOrderState } from './core/row-order-index.js';
-import { buildTableModel } from './core/table-model.js';
-import { getTableColumnCount, getTableColumnTitles } from './core/table-structure.js';
-import { renderStatisticsRows, removeStatisticsRows } from './ui/statistics-renderer.js';
+import { getTableColumnTitles } from './core/table-structure.js';
 import { PickingMode } from './picking-mode.js';
 import { ControlPanelManager } from './control-panel-manager.js';
 import { preloadShadowStyles } from './ui/shadow-ui.js';
 import { Toolbar } from './ui/toolbar.js';
 import { setupMessageHandler } from './message-handler.js';
 import { createCommandService } from './services/command-service.js';
+import { SortController } from './controllers/sort-controller.js';
+import { FilterController } from './controllers/filter-controller.js';
+import { TableEnhancementController } from './controllers/table-enhancement-controller.js';
+import { TableObserver } from './controllers/table-observer.js';
 
 const MATERIAL_ICON_PATHS = {
     sortAsc: 'M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12 12 4z',
@@ -30,110 +26,72 @@ const MATERIAL_ICON_PATHS = {
     toolbarExpand: 'M14 6l1.41 1.41L10.83 12l4.58 4.59L14 18l-6-6z'
 };
 
-function normalizeCollection(collection) {
-    return Array.from(collection || []);
-}
-
-function isElementNode(node) {
-    const elementNodeType = typeof Node === 'undefined' ? 1 : Node.ELEMENT_NODE;
-    return node?.nodeType === elementNodeType;
-}
-
-function getTableBodyElements(table) {
-    return typeof table?.getElementsByTagName === 'function'
-        ? normalizeCollection(table.getElementsByTagName('tbody'))
-        : [];
-}
-
-function getStatsRows(tbody) {
-    if (!tbody) {
-        return [];
-    }
-
-    if (typeof tbody.querySelectorAll === 'function') {
-        return normalizeCollection(tbody.querySelectorAll('tr[data-anytable-stats-row]'));
-    }
-
-    return normalizeCollection(tbody.getElementsByTagName?.('tr')).filter((row) => (
-        typeof row?.hasAttribute === 'function' && row.hasAttribute('data-anytable-stats-row')
-    ));
-}
-
-function removeRow(row) {
-    if (!row) {
-        return;
-    }
-
-    if (typeof row.remove === 'function') {
-        row.remove();
-        return;
-    }
-
-    if (row.parentNode && typeof row.parentNode.removeChild === 'function') {
-        row.parentNode.removeChild(row);
-    }
-}
-
-function removeRows(rows) {
-    rows.forEach((row) => removeRow(row));
-}
-
-function appendRows(target, rows) {
-    if (!target || typeof target.appendChild !== 'function') {
-        return;
-    }
-
-    rows.forEach((row) => target.appendChild(row));
-}
-
-function findClosestTableElement(node) {
-    let currentNode = node;
-    while (currentNode) {
-        if (currentNode.nodeName === 'TABLE') {
-            return currentNode;
-        }
-        currentNode = currentNode.parentNode;
-    }
-
-    return null;
-}
-
-function collectNestedTableElements(node) {
-    if (!isElementNode(node)) {
-        return [];
-    }
-
-    const tables = node.nodeName === 'TABLE' ? [node] : [];
-    if (typeof node.querySelectorAll === 'function') {
-        tables.push(...node.querySelectorAll('table'));
-    }
-
-    return tables;
-}
-
-function hasProcessableRows(table) {
-    return buildTableModel(table).bodyRows.length > 0;
-}
-
 class TableEnhancer {
     constructor() {
         this.enhancedTables = new Set();
-        this.stateStore = new TableStateStore();
         this.selectedTables = new Set();
+        this.stateStore = new TableStateStore();
         this.autoEnhance = true;
         this.multiColumnSort = false;
         this.toolbarDefaultExpanded = true;
-        this.sortTable = this.sortTable.bind(this);
+
+        this.controlPanelManager = new ControlPanelManager({
+            stateStore: this.stateStore,
+            onSort: (table, columnIndex) => this.sortController.sortTable(table, columnIndex),
+            onFilterChange: (table, columnIndex, filterText) => this.filterController.filterTable(table, columnIndex, filterText),
+            setSortButtonIcon: (button, direction, priority) => this.setSortButtonIcon(button, direction, priority),
+            setFilterToggleButtonIcon: (button, expanded) => this.setFilterToggleButtonIcon(button, expanded)
+        });
+
+        this.toolbar = new Toolbar({
+            stateStore: this.stateStore,
+            setButtonIcon: (button, iconKey) => this.setButtonIcon(button, iconKey),
+            getToolbarDefaultExpanded: () => this.toolbarDefaultExpanded,
+            forEachEnhancedTable: (callback) => this.enhancedTables.forEach(callback),
+            getColumnTitles: (table) => this.getColumnTitles(table),
+            applyAdvancedSort: (table, rules) => this.sortController.applyAdvancedSort(table, rules),
+            applyAdvancedFilterRuleGroup: (table, ruleGroup) => this.filterController.applyAdvancedFilterRuleGroup(table, ruleGroup),
+            applyStatistics: (table, rules) => this.filterController.applyStatistics(table, rules)
+        });
+
+        this.sortController = new SortController({
+            enhancedTables: this.enhancedTables,
+            stateStore: this.stateStore,
+            controlPanelManager: this.controlPanelManager,
+            toolbar: this.toolbar,
+            isMultiColumnSortEnabled: () => this.multiColumnSort,
+            enableMultiColumnSort: () => this.enableMultiColumnSort(),
+            setSortButtonIcon: (button, direction, priority) => this.setSortButtonIcon(button, direction, priority)
+        });
+
+        this.filterController = new FilterController({
+            stateStore: this.stateStore,
+            controlPanelManager: this.controlPanelManager,
+            toolbar: this.toolbar
+        });
+
+        this.tableEnhancementController = new TableEnhancementController({
+            enhancedTables: this.enhancedTables,
+            stateStore: this.stateStore,
+            controlPanelManager: this.controlPanelManager,
+            toolbar: this.toolbar
+        });
+
+        this.tableObserver = new TableObserver({
+            isAutoEnhanceEnabled: () => this.autoEnhance,
+            isEnhancedTable: (table) => this.enhancedTables.has(table),
+            autoEnhanceTables: (tables) => this.tableEnhancementController.autoEnhanceTables(tables),
+            removeEnhancement: (table) => this.tableEnhancementController.removeEnhancement(table),
+            syncOriginalRowOrder: (table) => this.sortController.syncOriginalRowOrder(table),
+            onTableRemoved: (table) => this.selectedTables.delete(table)
+        });
 
         this.pickingMode = new PickingMode({
             enhancedTables: this.enhancedTables,
             selectedTables: this.selectedTables,
-            enhanceTable: (table) => this.enhanceTable(table),
-            removeEnhancement: (table) => this.removeEnhancement(table)
+            enhanceTable: (table) => this.tableEnhancementController.enhanceTable(table),
+            removeEnhancement: (table) => this.tableEnhancementController.removeEnhancement(table)
         });
-
-        this.controlPanelManager = new ControlPanelManager(this);
-        this.toolbar = new Toolbar(this);
 
         this.initI18n();
     }
@@ -145,7 +103,7 @@ class TableEnhancer {
     }
 
     updateAllTexts() {
-        this.enhancedTables.forEach(table => {
+        this.enhancedTables.forEach((table) => {
             this.controlPanelManager.updateTexts(table);
             this.toolbar.updateTexts(table);
         });
@@ -164,17 +122,25 @@ class TableEnhancer {
 
     setButtonIcon(button, iconKey) {
         const pathData = MATERIAL_ICON_PATHS[iconKey];
-        if (!pathData || !button) return;
+        if (!pathData || !button) {
+            return;
+        }
+
         button.textContent = '';
         button.appendChild(this.createMaterialIconSvg(pathData));
     }
 
     setSortButtonIcon(button, direction, priority = null) {
-        if (!button) return;
+        if (!button) {
+            return;
+        }
+
         const iconKey = direction === 'asc' ? 'sortAsc' :
             direction === 'desc' ? 'sortDesc' : 'sortNone';
         const pathData = MATERIAL_ICON_PATHS[iconKey];
-        if (!pathData) return;
+        if (!pathData) {
+            return;
+        }
 
         const showPriority = Number.isInteger(priority) && priority > 0;
 
@@ -199,29 +165,11 @@ class TableEnhancer {
     }
 
     setFilterToggleButtonIcon(button, expanded) {
-        if (!button) return;
+        if (!button) {
+            return;
+        }
+
         this.setButtonIcon(button, expanded ? 'filterToggleOpened' : 'filterToggleClosed');
-    }
-
-    refreshSortButtons(table) {
-        const headers = table.getElementsByTagName('th');
-        const rules = this.stateStore.getSortRules(table);
-        const showPriority = this.multiColumnSort && rules.length > 1;
-
-        const directionByColumn = new Map();
-        const priorityByColumn = new Map();
-        rules.forEach((rule, index) => {
-            directionByColumn.set(rule.column, rule.direction);
-            if (showPriority) {
-                priorityByColumn.set(rule.column, index + 1);
-            }
-        });
-
-        Array.from(headers).forEach((header, index) => {
-            const direction = directionByColumn.get(index) || 'none';
-            const priority = priorityByColumn.get(index) || null;
-            this.updateSortButton(table, index, direction, priority);
-        });
     }
 
     getColumnTitles(table) {
@@ -231,70 +179,60 @@ class TableEnhancer {
         );
     }
 
-    applyAllFilters(table) {
-        const filterValues = this.stateStore.getFilterValues(table);
-        const advancedRuleGroup = this.stateStore.getAdvancedFilterRules(table);
-        applyCombinedFilters(table, filterValues, advancedRuleGroup);
-        this.updateFilterInputsDisabledState(table);
-        this.controlPanelManager.refreshFilterButtons(table);
-        this.toolbar.refreshActiveStates(table);
-        this.refreshStatistics(table);
-    }
-
-    updateFilterInputsDisabledState(table) {
-        const hasAdvanced = this.stateStore.getAdvancedFilterRules(table) !== null;
-        this.controlPanelManager.setFilterInputsDisabledState(table, hasAdvanced);
-    }
-
-    applySortRules(table, rules) {
-        const tableModel = buildTableModel(table);
-        if (tableModel.bodyRows.length === 0) return;
-
-        const tbodyElements = getTableBodyElements(table);
-        const statsRows = tbodyElements.flatMap((tbody) => getStatsRows(tbody));
-        removeRows(statsRows);
-
-        if (!Array.isArray(rules) || rules.length === 0) {
-            const originalRowOrder = this.stateStore.getOriginalRowOrder(table)
-                || createOriginalRowOrderState(tableModel);
-            this.stateStore.setOriginalRowOrder(table, originalRowOrder);
-            syncOriginalRowOrderState(originalRowOrder, tableModel);
-            const originalRows = getRowsInOriginalOrder(tableModel, originalRowOrder);
-            const originalRowGroups = buildTableBodyGroupsFromRows(tableModel, originalRows);
-            applyTableBodyGroups(tableModel, originalRowGroups);
-        } else {
-            const sortedGroups = buildGloballySortedTableBodyGroups(tableModel, rules);
-            applyTableBodyGroups(tableModel, sortedGroups);
-        }
-
-        // Re-insert stats rows at top
-        const primaryTbody = tbodyElements[0];
-        const firstDataRow = primaryTbody?.querySelector?.('tr:not([data-anytable-stats-row])') || null;
-        for (const statsRow of statsRows) {
-            if (firstDataRow && primaryTbody) {
-                primaryTbody.insertBefore(statsRow, firstDataRow);
-            } else {
-                appendRows(primaryTbody, [statsRow]);
-            }
-        }
+    refreshSortButtons(table) {
+        this.sortController.refreshSortButtons(table);
     }
 
     applyAdvancedSort(table, advancedRules) {
-        const normalizedRules = normalizeAdvancedSortRules(advancedRules);
+        this.sortController.applyAdvancedSort(table, advancedRules);
+    }
 
-        if (!this.multiColumnSort && normalizedRules.length > 1) {
-            this.multiColumnSort = true;
-            const browser = window.browser || chrome;
-            browser.storage.local.set({ multiColumnSort: true });
-        }
+    applyAllFilters(table) {
+        this.filterController.applyAllFilters(table);
+    }
 
-        this.stateStore.setAdvancedSortRules(table, normalizedRules);
-        this.syncOriginalRowOrder(table);
-        this.stateStore.setSortRules(table, normalizedRules);
-        this.refreshSortButtons(table);
-        this.toolbar.refreshActiveStates(table);
+    updateFilterInputsDisabledState(table) {
+        this.filterController.updateFilterInputsDisabledState(table);
+    }
 
-        this.applySortRules(table, normalizedRules);
+    sortTable(table, columnIndex) {
+        this.sortController.sortTable(table, columnIndex);
+    }
+
+    filterTable(table, columnIndex, filterText) {
+        this.filterController.filterTable(table, columnIndex, filterText);
+    }
+
+    applyStatistics(table, rules) {
+        this.filterController.applyStatistics(table, rules);
+    }
+
+    refreshStatistics(table) {
+        this.filterController.refreshStatistics(table);
+    }
+
+    autoEnhanceTables(tables) {
+        this.tableEnhancementController.autoEnhanceTables(tables);
+    }
+
+    shouldAutoEnhanceTable(table) {
+        return this.tableEnhancementController.shouldAutoEnhanceTable(table);
+    }
+
+    enhanceTable(table) {
+        this.tableEnhancementController.enhanceTable(table);
+    }
+
+    removeEnhancement(table) {
+        this.tableEnhancementController.removeEnhancement(table);
+    }
+
+    syncOriginalRowOrder(table) {
+        this.sortController.syncOriginalRowOrder(table);
+    }
+
+    observeDOMChanges() {
+        this.tableObserver.observe(document.body);
     }
 
     async init() {
@@ -308,7 +246,7 @@ class TableEnhancer {
         setupMessageHandler(createCommandService(this));
 
         if (this.autoEnhance) {
-            this.autoEnhanceTables(document.getElementsByTagName('table'));
+            this.tableEnhancementController.autoEnhanceTables(document.getElementsByTagName('table'));
         }
 
         this.observeDOMChanges();
@@ -337,11 +275,11 @@ class TableEnhancer {
         this.autoEnhance = enabled;
 
         if (enabled) {
-            this.autoEnhanceTables(document.getElementsByTagName('table'));
+            this.tableEnhancementController.autoEnhanceTables(document.getElementsByTagName('table'));
         } else {
             this.enhancedTables.forEach((table) => {
                 if (!this.selectedTables.has(table)) {
-                    this.removeEnhancement(table);
+                    this.tableEnhancementController.removeEnhancement(table);
                 }
             });
         }
@@ -352,10 +290,20 @@ class TableEnhancer {
         };
     }
 
+    enableMultiColumnSort() {
+        if (this.multiColumnSort) {
+            return;
+        }
+
+        this.multiColumnSort = true;
+        const browser = window.browser || chrome;
+        browser.storage.local.set({multiColumnSort: true});
+    }
+
     setMultiColumnSortEnabled(enabled) {
         this.multiColumnSort = enabled;
         this.enhancedTables.forEach((table) => {
-            this.refreshSortButtons(table);
+            this.sortController.refreshSortButtons(table);
         });
 
         return {
@@ -370,153 +318,6 @@ class TableEnhancer {
         return {
             toolbarDefaultExpanded: this.toolbarDefaultExpanded
         };
-    }
-
-    shouldAutoEnhanceTable(table) {
-        return isLikelyDataTable(table);
-    }
-
-    autoEnhanceTables(tables) {
-        for (const table of tables) {
-            if (!this.enhancedTables.has(table) && this.shouldAutoEnhanceTable(table)) {
-                this.enhanceTable(table);
-            }
-        }
-    }
-
-    removeEnhancement(table) {
-        this.toolbar.removeToolbar(table);
-        this.controlPanelManager.removeTableControls(table);
-        removeStatisticsRows(table);
-
-        table.classList.remove('anytable-enhanced');
-        this.enhancedTables.delete(table);
-        this.stateStore.clearTable(table);
-    }
-
-    syncOriginalRowOrder(table) {
-        if (!this.enhancedTables.has(table)) return;
-
-        const tableModel = buildTableModel(table);
-        const originalRowOrder = this.stateStore.getOriginalRowOrder(table)
-            || createOriginalRowOrderState(tableModel);
-        syncOriginalRowOrderState(originalRowOrder, tableModel);
-        this.stateStore.setOriginalRowOrder(table, originalRowOrder);
-    }
-
-    enhanceTable(table) {
-        if (this.enhancedTables.has(table)) return;
-
-        this.stateStore.setOriginalRowOrder(table, createOriginalRowOrderState(buildTableModel(table)));
-
-        this.stateStore.setSortRules(table, []);
-        this.controlPanelManager.attachTableControls(table);
-        this.enhancedTables.add(table);
-        table.classList.add('anytable-enhanced');
-        this.toolbar.createToolbar(table);
-    }
-
-    sortTable(table, columnIndex) {
-        if (!hasProcessableRows(table)) return;
-
-        this.syncOriginalRowOrder(table);
-        const currentRules = this.stateStore.getSortRules(table);
-        const {rules} = buildNextSortRules(currentRules, columnIndex, this.multiColumnSort);
-        this.stateStore.setSortRules(table, rules);
-        this.stateStore.setAdvancedSortRules(table, []);
-
-        this.refreshSortButtons(table);
-        this.toolbar.refreshActiveStates(table);
-
-        this.applySortRules(table, rules);
-    }
-
-    updateSortButton(table, columnIndex, direction, priority = null) {
-        const control = this.controlPanelManager.getHeaderControl(table, columnIndex);
-        const sortButton = control?.sortButton;
-        if (sortButton) {
-            this.setSortButtonIcon(sortButton, direction, priority);
-            sortButton.classList.remove('sort-asc', 'sort-desc', 'sort-none');
-            sortButton.classList.add(`sort-${direction}`);
-            sortButton.title = direction === 'asc' ? i18n.t('columnControl.sort.ascending') :
-                             direction === 'desc' ? i18n.t('columnControl.sort.descending') :
-                             i18n.t('columnControl.sort.none');
-        }
-    }
-
-    filterTable(table, columnIndex, filterText) {
-        if (!hasProcessableRows(table)) return;
-
-        this.stateStore.setFilterValue(table, columnIndex, filterText);
-        this.applyAllFilters(table);
-    }
-
-    applyStatistics(table, rules) {
-        this.stateStore.setStatisticsRules(table, rules);
-        this.toolbar.refreshActiveStates(table);
-        this.refreshStatistics(table);
-    }
-
-    refreshStatistics(table) {
-        const rules = this.stateStore.getStatisticsRules(table);
-        if (!rules || rules.length === 0) {
-            removeStatisticsRows(table);
-            return;
-        }
-        const statsData = computeStatisticsData(rules, table);
-        renderStatisticsRows(table, statsData, getTableColumnCount(table));
-    }
-
-    observeDOMChanges() {
-        const observer = new MutationObserver((mutations) => {
-            const tablesToSync = new Set();
-
-            for (const mutation of mutations) {
-                const mutationTable = findClosestTableElement(mutation.target);
-                if (this.enhancedTables.has(mutationTable)) {
-                    tablesToSync.add(mutationTable);
-                }
-
-                for (const node of mutation.removedNodes) {
-                    const tables = collectNestedTableElements(node);
-                    for (const table of tables) {
-                        this.removeEnhancement(table);
-                        this.selectedTables.delete(table);
-                    }
-                }
-
-                for (const node of mutation.addedNodes) {
-                    if (!isElementNode(node)) continue;
-
-                    if (this.autoEnhance) {
-                        if (node.nodeName === 'TABLE') {
-                            this.autoEnhanceTables([node]);
-                        }
-                        if (node.querySelectorAll) {
-                            this.autoEnhanceTables(node.querySelectorAll('table'));
-                        }
-                    }
-
-                    const table = findClosestTableElement(node);
-                    if (this.enhancedTables.has(table)) {
-                        tablesToSync.add(table);
-                    }
-
-                    collectNestedTableElements(node).forEach((nestedTable) => {
-                        if (this.enhancedTables.has(nestedTable)) {
-                            tablesToSync.add(nestedTable);
-                        }
-                    });
-                }
-            }
-
-            tablesToSync.forEach((table) => this.syncOriginalRowOrder(table));
-        });
-
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
     }
 }
 

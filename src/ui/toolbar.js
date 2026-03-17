@@ -45,15 +45,35 @@ function buildRuleGroupFromBasicFilters(filterValues) {
 }
 
 export class Toolbar {
-    constructor(enhancer) {
-        this.enhancer = enhancer;
+    constructor({
+        stateStore,
+        setButtonIcon,
+        getToolbarDefaultExpanded,
+        forEachEnhancedTable,
+        getColumnTitles,
+        applyAdvancedSort,
+        applyAdvancedFilterRuleGroup,
+        applyStatistics
+    }) {
+        this.stateStore = stateStore;
+        this.setButtonIcon = setButtonIcon;
+        this.getToolbarDefaultExpanded = getToolbarDefaultExpanded;
+        this.forEachEnhancedTable = forEachEnhancedTable;
+        this.getColumnTitles = getColumnTitles;
+        this.applyAdvancedSort = applyAdvancedSort;
+        this.applyAdvancedFilterRuleGroup = applyAdvancedFilterRuleGroup;
+        this.applyStatistics = applyStatistics;
     }
 
     createToolbar(table) {
-        if (toolbarMap.has(table)) return;
+        if (toolbarMap.has(table)) {
+            return;
+        }
 
         const parent = table.parentNode;
-        if (!parent) return;
+        if (!parent) {
+            return;
+        }
 
         const surface = createShadowSurface({
             parent,
@@ -72,7 +92,9 @@ export class Toolbar {
         const toggleBtn = this._createToggleButton();
         toggleBtn.addEventListener('click', () => {
             const toolbarEntry = toolbarMap.get(table);
-            if (!toolbarEntry) return;
+            if (!toolbarEntry) {
+                return;
+            }
             this.setExpanded(table, !toolbarEntry.isExpanded);
         });
 
@@ -113,7 +135,7 @@ export class Toolbar {
             isExpanded: true
         });
 
-        this.setExpanded(table, this.enhancer.toolbarDefaultExpanded !== false, { skipAnimation: true });
+        this.setExpanded(table, this.getToolbarDefaultExpanded() !== false, {skipAnimation: true});
         this.refreshActiveStates(table);
         this.updateTexts(table);
     }
@@ -128,19 +150,29 @@ export class Toolbar {
 
     updateTexts(table) {
         const toolbarEntry = toolbarMap.get(table);
-        if (!toolbarEntry) return;
+        if (!toolbarEntry) {
+            return;
+        }
 
         const [sortBtn, filterBtn, statsBtn, exportBtn] = toolbarEntry.buttons;
-        if (sortBtn) sortBtn.title = i18n.t('columnControl.sort.advanced');
-        if (filterBtn) filterBtn.title = i18n.t('columnControl.filter.advanced');
-        if (statsBtn) statsBtn.title = i18n.t('columnControl.statistics');
-        if (exportBtn) exportBtn.title = i18n.t('columnControl.exportCsv');
+        if (sortBtn) {
+            sortBtn.title = i18n.t('columnControl.sort.advanced');
+        }
+        if (filterBtn) {
+            filterBtn.title = i18n.t('columnControl.filter.advanced');
+        }
+        if (statsBtn) {
+            statsBtn.title = i18n.t('columnControl.statistics');
+        }
+        if (exportBtn) {
+            exportBtn.title = i18n.t('columnControl.exportCsv');
+        }
 
         const toggleTitle = i18n.t(toolbarEntry.isExpanded ? 'columnControl.toolbar.collapse' : 'columnControl.toolbar.expand');
         if (toolbarEntry.toggleBtn) {
             toolbarEntry.toggleBtn.title = toggleTitle;
             toolbarEntry.toggleBtn.setAttribute('aria-label', toggleTitle);
-            this.enhancer.setButtonIcon(
+            this.setButtonIcon(
                 toolbarEntry.toggleBtn,
                 toolbarEntry.isExpanded ? 'toolbarCollapse' : 'toolbarExpand'
             );
@@ -149,21 +181,31 @@ export class Toolbar {
 
     refreshActiveStates(table) {
         const toolbarEntry = toolbarMap.get(table);
-        if (!toolbarEntry) return;
+        if (!toolbarEntry) {
+            return;
+        }
 
         const [sortBtn, filterBtn, statsBtn] = toolbarEntry.buttons;
-        const hasAdvancedSort = this.enhancer.stateStore.getAdvancedSortRules(table).length > 0;
-        const hasAdvancedFilter = this.enhancer.stateStore.getAdvancedFilterRules(table) !== null;
-        const hasStatistics = this.enhancer.stateStore.getStatisticsRules(table).length > 0;
+        const hasAdvancedSort = this.stateStore.getAdvancedSortRules(table).length > 0;
+        const hasAdvancedFilter = this.stateStore.getAdvancedFilterRules(table) !== null;
+        const hasStatistics = this.stateStore.getStatisticsRules(table).length > 0;
 
-        if (sortBtn) sortBtn.classList.toggle('toolbar-active', hasAdvancedSort);
-        if (filterBtn) filterBtn.classList.toggle('toolbar-active', hasAdvancedFilter);
-        if (statsBtn) statsBtn.classList.toggle('toolbar-active', hasStatistics);
+        if (sortBtn) {
+            sortBtn.classList.toggle('toolbar-active', hasAdvancedSort);
+        }
+        if (filterBtn) {
+            filterBtn.classList.toggle('toolbar-active', hasAdvancedFilter);
+        }
+        if (statsBtn) {
+            statsBtn.classList.toggle('toolbar-active', hasStatistics);
+        }
     }
 
     setExpanded(table, expanded, { skipAnimation = false } = {}) {
         const toolbarEntry = toolbarMap.get(table);
-        if (!toolbarEntry) return;
+        if (!toolbarEntry) {
+            return;
+        }
 
         if (skipAnimation) {
             toolbarEntry.toolbar.classList.add('toolbar-no-transition');
@@ -188,7 +230,7 @@ export class Toolbar {
     }
 
     setAllExpanded(expanded) {
-        this.enhancer.enhancedTables.forEach((table) => {
+        this.forEachEnhancedTable((table) => {
             this.setExpanded(table, expanded);
         });
     }
@@ -198,7 +240,7 @@ export class Toolbar {
         button.className = 'anytable-toolbar-control anytable-toolbar-button';
         button.type = 'button';
         button.title = title;
-        this.enhancer.setButtonIcon(button, iconKey);
+        this.setButtonIcon(button, iconKey);
         return button;
     }
 
@@ -210,29 +252,26 @@ export class Toolbar {
     }
 
     _openFilter(table) {
-        const columnTitles = this.enhancer.getColumnTitles(table);
-        const advancedRuleGroup = this.enhancer.stateStore.getAdvancedFilterRules(table);
-        const filterValues = this.enhancer.stateStore.getFilterValues(table);
+        const columnTitles = this.getColumnTitles(table);
+        const advancedRuleGroup = this.stateStore.getAdvancedFilterRules(table);
+        const filterValues = this.stateStore.getFilterValues(table);
         const initialRuleGroup = advancedRuleGroup || buildRuleGroupFromBasicFilters(filterValues);
 
         openAdvancedFilterPanel({
             columnTitles,
             initialRuleGroup,
             onApply: (ruleGroup) => {
-                this.enhancer.stateStore.setFilterValues(table, {});
-                this.enhancer.controlPanelManager.syncFilterInputValues(table, {});
-                this.enhancer.stateStore.setAdvancedFilterRules(table, ruleGroup);
-                this.enhancer.applyAllFilters(table);
+                this.applyAdvancedFilterRuleGroup(table, ruleGroup);
             }
         });
     }
 
     _openSort(table) {
-        const columnTitles = this.enhancer.getColumnTitles(table);
-        const advancedRules = this.enhancer.stateStore.getAdvancedSortRules(table);
+        const columnTitles = this.getColumnTitles(table);
+        const advancedRules = this.stateStore.getAdvancedSortRules(table);
         const initialRules = advancedRules.length > 0
             ? advancedRules
-            : this.enhancer.stateStore.getSortRules(table);
+            : this.stateStore.getSortRules(table);
 
         openAdvancedSortPanel({
             columnTitles,
@@ -240,20 +279,20 @@ export class Toolbar {
             tableElement: table,
             getColumnValues: (colIdx) => getColumnValues(table, colIdx),
             onApply: (rules) => {
-                this.enhancer.applyAdvancedSort(table, rules);
+                this.applyAdvancedSort(table, rules);
             }
         });
     }
 
     _openStatistics(table) {
-        const columnTitles = this.enhancer.getColumnTitles(table);
-        const initialRules = this.enhancer.stateStore.getStatisticsRules(table);
+        const columnTitles = this.getColumnTitles(table);
+        const initialRules = this.stateStore.getStatisticsRules(table);
 
         openStatisticsPanel({
             columnTitles,
             initialRules,
             onApply: (rules) => {
-                this.enhancer.applyStatistics(table, rules);
+                this.applyStatistics(table, rules);
             }
         });
     }

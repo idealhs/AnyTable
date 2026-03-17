@@ -3,8 +3,12 @@ import { getRuleTreeColumns } from './core/filter-engine.js';
 import { createShadowSurface, eventPathIncludes } from './ui/shadow-ui.js';
 
 export class ControlPanelManager {
-    constructor(enhancer) {
-        this.enhancer = enhancer;
+    constructor({ stateStore, onSort, onFilterChange, setSortButtonIcon, setFilterToggleButtonIcon }) {
+        this.stateStore = stateStore;
+        this.onSort = onSort;
+        this.onFilterChange = onFilterChange;
+        this.setSortButtonIcon = setSortButtonIcon;
+        this.setFilterToggleButtonIcon = setFilterToggleButtonIcon;
         this.tableControls = new WeakMap();
     }
 
@@ -16,7 +20,7 @@ export class ControlPanelManager {
         const headers = Array.from(table.getElementsByTagName('th'));
         const controls = headers.map((header, columnIndex) => this.createHeaderControl(table, header, columnIndex));
         this.tableControls.set(table, controls);
-        this.setFilterInputsDisabledState(table, this.enhancer.stateStore.getAdvancedFilterRules(table) !== null);
+        this.setFilterInputsDisabledState(table, this.stateStore.getAdvancedFilterRules(table) !== null);
         this.refreshFilterButtons(table);
     }
 
@@ -48,7 +52,7 @@ export class ControlPanelManager {
             control.filterInput.placeholder = i18n.t('columnControl.filter.placeholder');
             this.updateFilterToggleButtonTitle(table, control);
 
-            const rules = this.enhancer.stateStore.getSortRules(table);
+            const rules = this.stateStore.getSortRules(table);
             const rule = rules.find((item) => item.column === control.columnIndex);
             control.sortButton.title = rule
                 ? (rule.direction === 'asc'
@@ -76,9 +80,9 @@ export class ControlPanelManager {
     }
 
     refreshFilterButtons(table) {
-        const advancedRuleGroup = this.enhancer.stateStore.getAdvancedFilterRules(table);
+        const advancedRuleGroup = this.stateStore.getAdvancedFilterRules(table);
         const advancedFilterColumns = getRuleTreeColumns(advancedRuleGroup);
-        const filterValues = this.enhancer.stateStore.getFilterValues(table);
+        const filterValues = this.stateStore.getFilterValues(table);
 
         this.getTableControls(table).forEach((control) => {
             if (!control) {
@@ -100,7 +104,7 @@ export class ControlPanelManager {
 
         control.isOpen = true;
         control.panel.classList.add('active');
-        this.enhancer.setFilterToggleButtonIcon(control.filterToggleButton, true);
+        this.setFilterToggleButtonIcon(control.filterToggleButton, true);
         this.updateFilterToggleButtonTitle(table, control);
         this.updatePanelPosition(control);
 
@@ -122,7 +126,7 @@ export class ControlPanelManager {
 
         control.isOpen = false;
         control.panel.classList.remove('active', 'right-aligned', 'left-aligned', 'center-aligned');
-        this.enhancer.setFilterToggleButtonIcon(control.filterToggleButton, false);
+        this.setFilterToggleButtonIcon(control.filterToggleButton, false);
         this.updateFilterToggleButtonTitle(table, control);
 
         if (control.documentClickHandler) {
@@ -201,12 +205,12 @@ export class ControlPanelManager {
         sortButton.type = 'button';
         sortButton.className = 'anytable-sort-button';
         sortButton.title = i18n.t('columnControl.sort.none');
-        this.enhancer.setSortButtonIcon(sortButton, 'none');
+        this.setSortButtonIcon(sortButton, 'none');
 
         const filterToggleButton = document.createElement('button');
         filterToggleButton.type = 'button';
         filterToggleButton.className = 'anytable-filter-toggle-button';
-        this.enhancer.setFilterToggleButtonIcon(filterToggleButton, false);
+        this.setFilterToggleButtonIcon(filterToggleButton, false);
 
         actionContainer.appendChild(sortButton);
         actionContainer.appendChild(filterToggleButton);
@@ -222,12 +226,12 @@ export class ControlPanelManager {
         filterInput.className = 'filter-input';
         filterInput.placeholder = i18n.t('columnControl.filter.placeholder');
 
-        const filterValues = this.enhancer.stateStore.getFilterValues(table);
+        const filterValues = this.stateStore.getFilterValues(table);
         if (filterValues[columnIndex]) {
             filterInput.value = filterValues[columnIndex];
         }
 
-        const hasAdvancedFilter = this.enhancer.stateStore.getAdvancedFilterRules(table) !== null;
+        const hasAdvancedFilter = this.stateStore.getAdvancedFilterRules(table) !== null;
         filterInput.disabled = hasAdvancedFilter;
         filterToggleButton.setAttribute('aria-disabled', String(hasAdvancedFilter));
         filterToggleButton.tabIndex = hasAdvancedFilter ? -1 : 0;
@@ -240,7 +244,7 @@ export class ControlPanelManager {
 
         sortButton.addEventListener('click', (event) => {
             event.stopPropagation();
-            this.enhancer.sortTable(table, columnIndex);
+            this.onSort?.(table, columnIndex);
         });
 
         filterToggleButton.addEventListener('click', (event) => {
@@ -254,16 +258,14 @@ export class ControlPanelManager {
 
         filterInput.addEventListener('input', (event) => {
             event.stopPropagation();
-            this.enhancer.stateStore.setFilterValue(table, columnIndex, event.target.value);
-            this.enhancer.filterTable(table, columnIndex, event.target.value);
+            this.onFilterChange?.(table, columnIndex, event.target.value);
         });
 
         filterInput.addEventListener('keydown', (event) => {
             event.stopPropagation();
             if (event.key === 'Escape') {
                 filterInput.value = '';
-                this.enhancer.stateStore.setFilterValue(table, columnIndex, '');
-                this.enhancer.filterTable(table, columnIndex, '');
+                this.onFilterChange?.(table, columnIndex, '');
             }
         });
 
@@ -298,7 +300,7 @@ export class ControlPanelManager {
             return;
         }
 
-        const title = this.enhancer.stateStore.getAdvancedFilterRules(table) !== null
+        const title = this.stateStore.getAdvancedFilterRules(table) !== null
             ? i18n.t('columnControl.filter.locked')
             : (control.isOpen
                 ? i18n.t('columnControl.filter.hidePanel')

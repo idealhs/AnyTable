@@ -155,11 +155,13 @@ describe('content init', () => {
         }));
         vi.doMock('../../src/control-panel-manager.js', () => ({
             ControlPanelManager: class {
+                constructor() {}
                 attachTableControls() {}
                 updateTexts() {}
                 removeTableControls() {}
                 refreshFilterButtons() {}
                 setFilterInputsDisabledState() {}
+                syncFilterInputValues() {}
                 getHeaderControl() {
                     return null;
                 }
@@ -170,14 +172,14 @@ describe('content init', () => {
         }));
         vi.doMock('../../src/ui/toolbar.js', () => ({
             Toolbar: class {
-                constructor(enhancer) {
-                    this.enhancer = enhancer;
+                constructor(dependencies) {
+                    this.dependencies = dependencies;
                 }
 
                 createToolbar(tableElement) {
                     toolbarCalls.push({
                         table: tableElement,
-                        toolbarDefaultExpanded: this.enhancer.toolbarDefaultExpanded
+                        toolbarDefaultExpanded: this.dependencies.getToolbarDefaultExpanded()
                     });
                 }
 
@@ -185,6 +187,64 @@ describe('content init', () => {
                 refreshActiveStates() {}
                 removeToolbar() {}
                 setAllExpanded() {}
+            }
+        }));
+        vi.doMock('../../src/controllers/sort-controller.js', () => ({
+            SortController: class {
+                constructor() {}
+                refreshSortButtons() {}
+                syncOriginalRowOrder() {}
+                sortTable() {}
+                applyAdvancedSort() {}
+            }
+        }));
+        vi.doMock('../../src/controllers/filter-controller.js', () => ({
+            FilterController: class {
+                constructor() {}
+                applyAllFilters() {}
+                updateFilterInputsDisabledState() {}
+                filterTable() {}
+                applyStatistics() {}
+                refreshStatistics() {}
+                applyAdvancedFilterRuleGroup() {}
+            }
+        }));
+        vi.doMock('../../src/controllers/table-enhancement-controller.js', () => ({
+            TableEnhancementController: class {
+                constructor({ enhancedTables, stateStore, controlPanelManager, toolbar }) {
+                    this.enhancedTables = enhancedTables;
+                    this.stateStore = stateStore;
+                    this.controlPanelManager = controlPanelManager;
+                    this.toolbar = toolbar;
+                }
+
+                autoEnhanceTables(tables) {
+                    Array.from(tables || []).forEach((table) => this.enhanceTable(table));
+                }
+
+                shouldAutoEnhanceTable() {
+                    return true;
+                }
+
+                enhanceTable(table) {
+                    this.stateStore.setOriginalRowOrder(table, []);
+                    this.stateStore.setSortRules(table, []);
+                    this.controlPanelManager.attachTableControls(table);
+                    this.enhancedTables.add(table);
+                    table.classList.add('anytable-enhanced');
+                    this.toolbar.createToolbar(table);
+                }
+
+                removeEnhancement(table) {
+                    this.enhancedTables.delete(table);
+                    this.stateStore.clearTable(table);
+                }
+            }
+        }));
+        vi.doMock('../../src/controllers/table-observer.js', () => ({
+            TableObserver: class {
+                constructor() {}
+                observe() {}
             }
         }));
         vi.doMock('../../src/message-handler.js', () => ({

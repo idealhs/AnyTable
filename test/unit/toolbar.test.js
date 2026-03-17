@@ -199,9 +199,10 @@ describe('Toolbar', () => {
         delete globalThis.requestAnimationFrame;
     });
 
-    function createEnhancer(toolbarDefaultExpanded) {
+    function createToolbarDependencies(toolbarDefaultExpanded) {
         return {
-            toolbarDefaultExpanded,
+            getToolbarDefaultExpanded: vi.fn(() => toolbarDefaultExpanded),
+            forEachEnhancedTable: vi.fn(),
             setButtonIcon: vi.fn((button, iconKey) => {
                 button.dataset.icon = iconKey;
             }),
@@ -212,15 +213,14 @@ describe('Toolbar', () => {
             },
             getColumnTitles: vi.fn(() => []),
             applyAdvancedSort: vi.fn(),
-            applyAllFilters: vi.fn(),
+            applyAdvancedFilterRuleGroup: vi.fn(),
             applyStatistics: vi.fn(),
-            enhancedTables: new Set()
         };
     }
 
     it('renders expanded buttons by default and collapses them on toggle', () => {
-        const enhancer = createEnhancer(true);
-        const toolbar = new Toolbar(enhancer);
+        const dependencies = createToolbarDependencies(true);
+        const toolbar = new Toolbar(dependencies);
         const { table } = createFakeTable();
 
         toolbar.createToolbar(table);
@@ -253,8 +253,8 @@ describe('Toolbar', () => {
     });
 
     it('respects a collapsed default and expands buttons after clicking toggle', () => {
-        const enhancer = createEnhancer(false);
-        const toolbar = new Toolbar(enhancer);
+        const dependencies = createToolbarDependencies(false);
+        const toolbar = new Toolbar(dependencies);
         const { table } = createFakeTable();
 
         toolbar.createToolbar(table);
@@ -281,8 +281,8 @@ describe('Toolbar', () => {
     });
 
     it('exports the current table as csv when clicking the export button', () => {
-        const enhancer = createEnhancer(true);
-        const toolbar = new Toolbar(enhancer);
+        const dependencies = createToolbarDependencies(true);
+        const toolbar = new Toolbar(dependencies);
         const { table } = createFakeTable();
 
         toolbar.createToolbar(table);
