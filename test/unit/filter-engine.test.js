@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { getRuleTreeColumns, matchesBasicFilters, matchesRuleTree } from '../../src/core/filter-engine.js';
+import {
+    applyCombinedFilters,
+    getRuleTreeColumns,
+    matchesBasicFilters,
+    matchesRuleTree
+} from '../../src/core/filter-engine.js';
+import { mockCell, mockRow as mockStructuredRow, mockTable } from './helpers/mock-table.js';
 
 function mockRow(...values) {
     return { cells: values.map(v => ({ textContent: String(v) })) };
@@ -358,5 +364,37 @@ describe('getRuleTreeColumns', () => {
     it('returns an empty set for empty rule groups', () => {
         expect([...getRuleTreeColumns(null)]).toEqual([]);
         expect([...getRuleTreeColumns({ children: [] })]).toEqual([]);
+    });
+});
+
+describe('applyCombinedFilters', () => {
+    it('applies filters across multiple tbody sections', () => {
+        const table = mockTable({
+            bodySections: [
+                [mockStructuredRow([mockCell('华北'), mockCell('12')])],
+                [mockStructuredRow([mockCell('华南'), mockCell('20')])]
+            ]
+        });
+
+        applyCombinedFilters(table, {1: '20'});
+
+        const rows = table.getElementsByTagName('tr');
+        expect(rows[0].style.display).toBe('none');
+        expect(rows[1].style.display).toBe('');
+    });
+
+    it('uses logical column mapping when cells contain colspan', () => {
+        const table = mockTable({
+            bodySections: [[
+                mockStructuredRow([mockCell('A组'), mockCell('进行中'), mockCell('已确认')]),
+                mockStructuredRow([mockCell('B组'), mockCell('待处理', {colSpan: 2})])
+            ]]
+        });
+
+        applyCombinedFilters(table, {2: '待处理'});
+
+        const rows = table.getElementsByTagName('tr');
+        expect(rows[0].style.display).toBe('none');
+        expect(rows[1].style.display).toBe('');
     });
 });

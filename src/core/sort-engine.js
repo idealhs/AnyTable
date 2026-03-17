@@ -224,7 +224,7 @@ export function normalizeAdvancedSortRules(rules) {
         .filter(Boolean);
 }
 
-export function sortRowsByRules(rows, rules) {
+export function sortRowsByRules(rows, rules, {tableModel = null} = {}) {
     const sortingRules = Array.isArray(rules) ? rules.map(rule => ({ ...rule })) : [];
     const sortableRows = Array.isArray(rows) ? [...rows] : [];
 
@@ -232,7 +232,7 @@ export function sortRowsByRules(rows, rules) {
     for (const rule of sortingRules) {
         if (rule.type === 'auto' && !rule._resolvedType) {
             const colValues = sortableRows.map(row =>
-                getCellText(row, rule.column)
+                getCellText(row, rule.column, tableModel)
             );
             const detection = detectColumnUnitSystem(colValues);
             rule._resolvedType = detection.type;
@@ -242,7 +242,7 @@ export function sortRowsByRules(rows, rules) {
         // Also resolve dateOrder for explicitly typed 'date' columns
         if (rule.type === 'date' && !rule._dateOrder) {
             const colValues = sortableRows.map(row =>
-                getCellText(row, rule.column)
+                getCellText(row, rule.column, tableModel)
             );
             const detection = detectColumnUnitSystem(colValues);
             rule._dateOrder = detection.dateOrder || null;
@@ -251,8 +251,8 @@ export function sortRowsByRules(rows, rules) {
 
     sortableRows.sort((rowA, rowB) => {
         for (const rule of sortingRules) {
-            const aValue = getCellText(rowA, rule.column);
-            const bValue = getCellText(rowB, rule.column);
+            const aValue = getCellText(rowA, rule.column, tableModel);
+            const bValue = getCellText(rowB, rule.column, tableModel);
 
             const result = compareValues(aValue, bValue, rule);
             if (result === 0) continue;

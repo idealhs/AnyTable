@@ -1,17 +1,22 @@
 import { getCellText } from './table-data.js';
+import { buildTableModel } from './table-model.js';
 import { parseValueAndUnit } from './type-parser.js';
 
-export function getVisibleNumericValues(table, columnIndex) {
-    const tbody = table.getElementsByTagName('tbody')[0];
-    if (!tbody) return [];
+function resolveTableModel(tableOrModel) {
+    if (tableOrModel?.rowModelByElement instanceof Map && Array.isArray(tableOrModel?.bodyRows)) {
+        return tableOrModel;
+    }
 
+    return buildTableModel(tableOrModel);
+}
+
+export function getVisibleNumericValues(tableOrModel, columnIndex) {
+    const tableModel = resolveTableModel(tableOrModel);
     const values = [];
-    const rows = tbody.getElementsByTagName('tr');
-    for (const row of rows) {
-        if (row.hasAttribute('data-anytable-stats-row')) continue;
-        if (row.style.display === 'none') continue;
+    for (const rowModel of tableModel.bodyRows) {
+        if (rowModel.row.style.display === 'none') continue;
 
-        const text = getCellText(row, columnIndex);
+        const text = getCellText(rowModel, columnIndex, tableModel);
         const parsed = parseValueAndUnit(text);
         if (parsed.success && !Number.isNaN(parsed.value)) {
             values.push(parsed.value);
@@ -20,17 +25,13 @@ export function getVisibleNumericValues(table, columnIndex) {
     return values;
 }
 
-function getVisibleNonEmptyCount(table, columnIndex) {
-    const tbody = table.getElementsByTagName('tbody')[0];
-    if (!tbody) return 0;
-
+function getVisibleNonEmptyCount(tableOrModel, columnIndex) {
+    const tableModel = resolveTableModel(tableOrModel);
     let count = 0;
-    const rows = tbody.getElementsByTagName('tr');
-    for (const row of rows) {
-        if (row.hasAttribute('data-anytable-stats-row')) continue;
-        if (row.style.display === 'none') continue;
+    for (const rowModel of tableModel.bodyRows) {
+        if (rowModel.row.style.display === 'none') continue;
 
-        const text = getCellText(row, columnIndex);
+        const text = getCellText(rowModel, columnIndex, tableModel);
         if (text !== '') count++;
     }
     return count;
@@ -76,6 +77,7 @@ export function computeStatisticsData(rules, table) {
     // Returns Map<statType, Map<columnIndex, number|null>>
     const result = new Map();
     if (!rules || rules.length === 0) return result;
+    const tableModel = buildTableModel(table);
 
     // Group rules by statType
     const rulesByType = new Map();
@@ -90,7 +92,7 @@ export function computeStatisticsData(rules, table) {
     const numericCache = new Map();
     function getNumericValues(colIdx) {
         if (!numericCache.has(colIdx)) {
-            numericCache.set(colIdx, getVisibleNumericValues(table, colIdx));
+            numericCache.set(colIdx, getVisibleNumericValues(tableModel, colIdx));
         }
         return numericCache.get(colIdx);
     }
@@ -99,7 +101,7 @@ export function computeStatisticsData(rules, table) {
         const columnResults = new Map();
         for (const colIdx of columns) {
             if (statType === 'count') {
-                columnResults.set(colIdx, getVisibleNonEmptyCount(table, colIdx));
+                columnResults.set(colIdx, getVisibleNonEmptyCount(tableModel, colIdx));
             } else {
                 const values = getNumericValues(colIdx);
                 columnResults.set(colIdx, calculateStatistic(values, statType));

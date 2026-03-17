@@ -1,5 +1,26 @@
 import i18n from '../i18n/i18n.js';
 
+function normalizeCollection(collection) {
+    return Array.from(collection || []);
+}
+
+function getTableBodies(table) {
+    return typeof table?.getElementsByTagName === 'function'
+        ? normalizeCollection(table.getElementsByTagName('tbody'))
+        : [];
+}
+
+function removeRow(row) {
+    if (!row) return;
+    if (typeof row.remove === 'function') {
+        row.remove();
+        return;
+    }
+    if (row.parentNode && typeof row.parentNode.removeChild === 'function') {
+        row.parentNode.removeChild(row);
+    }
+}
+
 function formatStatValue(value) {
     if (value === null || value === undefined) return '-';
     if (Number.isInteger(value)) return String(value);
@@ -28,7 +49,7 @@ function applyStatisticsCellStyles(cell) {
 export function renderStatisticsRows(table, statsData, totalColumns) {
     removeStatisticsRows(table);
 
-    const tbody = table.getElementsByTagName('tbody')[0];
+    const tbody = getTableBodies(table)[0];
     if (!tbody || statsData.size === 0) return;
 
     const firstDataRow = tbody.querySelector('tr:not([data-anytable-stats-row])');
@@ -60,10 +81,12 @@ export function renderStatisticsRows(table, statsData, totalColumns) {
 }
 
 export function removeStatisticsRows(table) {
-    const tbody = table.getElementsByTagName('tbody')[0];
-    if (!tbody) return;
-    const statsRows = tbody.querySelectorAll('tr[data-anytable-stats-row]');
-    for (const row of statsRows) {
-        row.remove();
-    }
+    getTableBodies(table).forEach((tbody) => {
+        const statsRows = typeof tbody.querySelectorAll === 'function'
+            ? tbody.querySelectorAll('tr[data-anytable-stats-row]')
+            : [];
+        for (const row of statsRows) {
+            removeRow(row);
+        }
+    });
 }

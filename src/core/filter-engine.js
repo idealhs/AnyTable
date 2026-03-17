@@ -1,4 +1,5 @@
 import { getCellText } from './table-data.js';
+import { buildTableModel } from './table-model.js';
 
 function safeToLowerCase(value) {
     return (value ?? '').toString().toLowerCase();
@@ -70,7 +71,7 @@ function evaluateLeafRule(cellText, rule) {
     }
 }
 
-function evaluateRuleTree(row, ruleNode) {
+function evaluateRuleTree(row, ruleNode, tableModel = null) {
     if (!ruleNode) return true;
 
     if (Array.isArray(ruleNode.children)) {
@@ -80,9 +81,9 @@ function evaluateRuleTree(row, ruleNode) {
         let result;
         const hasPerRuleOperator = children.some((child) => child.operator);
         if (hasPerRuleOperator || !ruleNode.operator) {
-            result = evaluateRuleTree(row, children[0]);
+            result = evaluateRuleTree(row, children[0], tableModel);
             for (let i = 1; i < children.length; i++) {
-                const childResult = evaluateRuleTree(row, children[i]);
+                const childResult = evaluateRuleTree(row, children[i], tableModel);
                 if (children[i].operator === 'OR') {
                     result = result || childResult;
                 } else {
@@ -92,9 +93,9 @@ function evaluateRuleTree(row, ruleNode) {
         } else {
             const operator = ruleNode.operator === 'OR' ? 'OR' : 'AND';
             if (operator === 'OR') {
-                result = children.some((child) => evaluateRuleTree(row, child));
+                result = children.some((child) => evaluateRuleTree(row, child, tableModel));
             } else {
-                result = children.every((child) => evaluateRuleTree(row, child));
+                result = children.every((child) => evaluateRuleTree(row, child, tableModel));
             }
         }
 
@@ -105,7 +106,7 @@ function evaluateRuleTree(row, ruleNode) {
     }
 
     const columnIndex = Number(ruleNode.column);
-    const cellText = getCellText(row, columnIndex);
+    const cellText = getCellText(row, columnIndex, tableModel);
     let result = evaluateLeafRule(cellText, ruleNode);
     if (ruleNode.negated) {
         result = !result;
@@ -131,12 +132,17 @@ function collectRuleColumns(ruleNode, columns) {
     return columns;
 }
 
-export function matchesBasicFilters(row, filterValues) {
-    for (let index = 0; index < row.cells.length; index++) {
-        const filterValue = safeToLowerCase(filterValues[index]);
+export function matchesBasicFilters(row, filterValues, tableModel = null) {
+    for (const [columnKey, rawFilterValue] of Object.entries(filterValues || {})) {
+        const columnIndex = Number(columnKey);
+        if (!Number.isInteger(columnIndex) || columnIndex < 0) {
+            continue;
+        }
+
+        const filterValue = safeToLowerCase(rawFilterValue);
         if (!filterValue) continue;
 
-        const cellText = safeToLowerCase(getCellText(row, index));
+        const cellText = safeToLowerCase(getCellText(row, columnIndex, tableModel));
         if (!cellText.includes(filterValue)) {
             return false;
         }
@@ -144,12 +150,12 @@ export function matchesBasicFilters(row, filterValues) {
     return true;
 }
 
-export function matchesRuleTree(row, ruleGroup) {
+export function matchesRuleTree(row, ruleGroup, tableModel = null) {
     if (!ruleGroup || !Array.isArray(ruleGroup.children) || ruleGroup.children.length === 0) {
         return true;
     }
 
-    return evaluateRuleTree(row, ruleGroup);
+    return evaluateRuleTree(row, ruleGroup, tableModel);
 }
 
 export function getRuleTreeColumns(ruleGroup) {
@@ -157,15 +163,12 @@ export function getRuleTreeColumns(ruleGroup) {
 }
 
 export function applyCombinedFilters(table, filterValues = {}, advancedRuleGroup = null) {
-    const tbody = table.getElementsByTagName('tbody')[0];
-    if (!tbody) return;
+    const tableModel = buildTableModel(table);
 
-    const rows = Array.from(tbody.getElementsByTagName('tr'));
-    rows.forEach((row) => {
-        if (row.hasAttribute('data-anytable-stats-row')) return;
-        const basicMatched = matchesBasicFilters(row, filterValues || {});
-        const advancedMatched = matchesRuleTree(row, advancedRuleGroup);
-        row.style.display = basicMatched && advancedMatched ? '' : 'none';
+    tableModel.bodyRows.forEach((rowModel) => {
+        const basicMatched = matchesBasicFilters(rowModel, filterValues || {}, tableModel);
+        const advancedMatched = matchesRuleTree(rowModel, advancedRuleGroup, tableModel);
+        rowModel.row.style.display = basicMatched && advancedMatched ? '' : 'none';
     });
 }
 
@@ -177,6 +180,6 @@ export function applyAdvancedFilterTree(table, ruleGroup) {
     applyCombinedFilters(table, {}, ruleGroup);
 }
 
-export function compileRuleTree(ruleGroup) {
-    return (row) => evaluateRuleTree(row, ruleGroup);
+export function compileRuleTree(ruleGroup, tableModel = null) {
+    return (row) => evaluateRuleTree(row, ruleGroup, tableModel);
 }

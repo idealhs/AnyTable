@@ -1,9 +1,11 @@
 import i18n from './i18n/i18n.js';
 import { TableStateStore } from './state/table-state.js';
 import { applyCombinedFilters } from './core/filter-engine.js';
-import { buildNextSortRules, normalizeAdvancedSortRules, sortRowsByRules } from './core/sort-engine.js';
+import { buildNextSortRules, normalizeAdvancedSortRules } from './core/sort-engine.js';
 import { computeStatisticsData } from './core/statistics-engine.js';
 import { isLikelyDataTable } from './core/table-detector.js';
+import { applyTableBodyGroups, buildGloballySortedTableBodyGroups } from './core/table-group-sort.js';
+import { buildTableModel } from './core/table-model.js';
 import { getTableColumnCount, getTableColumnTitles } from './core/table-structure.js';
 import { renderStatisticsRows, removeStatisticsRows } from './ui/statistics-renderer.js';
 import { PickingMode } from './picking-mode.js';
@@ -25,6 +27,68 @@ const MATERIAL_ICON_PATHS = {
     toolbarCollapse: 'M10 6l-1.41 1.41L13.17 12l-4.58 4.59L10 18l6-6z',
     toolbarExpand: 'M14 6l1.41 1.41L10.83 12l4.58 4.59L14 18l-6-6z'
 };
+
+function normalizeCollection(collection) {
+    return Array.from(collection || []);
+}
+
+function getTableBodyElements(table) {
+    return typeof table?.getElementsByTagName === 'function'
+        ? normalizeCollection(table.getElementsByTagName('tbody'))
+        : [];
+}
+
+function getStatsRows(tbody) {
+    if (!tbody) {
+        return [];
+    }
+
+    if (typeof tbody.querySelectorAll === 'function') {
+        return normalizeCollection(tbody.querySelectorAll('tr[data-anytable-stats-row]'));
+    }
+
+    return normalizeCollection(tbody.getElementsByTagName?.('tr')).filter((row) => (
+        typeof row?.hasAttribute === 'function' && row.hasAttribute('data-anytable-stats-row')
+    ));
+}
+
+function removeRow(row) {
+    if (!row) {
+        return;
+    }
+
+    if (typeof row.remove === 'function') {
+        row.remove();
+        return;
+    }
+
+    if (row.parentNode && typeof row.parentNode.removeChild === 'function') {
+        row.parentNode.removeChild(row);
+    }
+}
+
+function removeRows(rows) {
+    rows.forEach((row) => removeRow(row));
+}
+
+function appendRows(target, rows) {
+    if (!target || typeof target.appendChild !== 'function') {
+        return;
+    }
+
+    rows.forEach((row) => target.appendChild(row));
+}
+
+function captureOriginalRowGroups(table) {
+    return buildTableModel(table).tbodyGroups.map((group) => ({
+        tbody: group.tbody,
+        rows: group.rows.map((rowModel) => rowModel.row)
+    }));
+}
+
+function hasProcessableRows(table) {
+    return buildTableModel(table).bodyRows.length > 0;
+}
 
 class TableEnhancer {
     constructor() {
@@ -158,34 +222,29 @@ class TableEnhancer {
     }
 
     applySortRules(table, rules) {
-        const tbody = table.getElementsByTagName('tbody')[0];
-        if (!tbody) return;
+        const tableModel = buildTableModel(table);
+        if (tableModel.bodyRows.length === 0) return;
 
-        // Remove stats rows before sorting, re-insert after
-        const statsRows = Array.from(tbody.querySelectorAll('tr[data-anytable-stats-row]'));
-        statsRows.forEach(row => row.remove());
+        const tbodyElements = getTableBodyElements(table);
+        const statsRows = tbodyElements.flatMap((tbody) => getStatsRows(tbody));
+        removeRows(statsRows);
 
         if (!Array.isArray(rules) || rules.length === 0) {
-            const originalRows = this.stateStore.getOriginalRows(table);
-            if (originalRows) {
-                while (tbody.firstChild) {
-                    tbody.removeChild(tbody.firstChild);
-                }
-                originalRows.forEach(row => tbody.appendChild(row));
-            }
+            const originalRowGroups = this.stateStore.getOriginalRows(table);
+            applyTableBodyGroups(tableModel, originalRowGroups);
         } else {
-            const rows = Array.from(tbody.getElementsByTagName('tr'));
-            const sortedRows = sortRowsByRules(rows, rules);
-            sortedRows.forEach(row => tbody.appendChild(row));
+            const sortedGroups = buildGloballySortedTableBodyGroups(tableModel, rules);
+            applyTableBodyGroups(tableModel, sortedGroups);
         }
 
         // Re-insert stats rows at top
-        const firstDataRow = tbody.querySelector('tr:not([data-anytable-stats-row])');
+        const primaryTbody = tbodyElements[0];
+        const firstDataRow = primaryTbody?.querySelector?.('tr:not([data-anytable-stats-row])') || null;
         for (const statsRow of statsRows) {
-            if (firstDataRow) {
-                tbody.insertBefore(statsRow, firstDataRow);
+            if (firstDataRow && primaryTbody) {
+                primaryTbody.insertBefore(statsRow, firstDataRow);
             } else {
-                tbody.appendChild(statsRow);
+                appendRows(primaryTbody, [statsRow]);
             }
         }
     }
@@ -249,11 +308,7 @@ class TableEnhancer {
     enhanceTable(table) {
         if (this.enhancedTables.has(table)) return;
 
-        const tbody = table.getElementsByTagName('tbody')[0];
-        if (tbody) {
-            const rows = Array.from(tbody.getElementsByTagName('tr'));
-            this.stateStore.setOriginalRows(table, rows);
-        }
+        this.stateStore.setOriginalRows(table, captureOriginalRowGroups(table));
 
         this.stateStore.setSortRules(table, []);
         this.controlPanelManager.attachTableControls(table);
@@ -263,8 +318,7 @@ class TableEnhancer {
     }
 
     sortTable(table, columnIndex) {
-        const tbody = table.getElementsByTagName('tbody')[0];
-        if (!tbody) return;
+        if (!hasProcessableRows(table)) return;
 
         const currentRules = this.stateStore.getSortRules(table);
         const {rules} = buildNextSortRules(currentRules, columnIndex, this.multiColumnSort);
@@ -291,8 +345,7 @@ class TableEnhancer {
     }
 
     filterTable(table, columnIndex, filterText) {
-        const tbody = table.getElementsByTagName('tbody')[0];
-        if (!tbody) return;
+        if (!hasProcessableRows(table)) return;
 
         this.stateStore.setFilterValue(table, columnIndex, filterText);
         this.applyAllFilters(table);

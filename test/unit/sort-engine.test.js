@@ -5,6 +5,8 @@ import {
     normalizeAdvancedSortRules,
     sortRowsByRules
 } from '../../src/core/sort-engine.js';
+import { buildTableModel } from '../../src/core/table-model.js';
+import { mockCell, mockRow as mockStructuredRow, mockTable } from './helpers/mock-table.js';
 
 function mockRow(...values) {
     return { cells: values.map(v => ({ textContent: String(v) })) };
@@ -272,5 +274,21 @@ describe('sortRowsByRules', () => {
         const rules = [{ column: 0, direction: 'asc', type: 'percent' }];
         const sorted = sortRowsByRules(rows, rules);
         expect(sorted.map(r => r.cells[0].textContent)).toEqual(['10%', '50%', '75%']);
+    });
+
+    it('sorts by logical columns when table cells use colspan', () => {
+        const table = mockTable({
+            bodySections: [[
+                mockStructuredRow([mockCell('Alpha'), mockCell('Ready'), mockCell('已完成')]),
+                mockStructuredRow([mockCell('Beta'), mockCell('处理中', {colSpan: 2})])
+            ]]
+        });
+        const tableModel = buildTableModel(table);
+        const rows = tableModel.bodyRows.map((rowModel) => rowModel.row);
+        const rules = [{ column: 2, direction: 'asc', type: 'text' }];
+
+        const sorted = sortRowsByRules(rows, rules, {tableModel});
+
+        expect(sorted.map((row) => row.cells[0].textContent)).toEqual(['Beta', 'Alpha']);
     });
 });

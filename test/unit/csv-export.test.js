@@ -5,52 +5,30 @@ import {
     downloadTableAsCsv,
     serializeRowsToCsv
 } from '../../src/core/csv-export.js';
-
-function mockCell(text = '', colSpan = 1) {
-    return {
-        textContent: text,
-        colSpan
-    };
-}
-
-function mockRow(cells, {hidden = false, isStats = false} = {}) {
-    return {
-        cells,
-        style: {
-            display: hidden ? 'none' : ''
-        },
-        hasAttribute(name) {
-            return name === 'data-anytable-stats-row' ? isStats : false;
-        }
-    };
-}
-
-function mockTable(rows, captionText = '') {
-    return {
-        caption: captionText ? {textContent: captionText} : null,
-        getElementsByTagName(tagName) {
-            if (tagName === 'tr') {
-                return rows;
-            }
-            return [];
-        }
-    };
-}
+import { mockCell, mockRow, mockTable } from './helpers/mock-table.js';
 
 describe('collectVisibleTableRows', () => {
-    it('collects visible rows, skips stats rows, and expands colSpan', () => {
-        const table = mockTable([
-            mockRow([mockCell('名称'), mockCell('数量'), mockCell('类别')]),
-            mockRow([mockCell('苹果'), mockCell('12'), mockCell('水果')]),
-            mockRow([mockCell('香蕉'), mockCell('9'), mockCell('水果')], {hidden: true}),
-            mockRow([mockCell('合计', 2), mockCell('完成')]),
-            mockRow([mockCell('统计'), mockCell('2'), mockCell('')], {isStats: true})
-        ]);
+    it('collects visible rows across multiple tbody sections and expands colSpan', () => {
+        const table = mockTable({
+            theadRows: [
+                mockRow([mockCell('名称', {tagName: 'TH'}), mockCell('数量', {tagName: 'TH'}), mockCell('类别', {tagName: 'TH'})])
+            ],
+            bodySections: [
+                [
+                    mockRow([mockCell('苹果'), mockCell('12'), mockCell('水果')]),
+                    mockRow([mockCell('香蕉'), mockCell('9'), mockCell('水果')], {hidden: true})
+                ],
+                [
+                    mockRow([mockCell('合计'), mockCell('完成', {colSpan: 2})]),
+                    mockRow([mockCell('统计'), mockCell('2'), mockCell('')], {isStats: true})
+                ]
+            ]
+        });
 
         expect(collectVisibleTableRows(table)).toEqual([
             ['名称', '数量', '类别'],
             ['苹果', '12', '水果'],
-            ['合计', '合计', '完成']
+            ['合计', '完成', '完成']
         ]);
     });
 });
@@ -91,10 +69,15 @@ describe('buildTableCsvFilename', () => {
 
 describe('downloadTableAsCsv', () => {
     it('creates a csv blob and triggers a download link click', () => {
-        const table = mockTable([
-            mockRow([mockCell('名称'), mockCell('数量')]),
-            mockRow([mockCell('苹果'), mockCell('12')])
-        ], '库存报表');
+        const table = mockTable({
+            theadRows: [
+                mockRow([mockCell('名称', {tagName: 'TH'}), mockCell('数量', {tagName: 'TH'})])
+            ],
+            bodySections: [[
+                mockRow([mockCell('苹果'), mockCell('12')])
+            ]],
+            captionText: '库存报表'
+        });
 
         const link = {
             style: {},

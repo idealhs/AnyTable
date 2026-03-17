@@ -1,16 +1,7 @@
-import { getTableColumnCount } from './table-structure.js';
+import { buildTableModel } from './table-model.js';
 
 function normalizeCollection(collection) {
     return Array.from(collection || []);
-}
-
-function getCellSpan(cell) {
-    const span = Number(cell?.colSpan);
-    return Number.isInteger(span) && span > 0 ? span : 1;
-}
-
-function getCellText(cell) {
-    return cell?.textContent?.trim() ?? '';
 }
 
 function isExportableRow(row) {
@@ -21,22 +12,8 @@ function isExportableRow(row) {
     return row.style?.display !== 'none';
 }
 
-function expandRowCells(row, totalColumns) {
-    const values = [];
-
-    normalizeCollection(row?.cells).forEach((cell) => {
-        const text = getCellText(cell);
-        const span = getCellSpan(cell);
-        for (let index = 0; index < span; index++) {
-            values.push(text);
-        }
-    });
-
-    while (totalColumns > 0 && values.length < totalColumns) {
-        values.push('');
-    }
-
-    return values;
+function expandRowCells(rowModel, totalColumns) {
+    return Array.from({length: totalColumns}, (_, index) => rowModel.cellMap[index]?.text ?? '');
 }
 
 function escapeCsvField(value) {
@@ -85,10 +62,10 @@ export function collectVisibleTableRows(table) {
         return [];
     }
 
-    const totalColumns = getTableColumnCount(table);
-    return normalizeCollection(table.getElementsByTagName('tr'))
-        .filter((row) => isExportableRow(row))
-        .map((row) => expandRowCells(row, totalColumns));
+    const tableModel = buildTableModel(table);
+    return tableModel.allRows
+        .filter((rowModel) => isExportableRow(rowModel.row))
+        .map((rowModel) => expandRowCells(rowModel, tableModel.columnCount));
 }
 
 export function serializeRowsToCsv(rows) {
