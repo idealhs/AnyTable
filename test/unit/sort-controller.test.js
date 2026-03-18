@@ -143,6 +143,35 @@ describe('SortController', () => {
         expect(updateSortButtonSpy).toHaveBeenNthCalledWith(3, table, 2, 'none', null);
     });
 
+    it('refreshes sort buttons by logical column count when physical headers use colspan', () => {
+        const table = mockTable({
+            theadRows: [mockRow([
+                mockCell('姓名', {tagName: 'TH', colSpan: 2}),
+                mockCell('绩效', {tagName: 'TH'}),
+                mockCell('城市', {tagName: 'TH'})
+            ])],
+            bodySections: [[
+                mockRow([mockCell('张'), mockCell('三'), mockCell('88'), mockCell('上海')])
+            ]]
+        });
+        const controller = createController({
+            stateStore: {
+                getSortRules: vi.fn(() => [
+                    {column: 3, direction: 'desc', type: 'text'}
+                ])
+            }
+        });
+        const updateSortButtonSpy = vi.spyOn(controller, 'updateSortButton').mockImplementation(() => {});
+
+        controller.refreshSortButtons(table);
+
+        expect(updateSortButtonSpy).toHaveBeenCalledTimes(4);
+        expect(updateSortButtonSpy).toHaveBeenNthCalledWith(1, table, 0, 'none', null);
+        expect(updateSortButtonSpy).toHaveBeenNthCalledWith(2, table, 1, 'none', null);
+        expect(updateSortButtonSpy).toHaveBeenNthCalledWith(3, table, 2, 'none', null);
+        expect(updateSortButtonSpy).toHaveBeenNthCalledWith(4, table, 3, 'desc', null);
+    });
+
     it('updates sort button icon, class, and localized title when a header control exists', () => {
         const sortButton = {
             classList: createClassList(),

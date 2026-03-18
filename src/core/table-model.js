@@ -222,12 +222,51 @@ function buildColumnTitles(headerRows, columnCount) {
     return titles;
 }
 
+function findLowestHeaderSource(headerRows, columnIndex) {
+    for (let rowIndex = headerRows.length - 1; rowIndex >= 0; rowIndex -= 1) {
+        const entry = headerRows[rowIndex]?.cellMap?.[columnIndex];
+        if (!entry || entry.isRowSpanContinuation) {
+            continue;
+        }
+
+        return {
+            rowIndex,
+            entry
+        };
+    }
+
+    return null;
+}
+
+function buildColumnDescriptors(headerRows, columnTitles, columnCount) {
+    return Array.from({length: columnCount}, (_, columnIndex) => {
+        const source = findLowestHeaderSource(headerRows, columnIndex);
+        const headerCell = source?.entry?.cell || null;
+        const headerSpan = {
+            colSpan: getCellColSpan(headerCell),
+            rowSpan: getCellRowSpan(headerCell)
+        };
+        const isActionable = Boolean(headerCell) && headerSpan.colSpan === 1;
+
+        return {
+            columnIndex,
+            title: columnTitles[columnIndex] || '',
+            headerCell,
+            headerRowIndex: source?.rowIndex ?? -1,
+            headerSpan,
+            isActionable,
+            controlAnchor: isActionable ? headerCell : null
+        };
+    });
+}
+
 export function buildTableModel(table) {
     if (!table || typeof table.getElementsByTagName !== 'function') {
         return {
             table,
             columnCount: 0,
             columnTitles: [],
+            columnDescriptors: [],
             headerRows: [],
             bodyRows: [],
             tbodyGroups: [],
@@ -236,6 +275,11 @@ export function buildTableModel(table) {
             rowModelByElement: new Map(),
             hasColSpan: false,
             hasRowSpan: false,
+            complexityFlags: {
+                hasColSpan: false,
+                hasRowSpan: false,
+                hasAmbiguousHeaders: false
+            },
             rowSpanStrategy: 'repeat-source-cell'
         };
     }
@@ -280,24 +324,36 @@ export function buildTableModel(table) {
         footerResult.columnCount
     );
     const columnTitles = buildColumnTitles(headerRows, columnCount);
+    const columnDescriptors = buildColumnDescriptors(headerRows, columnTitles, columnCount);
 
     const allRows = getOwnedTableRows(table)
         .map((row) => rowModelByElement.get(row))
         .filter(Boolean)
         .filter((rowModel) => !isStatsRow(rowModel.row));
 
+    const hasColSpan = bodyResult.hasColSpan || headerResult.hasColSpan || footerResult.hasColSpan;
+    const hasRowSpan = bodyResult.hasRowSpan || headerResult.hasRowSpan || footerResult.hasRowSpan;
+
     return {
         table,
         columnCount,
         columnTitles,
+        columnDescriptors,
         headerRows,
         bodyRows,
         tbodyGroups,
         footerRows,
         allRows,
         rowModelByElement,
-        hasColSpan: bodyResult.hasColSpan || headerResult.hasColSpan || footerResult.hasColSpan,
-        hasRowSpan: bodyResult.hasRowSpan || headerResult.hasRowSpan || footerResult.hasRowSpan,
+        hasColSpan,
+        hasRowSpan,
+        complexityFlags: {
+            hasColSpan,
+            hasRowSpan,
+            hasAmbiguousHeaders: columnDescriptors.some((descriptor) => (
+                Boolean(descriptor.headerCell) && !descriptor.isActionable
+            ))
+        },
         // 当前阶段对 rowspan 采用“复用源单元格文本”的逻辑列展开策略，
         // 让排序、筛选、统计、导出至少基于同一套可预测的数据视图。
         rowSpanStrategy: 'repeat-source-cell'

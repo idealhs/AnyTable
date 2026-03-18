@@ -113,6 +113,7 @@ export default {
     advancedPanel: {
         common: {
             columnFallback: 'Column {index}',
+            duplicateColumnFormat: '{label} (Column {index})',
             close: 'Close',
             reset: 'Reset',
             cancel: 'Cancel',

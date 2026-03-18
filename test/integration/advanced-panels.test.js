@@ -18,7 +18,15 @@ async function loadPanelModules() {
 
     vi.doMock('../../src/i18n/i18n.js', () => ({
         default: {
-            t: (key) => key
+            t: (key) => {
+                if (key === 'advancedPanel.common.columnFallback') {
+                    return '列{index}';
+                }
+                if (key === 'advancedPanel.common.duplicateColumnFormat') {
+                    return '{label}（第{index}列）';
+                }
+                return key;
+            }
         }
     }));
 
@@ -164,6 +172,32 @@ describe('高级面板真实 DOM 交互', () => {
                 type: 'number'
             }
         ]);
+    }, 15000);
+
+    it('高级面板会为重复列名追加逻辑列序号以区分同名列', () => {
+        const panel = openAdvancedSortPanel({
+            columnIndex: 0,
+            columnTitles: ['姓名', '姓名', '绩效'],
+            initialRules: [
+                { column: 0, direction: 'asc', type: 'auto' },
+                { column: 1, direction: 'desc', type: 'auto' }
+            ],
+            tableElement: document.createElement('table'),
+            getColumnValues: vi.fn(() => ['张三', '李四']),
+            onApply: vi.fn(),
+            onCancel: vi.fn()
+        });
+
+        const columnButtons = Array.from(panel.dialog.querySelectorAll('.anytable-adv-sort-column'));
+        expect(columnButtons.map((button) => button.textContent)).toEqual([
+            '姓名（第1列）',
+            '姓名（第2列）'
+        ]);
+
+        columnButtons[0].click();
+        expect(findOpenDropdownOption('姓名（第1列）')).not.toBeNull();
+        expect(findOpenDropdownOption('姓名（第2列）')).not.toBeNull();
+        expect(findOpenDropdownOption('绩效')).not.toBeNull();
     }, 15000);
 
     it('高级排序面板切换列时会刷新列值推断，并在减少到单列后清空多列提示', () => {

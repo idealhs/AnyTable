@@ -113,6 +113,7 @@ export default {
     advancedPanel: {
         common: {
             columnFallback: '列{index}',
+            duplicateColumnFormat: '{label}（第{index}列）',
             close: '关闭',
             reset: '重置',
             cancel: '取消',

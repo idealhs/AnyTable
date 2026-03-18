@@ -78,7 +78,7 @@ export class SortController {
     }
 
     refreshSortButtons(table) {
-        const headers = table.getElementsByTagName('th');
+        const {columnCount} = buildTableModel(table);
         const rules = this.stateStore.getSortRules(table);
         const showPriority = this.isMultiColumnSortEnabled() && rules.length > 1;
 
@@ -91,7 +91,7 @@ export class SortController {
             }
         });
 
-        Array.from(headers).forEach((header, index) => {
+        Array.from({length: columnCount}, (_, index) => index).forEach((index) => {
             const direction = directionByColumn.get(index) || 'none';
             const priority = priorityByColumn.get(index) || null;
             this.updateSortButton(table, index, direction, priority);
