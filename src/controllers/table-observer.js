@@ -38,6 +38,7 @@ export class TableObserver {
         isEnhancedTable,
         autoEnhanceTables,
         removeEnhancement,
+        rehydrateTableUi,
         syncOriginalRowOrder,
         onTableRemoved
     }) {
@@ -45,6 +46,7 @@ export class TableObserver {
         this.isEnhancedTable = isEnhancedTable;
         this.autoEnhanceTables = autoEnhanceTables;
         this.removeEnhancement = removeEnhancement;
+        this.rehydrateTableUi = rehydrateTableUi;
         this.syncOriginalRowOrder = syncOriginalRowOrder;
         this.onTableRemoved = onTableRemoved;
         this.observer = null;
@@ -72,6 +74,8 @@ export class TableObserver {
 
     handleMutations(mutations) {
         const tablesToSync = new Set();
+        const removedTables = new Set();
+        const addedTables = new Set();
 
         for (const mutation of mutations || []) {
             const mutationTable = findClosestTableElement(mutation.target);
@@ -82,8 +86,7 @@ export class TableObserver {
             for (const node of normalizeCollection(mutation.removedNodes)) {
                 const tables = collectNestedTableElements(node);
                 for (const table of tables) {
-                    this.removeEnhancement(table);
-                    this.onTableRemoved?.(table);
+                    removedTables.add(table);
                 }
             }
 
@@ -107,6 +110,7 @@ export class TableObserver {
                 }
 
                 collectNestedTableElements(node).forEach((nestedTable) => {
+                    addedTables.add(nestedTable);
                     if (this.isEnhancedTable(nestedTable)) {
                         tablesToSync.add(nestedTable);
                     }
@@ -114,6 +118,20 @@ export class TableObserver {
             }
         }
 
+        const rehydratedTables = new Set();
+        removedTables.forEach((table) => {
+            if (addedTables.has(table)) {
+                rehydratedTables.add(table);
+                tablesToSync.add(table);
+                return;
+            }
+
+            tablesToSync.delete(table);
+            this.removeEnhancement(table);
+            this.onTableRemoved?.(table);
+        });
+
         tablesToSync.forEach((table) => this.syncOriginalRowOrder(table));
+        rehydratedTables.forEach((table) => this.rehydrateTableUi?.(table));
     }
 }

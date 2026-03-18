@@ -5,6 +5,7 @@ import {
     matchesBasicFilters,
     matchesRuleTree
 } from '../../src/core/filter-engine.js';
+import { isRowHiddenByFilter, isRowVisible } from '../../src/core/row-visibility.js';
 import { mockCell, mockRow as mockStructuredRow, mockTable } from './helpers/mock-table.js';
 
 function mockRow(...values) {
@@ -379,8 +380,10 @@ describe('applyCombinedFilters', () => {
         applyCombinedFilters(table, {1: '20'});
 
         const rows = table.getElementsByTagName('tr');
-        expect(rows[0].style.display).toBe('none');
-        expect(rows[1].style.display).toBe('');
+        expect(isRowHiddenByFilter(rows[0])).toBe(true);
+        expect(isRowVisible(rows[0])).toBe(false);
+        expect(isRowHiddenByFilter(rows[1])).toBe(false);
+        expect(isRowVisible(rows[1])).toBe(true);
     });
 
     it('uses logical column mapping when cells contain colspan', () => {
@@ -394,7 +397,29 @@ describe('applyCombinedFilters', () => {
         applyCombinedFilters(table, {2: '待处理'});
 
         const rows = table.getElementsByTagName('tr');
-        expect(rows[0].style.display).toBe('none');
-        expect(rows[1].style.display).toBe('');
+        expect(isRowHiddenByFilter(rows[0])).toBe(true);
+        expect(isRowVisible(rows[0])).toBe(false);
+        expect(isRowHiddenByFilter(rows[1])).toBe(false);
+        expect(isRowVisible(rows[1])).toBe(true);
+    });
+
+    it('preserves rows hidden by the host page after filters are cleared', () => {
+        const hostHiddenRow = mockStructuredRow([mockCell('ORD-002'), mockCell('已归档')], {hidden: true});
+        const table = mockTable({
+            bodySections: [[
+                mockStructuredRow([mockCell('ORD-001'), mockCell('处理中')]),
+                hostHiddenRow
+            ]]
+        });
+
+        applyCombinedFilters(table, {0: 'ORD-001'});
+        expect(isRowHiddenByFilter(hostHiddenRow)).toBe(true);
+        expect(hostHiddenRow.style.display).toBe('none');
+
+        applyCombinedFilters(table, {});
+
+        expect(isRowHiddenByFilter(hostHiddenRow)).toBe(false);
+        expect(hostHiddenRow.style.display).toBe('none');
+        expect(isRowVisible(hostHiddenRow)).toBe(false);
     });
 });

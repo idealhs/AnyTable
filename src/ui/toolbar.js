@@ -65,7 +65,7 @@ export class Toolbar {
         this.applyStatistics = applyStatistics;
     }
 
-    createToolbar(table) {
+    createToolbar(table, { expanded } = {}) {
         if (toolbarMap.has(table)) {
             return;
         }
@@ -135,9 +135,16 @@ export class Toolbar {
             isExpanded: true
         });
 
-        this.setExpanded(table, this.getToolbarDefaultExpanded() !== false, {skipAnimation: true});
+        const initialExpanded = expanded ?? (this.getToolbarDefaultExpanded() !== false);
+        this.setExpanded(table, initialExpanded, {skipAnimation: true});
         this.refreshActiveStates(table);
         this.updateTexts(table);
+    }
+
+    recreateToolbar(table) {
+        const expanded = toolbarMap.get(table)?.isExpanded;
+        this.removeToolbar(table);
+        this.createToolbar(table, {expanded});
     }
 
     removeToolbar(table) {

@@ -1,6 +1,7 @@
 import { getCellText } from './table-data.js';
 import { buildTableModel } from './table-model.js';
 import { parseValueAndUnit } from './type-parser.js';
+import { isRowVisible } from './row-visibility.js';
 
 function resolveTableModel(tableOrModel) {
     if (tableOrModel?.rowModelByElement instanceof Map && Array.isArray(tableOrModel?.bodyRows)) {
@@ -14,7 +15,7 @@ export function getVisibleNumericValues(tableOrModel, columnIndex) {
     const tableModel = resolveTableModel(tableOrModel);
     const values = [];
     for (const rowModel of tableModel.bodyRows) {
-        if (rowModel.row.style.display === 'none') continue;
+        if (!isRowVisible(rowModel.row)) continue;
 
         const text = getCellText(rowModel, columnIndex, tableModel);
         const parsed = parseValueAndUnit(text);
@@ -29,7 +30,7 @@ function getVisibleNonEmptyCount(tableOrModel, columnIndex) {
     const tableModel = resolveTableModel(tableOrModel);
     let count = 0;
     for (const rowModel of tableModel.bodyRows) {
-        if (rowModel.row.style.display === 'none') continue;
+        if (!isRowVisible(rowModel.row)) continue;
 
         const text = getCellText(rowModel, columnIndex, tableModel);
         if (text !== '') count++;

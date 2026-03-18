@@ -1,5 +1,6 @@
 import i18n from '../i18n/i18n.js';
 import { buildNextSortRules, normalizeAdvancedSortRules } from '../core/sort-engine.js';
+import { getOwnedTableSections } from '../core/table-boundary.js';
 import { applyTableBodyGroups, buildGloballySortedTableBodyGroups, buildTableBodyGroupsFromRows } from '../core/table-group-sort.js';
 import { createOriginalRowOrderState, getRowsInOriginalOrder, syncOriginalRowOrderState } from '../core/row-order-index.js';
 import { buildTableModel } from '../core/table-model.js';
@@ -9,9 +10,7 @@ function normalizeCollection(collection) {
 }
 
 function getTableBodyElements(table) {
-    return typeof table?.getElementsByTagName === 'function'
-        ? normalizeCollection(table.getElementsByTagName('tbody'))
-        : [];
+    return normalizeCollection(getOwnedTableSections(table, 'tbody'));
 }
 
 function getStatsRows(tbody) {

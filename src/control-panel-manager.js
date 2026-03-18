@@ -1,5 +1,6 @@
 import i18n from './i18n/i18n.js';
 import { getRuleTreeColumns } from './core/filter-engine.js';
+import { getOwnedHeaderCells } from './core/table-boundary.js';
 import { createShadowSurface, eventPathIncludes } from './ui/shadow-ui.js';
 
 export class ControlPanelManager {
@@ -17,7 +18,7 @@ export class ControlPanelManager {
             return;
         }
 
-        const headers = Array.from(table.getElementsByTagName('th'));
+        const headers = getOwnedHeaderCells(table);
         const controls = headers.map((header, columnIndex) => this.createHeaderControl(table, header, columnIndex));
         this.tableControls.set(table, controls);
         this.setFilterInputsDisabledState(table, this.stateStore.getAdvancedFilterRules(table) !== null);

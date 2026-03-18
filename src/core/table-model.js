@@ -1,3 +1,9 @@
+import {
+    getOwnedRowsInSection,
+    getOwnedTableRows,
+    getOwnedTableSections
+} from './table-boundary.js';
+
 function normalizeCollection(collection) {
     return Array.from(collection || []);
 }
@@ -137,17 +143,18 @@ function buildSectionRowModels(rows, {section, sectionIndex, sectionType}) {
     };
 }
 
-function buildSectionGroups(sections, sectionType, rowFilter) {
+function buildSectionGroups(table, sections, sectionType, rowFilter) {
     const groups = [];
     let columnCount = 0;
     let hasColSpan = false;
     let hasRowSpan = false;
 
     normalizeCollection(sections).forEach((section, sectionIndex) => {
-        const rows = normalizeCollection(section?.getElementsByTagName?.('tr')).filter((row) => (
+        const rows = getOwnedRowsInSection(table, section);
+        const filteredRows = rows.filter((row) => (
             typeof rowFilter === 'function' ? rowFilter(row) : true
         ));
-        const sectionModel = buildSectionRowModels(rows, {section, sectionIndex, sectionType});
+        const sectionModel = buildSectionRowModels(filteredRows, {section, sectionIndex, sectionType});
 
         columnCount = Math.max(columnCount, sectionModel.columnCount);
         hasColSpan = hasColSpan || sectionModel.hasColSpan;
@@ -168,7 +175,7 @@ function buildSectionGroups(sections, sectionType, rowFilter) {
 }
 
 function buildFallbackBodyGroup(table) {
-    const rows = normalizeCollection(table?.getElementsByTagName?.('tr')).filter((row) => !isStatsRow(row));
+    const rows = getOwnedTableRows(table).filter((row) => !isStatsRow(row));
     if (rows.length === 0) {
         return {
             groups: [],
@@ -235,9 +242,9 @@ export function buildTableModel(table) {
 
     const rowModelByElement = new Map();
 
-    const tbodySections = normalizeCollection(table.getElementsByTagName('tbody'));
+    const tbodySections = getOwnedTableSections(table, 'tbody');
     const bodyResult = tbodySections.length > 0
-        ? buildSectionGroups(tbodySections, 'tbody', (row) => !isStatsRow(row))
+        ? buildSectionGroups(table, tbodySections, 'tbody', (row) => !isStatsRow(row))
         : buildFallbackBodyGroup(table);
 
     const tbodyGroups = bodyResult.groups.map((group) => ({
@@ -248,9 +255,9 @@ export function buildTableModel(table) {
     const bodyRows = tbodyGroups.flatMap((group) => group.rows);
     bodyRows.forEach((rowModel) => rowModelByElement.set(rowModel.row, rowModel));
 
-    const theadSections = normalizeCollection(table.getElementsByTagName('thead'));
+    const theadSections = getOwnedTableSections(table, 'thead');
     const headerResult = theadSections.length > 0
-        ? buildSectionGroups(theadSections, 'thead')
+        ? buildSectionGroups(table, theadSections, 'thead')
         : {
             groups: [],
             columnCount: 0,
@@ -262,8 +269,8 @@ export function buildTableModel(table) {
         : bodyRows.filter((rowModel) => rowHasHeaderCell(rowModel.row));
     headerRows.forEach((rowModel) => rowModelByElement.set(rowModel.row, rowModel));
 
-    const tfootSections = normalizeCollection(table.getElementsByTagName('tfoot'));
-    const footerResult = buildSectionGroups(tfootSections, 'tfoot');
+    const tfootSections = getOwnedTableSections(table, 'tfoot');
+    const footerResult = buildSectionGroups(table, tfootSections, 'tfoot');
     const footerRows = footerResult.groups.flatMap((group) => group.rows);
     footerRows.forEach((rowModel) => rowModelByElement.set(rowModel.row, rowModel));
 
@@ -274,7 +281,7 @@ export function buildTableModel(table) {
     );
     const columnTitles = buildColumnTitles(headerRows, columnCount);
 
-    const allRows = normalizeCollection(table.getElementsByTagName('tr'))
+    const allRows = getOwnedTableRows(table)
         .map((row) => rowModelByElement.get(row))
         .filter(Boolean)
         .filter((rowModel) => !isStatsRow(rowModel.row));

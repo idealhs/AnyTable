@@ -5,6 +5,7 @@ import {
     computeStatisticsData,
     getVisibleNumericValues
 } from '../../src/core/statistics-engine.js';
+import { markRowAsFilterHidden } from '../../src/core/row-visibility.js';
 import { mockCell, mockRow, mockTable } from './helpers/mock-table.js';
 
 describe('getVisibleNumericValues', () => {
@@ -25,11 +26,13 @@ describe('getVisibleNumericValues', () => {
     });
 
     it('accepts a pre-built table model and ignores hidden plus non-numeric rows', () => {
+        const filterHiddenRow = mockRow([mockCell('C'), mockCell('18')]);
+        markRowAsFilterHidden(filterHiddenRow);
         const table = mockTable({
             bodySections: [[
                 mockRow([mockCell('A'), mockCell('12')]),
                 mockRow([mockCell('B'), mockCell('invalid')]),
-                mockRow([mockCell('C'), mockCell('18')], {hidden: true}),
+                filterHiddenRow,
                 mockRow([mockCell('D'), mockCell('20kg')])
             ]]
         });
@@ -83,11 +86,13 @@ describe('computeStatisticsData', () => {
     });
 
     it('aggregates multiple statistic types and columns while skipping hidden and empty cells', () => {
+        const filterHiddenRow = mockRow([mockCell('华南'), mockCell('30'), mockCell('9')]);
+        markRowAsFilterHidden(filterHiddenRow);
         const table = mockTable({
             bodySections: [[
                 mockRow([mockCell('华北'), mockCell('12'), mockCell('3')]),
                 mockRow([mockCell('华东'), mockCell('18'), mockCell('')]),
-                mockRow([mockCell('华南'), mockCell('30'), mockCell('9')], {hidden: true}),
+                filterHiddenRow,
                 mockRow([mockCell('西南'), mockCell('24'), mockCell('6')])
             ]]
         });

@@ -515,6 +515,30 @@ describe('Toolbar', () => {
         expect(surfaces[0].destroy).toHaveBeenCalledTimes(1);
     });
 
+    it('recreates a toolbar while preserving the current expanded state', () => {
+        const dependencies = createToolbarDependencies(true);
+        const toolbar = new Toolbar(dependencies);
+        const { table } = createFakeTable();
+
+        toolbar.createToolbar(table);
+
+        const firstToolbarElement = lastSurface.container.children[0];
+        const firstToggleButton = firstToolbarElement.children[0];
+        firstToggleButton.click();
+
+        const firstSurface = lastSurface;
+        toolbar.recreateToolbar(table);
+
+        expect(firstSurface.destroy).toHaveBeenCalledTimes(1);
+        const recreatedToolbarElement = lastSurface.container.children[0];
+        const recreatedToggleButton = recreatedToolbarElement.children[0];
+        const recreatedActions = recreatedToolbarElement.children[1];
+
+        expect(recreatedToolbarElement.classList.contains('toolbar-collapsed')).toBe(true);
+        expect(recreatedActions.style.width).toBe('0px');
+        expect(recreatedToggleButton.getAttribute('aria-expanded')).toBe('false');
+    });
+
     it('ignores stale toggle clicks after removal and treats unknown tables as safe no-ops', () => {
         const dependencies = createToolbarDependencies(true);
         const toolbar = new Toolbar(dependencies);

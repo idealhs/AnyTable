@@ -23,6 +23,7 @@ function createObserver(overrides = {}) {
         isEnhancedTable: vi.fn(() => false),
         autoEnhanceTables: vi.fn(),
         removeEnhancement: vi.fn(),
+        rehydrateTableUi: vi.fn(),
         syncOriginalRowOrder: vi.fn(),
         onTableRemoved: vi.fn(),
         ...overrides
@@ -53,6 +54,7 @@ describe('TableObserver', () => {
             isEnhancedTable: (table) => enhancedTables.has(table),
             autoEnhanceTables,
             removeEnhancement: vi.fn(),
+            rehydrateTableUi: vi.fn(),
             syncOriginalRowOrder,
             onTableRemoved: vi.fn()
         });
@@ -82,6 +84,7 @@ describe('TableObserver', () => {
             isEnhancedTable: () => false,
             autoEnhanceTables: vi.fn(),
             removeEnhancement,
+            rehydrateTableUi: vi.fn(),
             syncOriginalRowOrder: vi.fn(),
             onTableRemoved
         });
@@ -243,6 +246,30 @@ describe('TableObserver', () => {
         expect(dependencies.removeEnhancement).toHaveBeenCalledWith(removedTable);
         expect(dependencies.onTableRemoved).toHaveBeenCalledTimes(1);
         expect(dependencies.onTableRemoved).toHaveBeenCalledWith(removedTable);
+    });
+
+    it('treats the same enhanced table as a reparent when it is removed and added in one mutation batch', () => {
+        const movedTable = createElement('TABLE');
+        const movedShell = createElement('DIV', {
+            querySelectorAll: () => [movedTable]
+        });
+        const { observer, dependencies } = createObserver({
+            isAutoEnhanceEnabled: vi.fn(() => false),
+            isEnhancedTable: vi.fn((table) => table === movedTable)
+        });
+
+        observer.handleMutations([{
+            target: createElement('DIV'),
+            addedNodes: [movedShell],
+            removedNodes: [movedShell]
+        }]);
+
+        expect(dependencies.removeEnhancement).not.toHaveBeenCalled();
+        expect(dependencies.onTableRemoved).not.toHaveBeenCalled();
+        expect(dependencies.syncOriginalRowOrder).toHaveBeenCalledTimes(1);
+        expect(dependencies.syncOriginalRowOrder).toHaveBeenCalledWith(movedTable);
+        expect(dependencies.rehydrateTableUi).toHaveBeenCalledTimes(1);
+        expect(dependencies.rehydrateTableUi).toHaveBeenCalledWith(movedTable);
     });
 
     it('removes enhancement safely even when onTableRemoved is not provided', () => {

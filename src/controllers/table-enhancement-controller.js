@@ -4,11 +4,12 @@ import { buildTableModel } from '../core/table-model.js';
 import { removeStatisticsRows } from '../ui/statistics-renderer.js';
 
 export class TableEnhancementController {
-    constructor({ enhancedTables, stateStore, controlPanelManager, toolbar }) {
+    constructor({ enhancedTables, stateStore, controlPanelManager, toolbar, syncTablePresentation }) {
         this.enhancedTables = enhancedTables;
         this.stateStore = stateStore;
         this.controlPanelManager = controlPanelManager;
         this.toolbar = toolbar;
+        this.syncTablePresentation = syncTablePresentation;
     }
 
     shouldAutoEnhanceTable(table) {
@@ -44,5 +45,20 @@ export class TableEnhancementController {
         table.classList?.remove('anytable-enhanced');
         this.enhancedTables.delete(table);
         this.stateStore.clearTable(table);
+    }
+
+    rehydrateTableUi(table) {
+        if (!this.enhancedTables.has(table)) {
+            return;
+        }
+
+        if (typeof this.toolbar.recreateToolbar === 'function') {
+            this.toolbar.recreateToolbar(table);
+        } else {
+            this.toolbar.removeToolbar(table);
+            this.toolbar.createToolbar(table);
+        }
+
+        this.syncTablePresentation?.(table);
     }
 }

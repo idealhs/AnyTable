@@ -56,7 +56,8 @@ describe('TableEnhancementController', () => {
             enhancedTables,
             stateStore,
             controlPanelManager,
-            toolbar
+            toolbar,
+            syncTablePresentation: vi.fn()
         });
 
         controller.enhanceTable(table);
@@ -89,7 +90,8 @@ describe('TableEnhancementController', () => {
             enhancedTables,
             stateStore,
             controlPanelManager,
-            toolbar
+            toolbar,
+            syncTablePresentation: vi.fn()
         });
 
         controller.removeEnhancement(table);
@@ -116,7 +118,8 @@ describe('TableEnhancementController', () => {
             },
             toolbar: {
                 createToolbar: vi.fn()
-            }
+            },
+            syncTablePresentation: vi.fn()
         });
         const enhanceTableSpy = vi.spyOn(controller, 'enhanceTable').mockImplementation(() => {});
 
@@ -126,5 +129,29 @@ describe('TableEnhancementController', () => {
         expect(isLikelyDataTableMock).toHaveBeenCalledWith(rejectedTable);
         expect(enhanceTableSpy).toHaveBeenCalledTimes(1);
         expect(enhanceTableSpy).toHaveBeenCalledWith(acceptedTable);
+    });
+
+    it('rehydrates toolbar and replays presentation sync for moved enhanced tables', () => {
+        const table = createTable();
+        const syncTablePresentation = vi.fn();
+        const toolbar = {
+            recreateToolbar: vi.fn()
+        };
+        const controller = new TableEnhancementController({
+            enhancedTables: new Set([table]),
+            stateStore: {
+                clearTable: vi.fn()
+            },
+            controlPanelManager: {
+                removeTableControls: vi.fn()
+            },
+            toolbar,
+            syncTablePresentation
+        });
+
+        controller.rehydrateTableUi(table);
+
+        expect(toolbar.recreateToolbar).toHaveBeenCalledWith(table);
+        expect(syncTablePresentation).toHaveBeenCalledWith(table);
     });
 });

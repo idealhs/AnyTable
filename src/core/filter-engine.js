@@ -1,5 +1,6 @@
 import { getCellText } from './table-data.js';
 import { buildTableModel } from './table-model.js';
+import { clearRowFilterHidden, markRowAsFilterHidden } from './row-visibility.js';
 
 function safeToLowerCase(value) {
     return (value ?? '').toString().toLowerCase();
@@ -168,7 +169,12 @@ export function applyCombinedFilters(table, filterValues = {}, advancedRuleGroup
     tableModel.bodyRows.forEach((rowModel) => {
         const basicMatched = matchesBasicFilters(rowModel, filterValues || {}, tableModel);
         const advancedMatched = matchesRuleTree(rowModel, advancedRuleGroup, tableModel);
-        rowModel.row.style.display = basicMatched && advancedMatched ? '' : 'none';
+        if (basicMatched && advancedMatched) {
+            clearRowFilterHidden(rowModel.row);
+            return;
+        }
+
+        markRowAsFilterHidden(rowModel.row);
     });
 }
 

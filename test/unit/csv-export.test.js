@@ -5,10 +5,13 @@ import {
     downloadTableAsCsv,
     serializeRowsToCsv
 } from '../../src/core/csv-export.js';
+import { markRowAsFilterHidden } from '../../src/core/row-visibility.js';
 import { mockCell, mockRow, mockTable } from './helpers/mock-table.js';
 
 describe('collectVisibleTableRows', () => {
     it('collects visible rows across multiple tbody sections and expands colSpan', () => {
+        const pluginHiddenRow = mockRow([mockCell('香蕉'), mockCell('9'), mockCell('水果')]);
+        markRowAsFilterHidden(pluginHiddenRow);
         const table = mockTable({
             theadRows: [
                 mockRow([mockCell('名称', {tagName: 'TH'}), mockCell('数量', {tagName: 'TH'}), mockCell('类别', {tagName: 'TH'})])
@@ -16,7 +19,7 @@ describe('collectVisibleTableRows', () => {
             bodySections: [
                 [
                     mockRow([mockCell('苹果'), mockCell('12'), mockCell('水果')]),
-                    mockRow([mockCell('香蕉'), mockCell('9'), mockCell('水果')], {hidden: true})
+                    pluginHiddenRow
                 ],
                 [
                     mockRow([mockCell('合计'), mockCell('完成', {colSpan: 2})]),
@@ -29,6 +32,23 @@ describe('collectVisibleTableRows', () => {
             ['名称', '数量', '类别'],
             ['苹果', '12', '水果'],
             ['合计', '完成', '完成']
+        ]);
+    });
+
+    it('skips rows hidden by the host page even when the plugin has no hidden flag', () => {
+        const table = mockTable({
+            theadRows: [
+                mockRow([mockCell('名称', {tagName: 'TH'}), mockCell('数量', {tagName: 'TH'})])
+            ],
+            bodySections: [[
+                mockRow([mockCell('苹果'), mockCell('12')]),
+                mockRow([mockCell('页面隐藏'), mockCell('0')], {hidden: true})
+            ]]
+        });
+
+        expect(collectVisibleTableRows(table)).toEqual([
+            ['名称', '数量'],
+            ['苹果', '12']
         ]);
     });
 });

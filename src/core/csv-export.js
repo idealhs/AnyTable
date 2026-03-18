@@ -1,4 +1,5 @@
 import { buildTableModel } from './table-model.js';
+import { isRowVisible } from './row-visibility.js';
 
 function normalizeCollection(collection) {
     return Array.from(collection || []);
@@ -9,7 +10,7 @@ function isExportableRow(row) {
     if (typeof row.hasAttribute === 'function' && row.hasAttribute('data-anytable-stats-row')) {
         return false;
     }
-    return row.style?.display !== 'none';
+    return isRowVisible(row);
 }
 
 function expandRowCells(rowModel, totalColumns) {

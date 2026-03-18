@@ -1,3 +1,5 @@
+import { getOwnedHeaderCells, getOwnedTableRows } from './table-boundary.js';
+
 function normalizeCollection(collection) {
     return Array.from(collection || []);
 }
@@ -20,7 +22,7 @@ function getTableRole(table) {
 }
 
 function hasSemanticHints(table) {
-    const headers = normalizeCollection(table?.getElementsByTagName?.('th'));
+    const headers = normalizeCollection(getOwnedHeaderCells(table));
     if (headers.length > 0) {
         return true;
     }
@@ -38,7 +40,7 @@ export function isLikelyDataTable(table) {
         return false;
     }
 
-    const rows = normalizeCollection(table.getElementsByTagName('tr'));
+    const rows = normalizeCollection(getOwnedTableRows(table));
     if (rows.length === 0) {
         return false;
     }

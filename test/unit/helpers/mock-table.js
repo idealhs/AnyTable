@@ -21,13 +21,27 @@ export function mockCell(text = '', {tagName = 'TD', colSpan = 1, rowSpan = 1} =
 }
 
 export function mockRow(cells, {hidden = false, isStats = false} = {}) {
+    const attributes = new Map();
+    if (isStats) {
+        attributes.set('data-anytable-stats-row', 'true');
+    }
+
     return {
         cells,
         style: {
             display: hidden ? 'none' : ''
         },
+        getAttribute(name) {
+            return attributes.has(name) ? attributes.get(name) : null;
+        },
         hasAttribute(name) {
-            return name === 'data-anytable-stats-row' ? isStats : false;
+            return attributes.has(name);
+        },
+        removeAttribute(name) {
+            attributes.delete(name);
+        },
+        setAttribute(name, value) {
+            attributes.set(name, String(value));
         }
     };
 }
@@ -95,15 +109,7 @@ export function mockTable({theadRows = [], bodySections = [], tfootRows = [], ca
     const tbodySections = bodySections.map((rows) => mockSection(rows));
     const tfootSections = tfootRows.length > 0 ? [mockSection(tfootRows)] : [];
 
-    function getAllRows() {
-        return [
-            ...theadSections.flatMap((section) => normalizeCollection(section.getElementsByTagName('tr'))),
-            ...tbodySections.flatMap((section) => normalizeCollection(section.getElementsByTagName('tr'))),
-            ...tfootSections.flatMap((section) => normalizeCollection(section.getElementsByTagName('tr')))
-        ];
-    }
-
-    return {
+    const table = {
         caption: captionText ? {textContent: captionText} : null,
         getElementsByTagName(tagName) {
             if (tagName === 'thead') {
@@ -127,4 +133,18 @@ export function mockTable({theadRows = [], bodySections = [], tfootRows = [], ca
             return [];
         }
     };
+
+    function getAllRows() {
+        return [
+            ...theadSections.flatMap((section) => normalizeCollection(section.getElementsByTagName('tr'))),
+            ...tbodySections.flatMap((section) => normalizeCollection(section.getElementsByTagName('tr'))),
+            ...tfootSections.flatMap((section) => normalizeCollection(section.getElementsByTagName('tr')))
+        ];
+    }
+
+    [...theadSections, ...tbodySections, ...tfootSections].forEach((section) => {
+        section.parentNode = table;
+    });
+
+    return table;
 }

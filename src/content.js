@@ -74,7 +74,14 @@ class TableEnhancer {
             enhancedTables: this.enhancedTables,
             stateStore: this.stateStore,
             controlPanelManager: this.controlPanelManager,
-            toolbar: this.toolbar
+            toolbar: this.toolbar,
+            syncTablePresentation: (table) => {
+                this.controlPanelManager.attachTableControls(table);
+                this.controlPanelManager.syncFilterInputValues(table, this.stateStore.getFilterValues(table));
+                this.sortController.applySortRules(table, this.stateStore.getSortRules(table));
+                this.sortController.refreshSortButtons(table);
+                this.filterController.applyAllFilters(table);
+            }
         });
 
         this.tableObserver = new TableObserver({
@@ -82,6 +89,7 @@ class TableEnhancer {
             isEnhancedTable: (table) => this.enhancedTables.has(table),
             autoEnhanceTables: (tables) => this.tableEnhancementController.autoEnhanceTables(tables),
             removeEnhancement: (table) => this.tableEnhancementController.removeEnhancement(table),
+            rehydrateTableUi: (table) => this.tableEnhancementController.rehydrateTableUi(table),
             syncOriginalRowOrder: (table) => this.sortController.syncOriginalRowOrder(table),
             onTableRemoved: (table) => this.selectedTables.delete(table)
         });
