@@ -2,6 +2,10 @@ function normalizeCollection(collection) {
     return Array.from(collection || []);
 }
 
+function isStatsRow(row) {
+    return typeof row?.hasAttribute === 'function' && row.hasAttribute('data-anytable-stats-row');
+}
+
 function findClosestTable(node) {
     if (!node) {
         return null;
@@ -41,14 +45,41 @@ export function getOwnedTableSections(table, sectionTagName) {
         .filter((section) => isNodeOwnedByTable(table, section));
 }
 
+export function getOwnedTableHeadSections(table) {
+    return getOwnedTableSections(table, 'thead');
+}
+
+export function getOwnedTableBodySections(table) {
+    return getOwnedTableSections(table, 'tbody');
+}
+
+export function getOwnedTableFootSections(table) {
+    return getOwnedTableSections(table, 'tfoot');
+}
+
 export function getOwnedRowsInSection(table, section) {
     return normalizeCollection(section?.getElementsByTagName?.('tr'))
         .filter((row) => isNodeOwnedByTable(table, row));
 }
 
+export function getOwnedDataRowsInSection(table, section) {
+    return getOwnedRowsInSection(table, section)
+        .filter((row) => !isStatsRow(row));
+}
+
+export function getOwnedStatsRowsInSection(table, section) {
+    return getOwnedRowsInSection(table, section)
+        .filter((row) => isStatsRow(row));
+}
+
 export function getOwnedTableRows(table) {
     return normalizeCollection(table?.getElementsByTagName?.('tr'))
         .filter((row) => isNodeOwnedByTable(table, row));
+}
+
+export function getOwnedProcessableRows(table) {
+    return getOwnedTableRows(table)
+        .filter((row) => !isStatsRow(row));
 }
 
 export function getOwnedHeaderCells(table) {

@@ -6,6 +6,7 @@ import { collectVisibleTableRows } from '../../src/core/csv-export.js';
 import { computeStatisticsData } from '../../src/core/statistics-engine.js';
 import { applyTableBodyGroups, buildGloballySortedTableBodyGroups } from '../../src/core/table-group-sort.js';
 import { buildTableModel } from '../../src/core/table-model.js';
+import { renderStatisticsRows } from '../../src/ui/statistics-renderer.js';
 
 function mountTable(html) {
     document.body.innerHTML = html.trim();
@@ -143,5 +144,47 @@ describe('真实 DOM 表格夹具', () => {
             'REQ-085'
         ]);
         expect(table.querySelectorAll('.nested-demo tbody tr')).toHaveLength(3);
+    });
+
+    it('在外层统计渲染时不会删除或重挂内嵌表自己的统计行', () => {
+        const table = mountTable(`
+            <table id="outer">
+                <thead>
+                    <tr><th>工单号</th><th>金额</th><th>明细</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>REQ-085</td>
+                        <td>12</td>
+                        <td>
+                            <table class="nested-demo">
+                                <tbody>
+                                    <tr data-anytable-stats-row="sum"><td>内层统计</td></tr>
+                                    <tr><td>子步骤 A</td></tr>
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr><td>REQ-102</td><td>20</td><td>普通文本</td></tr>
+                </tbody>
+            </table>
+        `);
+
+        const statsData = new Map([
+            ['sum', new Map([[1, 32]])]
+        ]);
+
+        renderStatisticsRows(table, statsData, 3);
+
+        expect(Array.from(table.tBodies[0].rows).map((row) => row.cells[0].textContent.trim())).toEqual([
+            '',
+            'REQ-085',
+            'REQ-102'
+        ]);
+        expect(Array.from(table.querySelectorAll('.nested-demo tbody > tr')).map((row) => row.textContent.trim())).toEqual([
+            '内层统计',
+            '子步骤 A'
+        ]);
+        expect(table.tBodies[0].rows[0].getAttribute('data-anytable-stats-row')).toBe('sum');
     });
 });

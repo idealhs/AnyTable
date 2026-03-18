@@ -1,3 +1,4 @@
+import { getOwnCellText } from './cell-text.js';
 import { buildTableModel } from './table-model.js';
 
 function resolveTableModel(tableOrModel) {
@@ -21,7 +22,7 @@ function resolveRowModel(rowOrModel, tableModel) {
 }
 
 function getPhysicalCellText(row, columnIndex) {
-    return row?.cells?.[columnIndex]?.textContent?.trim() ?? '';
+    return getOwnCellText(row?.cells?.[columnIndex]);
 }
 
 export function getCellText(rowOrModel, columnIndex, tableModel = null) {

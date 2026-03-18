@@ -1,7 +1,10 @@
+import { getOwnCellText } from './cell-text.js';
 import {
+    getOwnedTableBodySections,
+    getOwnedTableFootSections,
+    getOwnedTableHeadSections,
     getOwnedRowsInSection,
-    getOwnedTableRows,
-    getOwnedTableSections
+    getOwnedTableRows
 } from './table-boundary.js';
 
 function normalizeCollection(collection) {
@@ -19,7 +22,7 @@ function getCellRowSpan(cell) {
 }
 
 function getCellText(cell) {
-    return cell?.textContent?.trim() ?? '';
+    return getOwnCellText(cell);
 }
 
 function isHeaderCell(cell) {
@@ -260,6 +263,54 @@ function buildColumnDescriptors(headerRows, columnTitles, columnCount) {
     });
 }
 
+function isLeafHeaderEntry(headerRows, rowIndex, columnIndex) {
+    for (let nextRowIndex = rowIndex + 1; nextRowIndex < headerRows.length; nextRowIndex += 1) {
+        const nextEntry = headerRows[nextRowIndex]?.cellMap?.[columnIndex];
+        if (nextEntry && !nextEntry.isRowSpanContinuation) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function buildHeaderDescriptors(headerRows, columnDescriptors) {
+    const descriptors = [];
+    const seenCells = new Set();
+
+    headerRows.forEach((rowModel, rowIndex) => {
+        rowModel.cellMap.forEach((entry, columnIndex) => {
+            if (!entry || entry.isColSpanContinuation || entry.isRowSpanContinuation || seenCells.has(entry.cell)) {
+                return;
+            }
+
+            const headerCell = entry.cell || null;
+            const headerSpan = {
+                colSpan: getCellColSpan(headerCell),
+                rowSpan: getCellRowSpan(headerCell)
+            };
+            const columnDescriptor = columnDescriptors[columnIndex] || null;
+            const isActionable = columnDescriptor?.controlAnchor === headerCell;
+
+            descriptors.push({
+                rowIndex,
+                columnIndex,
+                startColumnIndex: entry.startColumnIndex,
+                endColumnIndex: entry.startColumnIndex + headerSpan.colSpan - 1,
+                title: entry.text,
+                headerCell,
+                headerSpan,
+                isLeaf: isLeafHeaderEntry(headerRows, rowIndex, columnIndex),
+                isActionable,
+                controlAnchor: isActionable ? headerCell : null
+            });
+            seenCells.add(headerCell);
+        });
+    });
+
+    return descriptors;
+}
+
 export function buildTableModel(table) {
     if (!table || typeof table.getElementsByTagName !== 'function') {
         return {
@@ -267,6 +318,7 @@ export function buildTableModel(table) {
             columnCount: 0,
             columnTitles: [],
             columnDescriptors: [],
+            headerDescriptors: [],
             headerRows: [],
             bodyRows: [],
             tbodyGroups: [],
@@ -286,7 +338,7 @@ export function buildTableModel(table) {
 
     const rowModelByElement = new Map();
 
-    const tbodySections = getOwnedTableSections(table, 'tbody');
+    const tbodySections = getOwnedTableBodySections(table);
     const bodyResult = tbodySections.length > 0
         ? buildSectionGroups(table, tbodySections, 'tbody', (row) => !isStatsRow(row))
         : buildFallbackBodyGroup(table);
@@ -299,7 +351,7 @@ export function buildTableModel(table) {
     const bodyRows = tbodyGroups.flatMap((group) => group.rows);
     bodyRows.forEach((rowModel) => rowModelByElement.set(rowModel.row, rowModel));
 
-    const theadSections = getOwnedTableSections(table, 'thead');
+    const theadSections = getOwnedTableHeadSections(table);
     const headerResult = theadSections.length > 0
         ? buildSectionGroups(table, theadSections, 'thead')
         : {
@@ -313,7 +365,7 @@ export function buildTableModel(table) {
         : bodyRows.filter((rowModel) => rowHasHeaderCell(rowModel.row));
     headerRows.forEach((rowModel) => rowModelByElement.set(rowModel.row, rowModel));
 
-    const tfootSections = getOwnedTableSections(table, 'tfoot');
+    const tfootSections = getOwnedTableFootSections(table);
     const footerResult = buildSectionGroups(table, tfootSections, 'tfoot');
     const footerRows = footerResult.groups.flatMap((group) => group.rows);
     footerRows.forEach((rowModel) => rowModelByElement.set(rowModel.row, rowModel));
@@ -325,6 +377,7 @@ export function buildTableModel(table) {
     );
     const columnTitles = buildColumnTitles(headerRows, columnCount);
     const columnDescriptors = buildColumnDescriptors(headerRows, columnTitles, columnCount);
+    const headerDescriptors = buildHeaderDescriptors(headerRows, columnDescriptors);
 
     const allRows = getOwnedTableRows(table)
         .map((row) => rowModelByElement.get(row))
@@ -339,6 +392,7 @@ export function buildTableModel(table) {
         columnCount,
         columnTitles,
         columnDescriptors,
+        headerDescriptors,
         headerRows,
         bodyRows,
         tbodyGroups,

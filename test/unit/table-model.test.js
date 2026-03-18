@@ -209,4 +209,109 @@ describe('buildTableModel', () => {
             }
         ]);
     });
+
+    it('builds header descriptors for complex headers without duplicating rowspan or colspan continuations', () => {
+        const nameHeader = mockCell('姓名', {tagName: 'TH', rowSpan: 2});
+        const scoreGroupHeader = mockCell('成绩', {tagName: 'TH', colSpan: 2});
+        const chineseHeader = mockCell('语文', {tagName: 'TH'});
+        const mathHeader = mockCell('数学', {tagName: 'TH'});
+        const table = mockTable({
+            theadRows: [
+                mockRow([nameHeader, scoreGroupHeader]),
+                mockRow([chineseHeader, mathHeader])
+            ],
+            bodySections: [[
+                mockRow([mockCell('张三'), mockCell('91'), mockCell('95')])
+            ]]
+        });
+
+        const tableModel = buildTableModel(table);
+
+        expect(tableModel.headerDescriptors).toEqual([
+            {
+                rowIndex: 0,
+                columnIndex: 0,
+                startColumnIndex: 0,
+                endColumnIndex: 0,
+                title: '姓名',
+                headerCell: nameHeader,
+                headerSpan: {colSpan: 1, rowSpan: 2},
+                isLeaf: true,
+                isActionable: true,
+                controlAnchor: nameHeader
+            },
+            {
+                rowIndex: 0,
+                columnIndex: 1,
+                startColumnIndex: 1,
+                endColumnIndex: 2,
+                title: '成绩',
+                headerCell: scoreGroupHeader,
+                headerSpan: {colSpan: 2, rowSpan: 1},
+                isLeaf: false,
+                isActionable: false,
+                controlAnchor: null
+            },
+            {
+                rowIndex: 1,
+                columnIndex: 1,
+                startColumnIndex: 1,
+                endColumnIndex: 1,
+                title: '语文',
+                headerCell: chineseHeader,
+                headerSpan: {colSpan: 1, rowSpan: 1},
+                isLeaf: true,
+                isActionable: true,
+                controlAnchor: chineseHeader
+            },
+            {
+                rowIndex: 1,
+                columnIndex: 2,
+                startColumnIndex: 2,
+                endColumnIndex: 2,
+                title: '数学',
+                headerCell: mathHeader,
+                headerSpan: {colSpan: 1, rowSpan: 1},
+                isLeaf: true,
+                isActionable: true,
+                controlAnchor: mathHeader
+            }
+        ]);
+    });
+
+    it('excludes nested table text from the outer cell logical value while keeping outer inline text', () => {
+        document.body.innerHTML = `
+            <table id="outer">
+                <thead>
+                    <tr><th>工单号</th><th>说明</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>REQ-085</td>
+                        <td>
+                            审批详情
+                            <table class="nested-demo">
+                                <tbody><tr><td>内层步骤</td></tr></tbody>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>REQ-102</td>
+                        <td>
+                            <table class="nested-demo">
+                                <tbody><tr><td>只有内层表</td></tr></tbody>
+                            </table>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        `;
+
+        const tableModel = buildTableModel(document.getElementById('outer'));
+
+        expect(tableModel.bodyRows.map((rowModel) => rowModel.cellMap[1]?.text)).toEqual([
+            '审批详情',
+            ''
+        ]);
+    });
 });

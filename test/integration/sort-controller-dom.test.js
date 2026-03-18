@@ -65,4 +65,42 @@ describe('SortController 真实 DOM 交互', () => {
         expect(getBodyRowNames(table)).toEqual(['Alice', 'Bob', 'Dana']);
         expect(Array.from(tbody.rows).some((row) => row.cells[0].textContent.trim() === 'Carol')).toBe(false);
     });
+
+    it('在外层排序时不会搬走内嵌表自己的统计行', () => {
+        const table = mountTable(`
+            <table id="outer">
+                <thead>
+                    <tr><th>工单号</th><th>概要</th><th>明细</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>REQ-085</td>
+                        <td>上线审批</td>
+                        <td>
+                            <table class="nested-demo">
+                                <tbody>
+                                    <tr data-anytable-stats-row="sum"><td>内层统计</td></tr>
+                                    <tr><td>子步骤 A</td></tr>
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr><td>REQ-121</td><td>数据回补</td><td>回补说明</td></tr>
+                    <tr><td>REQ-102</td><td>合同归档</td><td>普通文本</td></tr>
+                </tbody>
+            </table>
+        `);
+        const { controller } = createSortController(table);
+
+        controller.applySortRules(table, [
+            {column: 0, direction: 'desc', type: 'text'}
+        ]);
+
+        expect(getBodyRowNames(table)).toEqual(['REQ-121', 'REQ-102', 'REQ-085']);
+        expect(Array.from(table.querySelectorAll('.nested-demo tbody > tr')).map((row) => row.textContent.trim())).toEqual([
+            '内层统计',
+            '子步骤 A'
+        ]);
+        expect(table.tBodies[0].querySelectorAll(':scope > tr[data-anytable-stats-row]').length).toBe(0);
+    });
 });

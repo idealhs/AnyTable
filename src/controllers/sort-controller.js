@@ -1,6 +1,10 @@
 import i18n from '../i18n/i18n.js';
 import { buildNextSortRules, normalizeAdvancedSortRules } from '../core/sort-engine.js';
-import { getOwnedTableSections } from '../core/table-boundary.js';
+import {
+    getOwnedDataRowsInSection,
+    getOwnedStatsRowsInSection,
+    getOwnedTableBodySections
+} from '../core/table-boundary.js';
 import { applyTableBodyGroups, buildGloballySortedTableBodyGroups, buildTableBodyGroupsFromRows } from '../core/table-group-sort.js';
 import { createOriginalRowOrderState, getRowsInOriginalOrder, syncOriginalRowOrderState } from '../core/row-order-index.js';
 import { buildTableModel } from '../core/table-model.js';
@@ -10,21 +14,15 @@ function normalizeCollection(collection) {
 }
 
 function getTableBodyElements(table) {
-    return normalizeCollection(getOwnedTableSections(table, 'tbody'));
+    return normalizeCollection(getOwnedTableBodySections(table));
 }
 
-function getStatsRows(tbody) {
+function getStatsRows(table, tbody) {
     if (!tbody) {
         return [];
     }
 
-    if (typeof tbody.querySelectorAll === 'function') {
-        return normalizeCollection(tbody.querySelectorAll('tr[data-anytable-stats-row]'));
-    }
-
-    return normalizeCollection(tbody.getElementsByTagName?.('tr')).filter((row) => (
-        typeof row?.hasAttribute === 'function' && row.hasAttribute('data-anytable-stats-row')
-    ));
+    return getOwnedStatsRowsInSection(table, tbody);
 }
 
 function removeRow(row) {
@@ -132,7 +130,7 @@ export class SortController {
         }
 
         const tbodyElements = getTableBodyElements(table);
-        const statsRows = tbodyElements.flatMap((tbody) => getStatsRows(tbody));
+        const statsRows = tbodyElements.flatMap((tbody) => getStatsRows(table, tbody));
         removeRows(statsRows);
 
         if (!Array.isArray(rules) || rules.length === 0) {
@@ -150,7 +148,9 @@ export class SortController {
         }
 
         const primaryTbody = tbodyElements[0];
-        const firstDataRow = primaryTbody?.querySelector?.('tr:not([data-anytable-stats-row])') || null;
+        const firstDataRow = primaryTbody
+            ? getOwnedDataRowsInSection(table, primaryTbody)[0] || null
+            : null;
         for (const statsRow of statsRows) {
             if (firstDataRow && primaryTbody) {
                 primaryTbody.insertBefore(statsRow, firstDataRow);

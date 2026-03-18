@@ -1,14 +1,9 @@
 import i18n from '../i18n/i18n.js';
-
-function normalizeCollection(collection) {
-    return Array.from(collection || []);
-}
-
-function getTableBodies(table) {
-    return typeof table?.getElementsByTagName === 'function'
-        ? normalizeCollection(table.getElementsByTagName('tbody'))
-        : [];
-}
+import {
+    getOwnedDataRowsInSection,
+    getOwnedStatsRowsInSection,
+    getOwnedTableBodySections
+} from '../core/table-boundary.js';
 
 function removeRow(row) {
     if (!row) return;
@@ -49,10 +44,10 @@ function applyStatisticsCellStyles(cell) {
 export function renderStatisticsRows(table, statsData, totalColumns) {
     removeStatisticsRows(table);
 
-    const tbody = getTableBodies(table)[0];
+    const tbody = getOwnedTableBodySections(table)[0];
     if (!tbody || statsData.size === 0) return;
 
-    const firstDataRow = tbody.querySelector('tr:not([data-anytable-stats-row])');
+    const firstDataRow = getOwnedDataRowsInSection(table, tbody)[0] || null;
 
     for (const [statType, columnMap] of statsData) {
         const tr = document.createElement('tr');
@@ -81,10 +76,8 @@ export function renderStatisticsRows(table, statsData, totalColumns) {
 }
 
 export function removeStatisticsRows(table) {
-    getTableBodies(table).forEach((tbody) => {
-        const statsRows = typeof tbody.querySelectorAll === 'function'
-            ? tbody.querySelectorAll('tr[data-anytable-stats-row]')
-            : [];
+    getOwnedTableBodySections(table).forEach((tbody) => {
+        const statsRows = getOwnedStatsRowsInSection(table, tbody);
         for (const row of statsRows) {
             removeRow(row);
         }

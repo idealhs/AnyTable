@@ -2,8 +2,14 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+    getOwnedDataRowsInSection,
     getOwnedHeaderCells,
     getOwnedRowsInSection,
+    getOwnedStatsRowsInSection,
+    getOwnedTableBodySections,
+    getOwnedTableFootSections,
+    getOwnedTableHeadSections,
+    getOwnedProcessableRows,
     getOwnedTableRows,
     getOwnedTableSections
 } from '../../src/core/table-boundary.js';
@@ -61,6 +67,60 @@ describe('table-boundary', () => {
         expect(getOwnedRowsInSection(outerTable, outerBody).map((row) => row.cells[0]?.textContent.trim() || '')).toEqual([
             'REQ-085',
             'REQ-102'
+        ]);
+    });
+
+    it('returns only the current table own sections and processable rows when nested tables also contain stats rows', () => {
+        document.body.innerHTML = `
+            <table id="outer">
+                <thead>
+                    <tr><th>工单号</th><th>明细</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>REQ-085</td>
+                        <td>
+                            <table class="nested-demo">
+                                <tbody>
+                                    <tr data-anytable-stats-row="sum"><td>内层统计</td></tr>
+                                    <tr><td>内层数据</td></tr>
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr data-anytable-stats-row="count"><td>外层统计</td><td>1</td></tr>
+                    <tr><td>REQ-102</td><td>普通文本</td></tr>
+                </tbody>
+                <tfoot>
+                    <tr><td>尾部</td><td>说明</td></tr>
+                </tfoot>
+            </table>
+        `;
+
+        const outerTable = document.getElementById('outer');
+        const outerBody = outerTable.tBodies[0];
+
+        expect(getOwnedTableHeadSections(outerTable)).toHaveLength(1);
+        expect(getOwnedTableBodySections(outerTable)).toHaveLength(1);
+        expect(getOwnedTableFootSections(outerTable)).toHaveLength(1);
+        expect(getOwnedTableSections(outerTable, 'tbody')).toHaveLength(1);
+        expect(getOwnedRowsInSection(outerTable, outerBody).map((row) => row.cells[0]?.textContent.trim())).toEqual([
+            'REQ-085',
+            '外层统计',
+            'REQ-102'
+        ]);
+        expect(getOwnedDataRowsInSection(outerTable, outerBody).map((row) => row.cells[0]?.textContent.trim())).toEqual([
+            'REQ-085',
+            'REQ-102'
+        ]);
+        expect(getOwnedStatsRowsInSection(outerTable, outerBody).map((row) => row.cells[0]?.textContent.trim())).toEqual([
+            '外层统计'
+        ]);
+        expect(getOwnedProcessableRows(outerTable).map((row) => row.cells[0]?.textContent.trim())).toEqual([
+            '工单号',
+            'REQ-085',
+            'REQ-102',
+            '尾部'
         ]);
     });
 });

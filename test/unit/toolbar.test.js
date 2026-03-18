@@ -187,9 +187,12 @@ describe('Toolbar', () => {
             }
         }));
         vi.doMock('../../src/ui/shadow-ui.js', () => ({
-            createShadowSurface: vi.fn(() => {
+            createShadowSurface: vi.fn(({ hostStyles = {} } = {}) => {
                 const host = new FakeElement('anytable-shadow-host');
                 const container = new FakeElement('div');
+                Object.entries(hostStyles).forEach(([name, value]) => {
+                    host.style.setProperty(name, value);
+                });
                 lastSurface = {
                     host,
                     container,
@@ -308,6 +311,28 @@ describe('Toolbar', () => {
 
         expect(downloadTableAsCsvMock).toHaveBeenCalledTimes(1);
         expect(downloadTableAsCsvMock).toHaveBeenCalledWith(table);
+    });
+
+    it('anchors toolbar host geometry to the target table without using layout-affecting margins', () => {
+        const dependencies = createToolbarDependencies(true);
+        const toolbar = new Toolbar(dependencies);
+        const outerTable = new FakeElement('table');
+        const cell = new FakeElement('td');
+        const table = new FakeElement('table');
+        outerTable.appendChild(cell);
+        cell.appendChild(table);
+        table.offsetTop = 18;
+        table.offsetWidth = 240;
+        table.offsetLeft = 36;
+
+        toolbar.createToolbar(table);
+
+        expect(lastSurface.host.style.position).toBe('absolute');
+        expect(lastSurface.host.style.left).toBe('36px');
+        expect(lastSurface.host.style.width).toBe('240px');
+        const toolbarElement = lastSurface.container.children[0];
+        expect(toolbarElement.style.top).toBe('-8px');
+        expect(toolbarElement.style['margin-right']).toBeUndefined();
     });
 
     it('updates active button states when advanced rules and statistics change', () => {

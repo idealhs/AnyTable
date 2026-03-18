@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { mockCell, mockRow, mockSection, mockTable } from './helpers/mock-table.js';
+import { mockCell, mockRow, mockTable } from './helpers/mock-table.js';
 
 function createClassList() {
     const classes = new Set();
@@ -259,36 +259,24 @@ describe('SortController', () => {
         expect(tbody._rows.slice(1).map((row) => row.cells[0].textContent)).toEqual(['Bob', 'Alice']);
     });
 
-    it('appends statistics rows back when the tbody cannot resolve a first data row', () => {
-        const dataRow = mockRow([mockCell('Alice')]);
+    it('appends statistics rows back when the primary tbody has no current-table data rows', () => {
         const statsRow = mockRow([mockCell('stats')], {isStats: true});
-        const tbody = mockSection([dataRow, statsRow]);
-        tbody.querySelector = () => null;
-        const table = {
-            getElementsByTagName(tagName) {
-                if (tagName === 'thead') {
-                    return [mockSection([mockRow([mockCell('Name', {tagName: 'TH'})])])];
-                }
-                if (tagName === 'tbody') {
-                    return [tbody];
-                }
-                if (tagName === 'tfoot') {
-                    return [];
-                }
-                if (tagName === 'tr') {
-                    return [...tbody._rows];
-                }
-                if (tagName === 'th') {
-                    return [mockCell('Name', {tagName: 'TH'})];
-                }
-                return [];
-            }
-        };
+        const dataRow = mockRow([mockCell('Alice')]);
+        const table = mockTable({
+            theadRows: [mockRow([mockCell('Name', {tagName: 'TH'})])],
+            bodySections: [
+                [statsRow],
+                [dataRow]
+            ]
+        });
         const controller = createController();
+        const firstTbody = table.getElementsByTagName('tbody')[0];
+        const secondTbody = table.getElementsByTagName('tbody')[1];
 
         controller.applySortRules(table, []);
 
-        expect(tbody._rows.at(-1)).toBe(statsRow);
+        expect(firstTbody._rows.at(-1)).toBe(statsRow);
+        expect(secondTbody._rows[0]).toBe(dataRow);
     });
 
     it('computes the next single-column sort rule and clears advanced rules', () => {

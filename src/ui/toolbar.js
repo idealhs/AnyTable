@@ -22,6 +22,106 @@ function createSeedId(prefix) {
     return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function getElementRect(element) {
+    if (typeof element?.getBoundingClientRect === 'function') {
+        return element.getBoundingClientRect();
+    }
+
+    return null;
+}
+
+function resolveTableWidth(table) {
+    const tableRect = getElementRect(table);
+    if (tableRect && Number.isFinite(tableRect.width) && tableRect.width > 0) {
+        return tableRect.width;
+    }
+
+    const tableWidth = Number(table?.offsetWidth);
+    return Number.isFinite(tableWidth) && tableWidth > 0 ? tableWidth : null;
+}
+
+function resolveTableLeftOffset(table, parent) {
+    const tableRect = getElementRect(table);
+    const parentRect = getElementRect(parent);
+    if (tableRect && parentRect) {
+        const offset = tableRect.left - parentRect.left;
+        if (Number.isFinite(offset)) {
+            return offset;
+        }
+    }
+
+    const offsetLeft = Number(table?.offsetLeft);
+    return Number.isFinite(offsetLeft) ? offsetLeft : 0;
+}
+
+function resolveTableTopOffset(table, parent) {
+    const tableRect = getElementRect(table);
+    const parentRect = getElementRect(parent);
+    if (tableRect && parentRect) {
+        const offset = tableRect.top - parentRect.top;
+        if (Number.isFinite(offset)) {
+            return offset;
+        }
+    }
+
+    const offsetTop = Number(table?.offsetTop);
+    return Number.isFinite(offsetTop) ? offsetTop : 0;
+}
+
+function resolveToolbarHeight(toolbar) {
+    const toolbarRect = getElementRect(toolbar);
+    if (toolbarRect && Number.isFinite(toolbarRect.height) && toolbarRect.height > 0) {
+        return toolbarRect.height;
+    }
+
+    const height = Number(toolbar?.offsetHeight);
+    return Number.isFinite(height) && height > 0 ? height : 26;
+}
+
+function getElementPosition(element) {
+    const inlinePosition = element?.style?.position;
+    if (inlinePosition) {
+        return inlinePosition;
+    }
+
+    return globalThis.getComputedStyle?.(element)?.position || '';
+}
+
+function ensurePositioningContext(element) {
+    if (!element?.style) {
+        return {restore() {}};
+    }
+
+    const originalInlinePosition = element.style.position;
+    const currentPosition = getElementPosition(element);
+    const shouldUpdate = !currentPosition || currentPosition === 'static';
+
+    if (shouldUpdate) {
+        element.style.position = 'relative';
+    }
+
+    return {
+        restore() {
+            if (shouldUpdate) {
+                element.style.position = originalInlinePosition;
+            }
+        }
+    };
+}
+
+function resolveToolbarTop(table, parent, toolbar) {
+    return resolveTableTopOffset(table, parent) - resolveToolbarHeight(toolbar);
+}
+
+function resolveToolbarLeft(table, parent) {
+    return resolveTableLeftOffset(table, parent);
+}
+
+function resolveToolbarWidth(table) {
+    const width = resolveTableWidth(table);
+    return width !== null ? width : 0;
+}
+
 function buildRuleGroupFromBasicFilters(filterValues) {
     const activeEntries = Object.entries(filterValues || {})
         .filter(([, value]) => hasActiveFilterValue(value))
@@ -65,6 +165,18 @@ export class Toolbar {
         this.applyStatistics = applyStatistics;
     }
 
+    syncToolbarGeometry(table, parent, host, toolbar) {
+        if (!toolbar?.style || !host?.style) {
+            return;
+        }
+
+        host.style.setProperty('left', `${resolveToolbarLeft(table, parent)}px`);
+        host.style.setProperty('top', '0px');
+        host.style.setProperty('width', `${resolveToolbarWidth(table)}px`);
+        toolbar.style.setProperty('top', `${resolveToolbarTop(table, parent, toolbar)}px`);
+        toolbar.style.removeProperty?.('margin-right');
+    }
+
     createToolbar(table, { expanded } = {}) {
         if (toolbarMap.has(table)) {
             return;
@@ -75,10 +187,14 @@ export class Toolbar {
             return;
         }
 
+        const parentPositioningContext = ensurePositioningContext(parent);
         const surface = createShadowSurface({
             parent,
             hostStyles: {
-                position: 'relative',
+                position: 'absolute',
+                left: '0',
+                top: '0',
+                width: '0',
                 height: '0',
                 overflow: 'visible',
                 'z-index': '2'
@@ -125,12 +241,22 @@ export class Toolbar {
 
         surface.container.appendChild(toolbar);
         parent.insertBefore(surface.host, table);
+        this.syncToolbarGeometry(table, parent, surface.host, toolbar);
+
+        const geometryObserver = typeof ResizeObserver === 'function'
+            ? new ResizeObserver(() => {
+                this.syncToolbarGeometry(table, parent, surface.host, toolbar);
+            })
+            : null;
+        geometryObserver?.observe(table);
 
         toolbarMap.set(table, {
             buttons: actionButtons,
             toggleBtn,
             actions,
             destroy: surface.destroy,
+            geometryObserver,
+            parentPositioningContext,
             toolbar,
             isExpanded: true
         });
@@ -150,7 +276,9 @@ export class Toolbar {
     removeToolbar(table) {
         const toolbarEntry = toolbarMap.get(table);
         if (toolbarEntry) {
+            toolbarEntry.geometryObserver?.disconnect?.();
             toolbarEntry.destroy();
+            toolbarEntry.parentPositioningContext?.restore?.();
             toolbarMap.delete(table);
         }
     }

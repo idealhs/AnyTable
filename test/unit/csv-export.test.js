@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+
 import { describe, expect, it, vi } from 'vitest';
 import {
     buildTableCsvFilename,
@@ -49,6 +51,41 @@ describe('collectVisibleTableRows', () => {
         expect(collectVisibleTableRows(table)).toEqual([
             ['名称', '数量'],
             ['苹果', '12']
+        ]);
+    });
+
+    it('exports only the outer cell own text when a cell contains nested tables', () => {
+        document.body.innerHTML = `
+            <table id="outer">
+                <thead>
+                    <tr><th>工单号</th><th>说明</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>REQ-085</td>
+                        <td>
+                            审批详情
+                            <table class="nested-demo">
+                                <tbody><tr><td>内层步骤</td></tr></tbody>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>REQ-102</td>
+                        <td>
+                            <table class="nested-demo">
+                                <tbody><tr><td>只有内层表</td></tr></tbody>
+                            </table>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        `;
+
+        expect(collectVisibleTableRows(document.getElementById('outer'))).toEqual([
+            ['工单号', '说明'],
+            ['REQ-085', '审批详情'],
+            ['REQ-102', '']
         ]);
     });
 });
