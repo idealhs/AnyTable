@@ -1,6 +1,6 @@
 {
   "name": "anytable",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "为任意网页中的表格添加排序和筛选功能",
   "scripts": {
     "build": "node build.js",
