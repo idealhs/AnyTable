@@ -1,7 +1,28 @@
 :host {
     all: initial;
-    --anytable-button-hover-border-color: #4a90e0;
-    --anytable-button-hover-shadow: 0 0 0 2px rgba(74, 144, 224, 0.2);
+    --anytable-accent: #18865f;
+    --anytable-accent-text: #0e5a40;
+    --anytable-accent-strong: #17835d;
+    --anytable-accent-fill: #17835d;
+    --anytable-accent-fill-hover: #126848;
+    --anytable-accent-border: #b8e7d3;
+    --anytable-accent-surface: #f2fcf8;
+    --anytable-accent-surface-strong: #d9f5e8;
+    --anytable-accent-shadow: 0 0 0 2px rgba(37, 187, 136, 0.2);
+    --anytable-accent-shadow-strong: 0 0 0 2px rgba(25, 164, 114, 0.18);
+    --anytable-accent-fill-shadow: 0 0 0 2px rgba(30, 170, 119, 0.22);
+    --anytable-success: #177a59;
+    --anytable-success-border: #b9e0ce;
+    --anytable-success-surface: #eef8f3;
+    --anytable-success-shadow: 0 0 0 2px rgba(23, 122, 89, 0.18);
+    --anytable-danger: #c1121f;
+    --anytable-danger-border: #f1b4bb;
+    --anytable-danger-surface: #fff5f5;
+    --anytable-danger-shadow: 0 0 0 2px rgba(193, 18, 31, 0.18);
+    --anytable-panel-border: #d0ddd7;
+    --anytable-panel-surface: #f8fafc;
+    --anytable-button-hover-border-color: var(--anytable-accent);
+    --anytable-button-hover-shadow: var(--anytable-accent-shadow);
 }
 
 :host,
@@ -79,8 +100,8 @@
 .anytable-toolbar-control {
     height: 24px;
     padding: 0;
-    border: 1px solid #c4d9f2;
-    background: #f0f5ff;
+    border: 1px solid var(--anytable-accent-border);
+    background: var(--anytable-accent-surface);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -119,7 +140,7 @@
 }
 
 .anytable-toolbar.toolbar-collapsed .anytable-toolbar-toggle-button {
-    border-right: 1px solid #c4d9f2;
+    border-right: 1px solid var(--anytable-accent-border);
     border-radius: 3px;
 }
 
@@ -151,7 +172,7 @@
 }
 
 :host([dir="rtl"]) .anytable-toolbar:not(.toolbar-collapsed) .anytable-toolbar-toggle-button {
-    border-right: 1px solid #c4d9f2;
+    border-right: 1px solid var(--anytable-accent-border);
     border-left: none;
 }
 
@@ -164,7 +185,7 @@
 }
 
 :host([dir="rtl"]) .anytable-toolbar-actions .anytable-toolbar-button + .anytable-toolbar-button {
-    border-left: 1px solid #c4d9f2;
+    border-left: 1px solid var(--anytable-accent-border);
     border-right: none;
 }
 
@@ -173,23 +194,23 @@
 }
 
 .anytable-toolbar-control:hover {
-    border-color: #4a90e0;
-    background-color: #e0ecff;
-    box-shadow: 0 0 0 2px rgba(74, 144, 224, 0.2);
+    border-color: var(--anytable-accent);
+    background-color: var(--anytable-accent-surface-strong);
+    box-shadow: var(--anytable-accent-shadow);
 }
 
 .anytable-toolbar-button.toolbar-active {
-    --anytable-button-hover-border-color: #0f766e;
-    --anytable-button-hover-shadow: 0 0 0 2px rgba(20,184,166,0.18);
-    color: #0f766e;
-    border-color: #14b8a6;
-    background: #f0fdfa;
+    --anytable-button-hover-border-color: var(--anytable-accent-text);
+    --anytable-button-hover-shadow: var(--anytable-accent-shadow-strong);
+    color: var(--anytable-accent-text);
+    border-color: var(--anytable-accent-strong);
+    background: var(--anytable-accent-surface);
 }
 
 .anytable-toolbar-button.toolbar-active:hover {
-    border-color: #0f766e;
-    background: #ccfbf1;
-    box-shadow: 0 0 0 2px rgba(20,184,166,0.18);
+    border-color: var(--anytable-accent-text);
+    background: var(--anytable-accent-surface-strong);
+    box-shadow: var(--anytable-accent-shadow-strong);
 }
 
 .anytable-toolbar-control svg {
@@ -248,8 +269,8 @@
 }
 
 .anytable-sort-button:hover {
-    border-color: #4a90e0;
-    box-shadow: 0 0 0 2px rgba(74,144,224,0.2);
+    border-color: var(--anytable-accent);
+    box-shadow: var(--anytable-accent-shadow);
 }
 
 .anytable-filter-toggle-button {
@@ -272,22 +293,22 @@
 }
 
 .anytable-filter-toggle-button:hover {
-    border-color: #4a90e0;
-    box-shadow: 0 0 0 2px rgba(74,144,224,0.2);
+    border-color: var(--anytable-accent);
+    box-shadow: var(--anytable-accent-shadow);
 }
 
 .anytable-filter-toggle-button.filter-active {
-    --anytable-button-hover-border-color: #0f766e;
-    --anytable-button-hover-shadow: 0 0 0 2px rgba(20,184,166,0.18);
-    color: #0f766e;
-    border-color: #14b8a6;
-    background: #f0fdfa;
+    --anytable-button-hover-border-color: var(--anytable-accent-text);
+    --anytable-button-hover-shadow: var(--anytable-accent-shadow-strong);
+    color: var(--anytable-accent-text);
+    border-color: var(--anytable-accent-strong);
+    background: var(--anytable-accent-surface);
 }
 
 .anytable-filter-toggle-button.filter-active:hover {
-    border-color: #0f766e;
-    background: #ccfbf1;
-    box-shadow: 0 0 0 2px rgba(20,184,166,0.18);
+    border-color: var(--anytable-accent-text);
+    background: var(--anytable-accent-surface-strong);
+    box-shadow: var(--anytable-accent-shadow-strong);
 }
 
 .anytable-filter-toggle-button[aria-disabled="true"] {
@@ -302,13 +323,13 @@
 }
 
 .anytable-filter-toggle-button.filter-active[aria-disabled="true"] {
-    border-color: #14b8a6;
-    background: #f0fdfa;
+    border-color: var(--anytable-accent-strong);
+    background: var(--anytable-accent-surface);
 }
 
 .anytable-filter-toggle-button.filter-active[aria-disabled="true"]:hover {
-    border-color: #14b8a6;
-    background: #f0fdfa;
+    border-color: var(--anytable-accent-strong);
+    background: var(--anytable-accent-surface);
     box-shadow: none;
 }
 
@@ -403,8 +424,8 @@
 
 .filter-input:focus {
     outline: none;
-    border-color: #4a90e0;
-    box-shadow: 0 0 0 2px rgba(74,144,224,0.2);
+    border-color: var(--anytable-accent);
+    box-shadow: var(--anytable-accent-shadow);
 }
 
 .filter-input:disabled {
@@ -421,13 +442,13 @@
 
 /* 排序按钮样式 */
 .anytable-sort-button.sort-asc {
-    color: #4a90e0;
-    border-color: #4a90e0;
+    color: var(--anytable-accent);
+    border-color: var(--anytable-accent);
 }
 
 .anytable-sort-button.sort-desc {
-    color: #4a90e0;
-    border-color: #4a90e0;
+    color: var(--anytable-accent);
+    border-color: var(--anytable-accent);
 }
 
 .anytable-sort-button.sort-none {
@@ -437,7 +458,7 @@
 
 .anytable-sort-button.sort-asc:hover,
 .anytable-sort-button.sort-desc:hover {
-    background-color: #4a90e0;
+    background-color: var(--anytable-accent);
     color: white;
 }
 
@@ -568,7 +589,7 @@
 }
 
 .anytable-advanced-close:hover {
-    border-color: #4a90e0;
+    border-color: var(--anytable-accent);
     color: #1f1f1f;
 }
 
@@ -639,25 +660,25 @@
 }
 
 .anytable-advanced-btn.primary {
-    --anytable-button-hover-border-color: #0958d9;
-    --anytable-button-hover-shadow: 0 0 0 2px rgba(22, 119, 255, 0.22);
+    --anytable-button-hover-border-color: var(--anytable-accent-fill-hover);
+    --anytable-button-hover-shadow: var(--anytable-accent-fill-shadow);
     color: #fff;
-    background: #1677ff;
-    border-color: #1677ff;
+    background: var(--anytable-accent-fill);
+    border-color: var(--anytable-accent-fill);
 }
 
 .anytable-advanced-btn.danger {
-    --anytable-button-hover-border-color: #c1121f;
-    --anytable-button-hover-shadow: 0 0 0 2px rgba(193, 18, 31, 0.18);
-    color: #c1121f;
-    border-color: #f1b4bb;
+    --anytable-button-hover-border-color: var(--anytable-danger);
+    --anytable-button-hover-shadow: var(--anytable-danger-shadow);
+    color: var(--anytable-danger);
+    border-color: var(--anytable-danger-border);
 }
 
 .anytable-advanced-btn.danger:hover {
-    border-color: #c1121f;
-    background: #fff5f5;
-    color: #c1121f;
-    box-shadow: 0 0 0 2px rgba(193, 18, 31, 0.18);
+    border-color: var(--anytable-danger);
+    background: var(--anytable-danger-surface);
+    color: var(--anytable-danger);
+    box-shadow: var(--anytable-danger-shadow);
 }
 
 .anytable-advanced-hint {
@@ -668,7 +689,7 @@
 }
 
 .anytable-advanced-hint.error {
-    color: #c1121f;
+    color: var(--anytable-danger);
 }
 
 .anytable-adv-rule-list {
@@ -722,11 +743,11 @@
 }
 
 .anytable-adv-negate.active {
-    --anytable-button-hover-border-color: #c1121f;
-    --anytable-button-hover-shadow: 0 0 0 2px rgba(193, 18, 31, 0.18);
+    --anytable-button-hover-border-color: var(--anytable-danger);
+    --anytable-button-hover-shadow: var(--anytable-danger-shadow);
     color: #fff;
-    background: #c1121f;
-    border-color: #c1121f;
+    background: var(--anytable-danger);
+    border-color: var(--anytable-danger);
 }
 
 .anytable-adv-comparator {
@@ -771,14 +792,14 @@
 }
 
 .anytable-adv-remove-rule {
-    --anytable-button-hover-border-color: #c1121f;
-    --anytable-button-hover-shadow: 0 0 0 2px rgba(193, 18, 31, 0.18);
+    --anytable-button-hover-border-color: var(--anytable-danger);
+    --anytable-button-hover-shadow: var(--anytable-danger-shadow);
     flex-shrink: 0;
     height: 32px;
-    border: 1px solid #f1b4bb;
+    border: 1px solid var(--anytable-danger-border);
     border-radius: 4px;
     background: #fff;
-    color: #c1121f;
+    color: var(--anytable-danger);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 13px;
     font-weight: 400;
@@ -789,20 +810,20 @@
 }
 
 .anytable-adv-remove-rule:hover {
-    border-color: #c1121f;
-    background: #fff5f5;
-    color: #c1121f;
-    box-shadow: 0 0 0 2px rgba(193, 18, 31, 0.18);
+    border-color: var(--anytable-danger);
+    background: var(--anytable-danger-surface);
+    color: var(--anytable-danger);
+    box-shadow: var(--anytable-danger-shadow);
 }
 
 .anytable-adv-remove-sort-rule {
-    --anytable-button-hover-border-color: #c1121f;
-    --anytable-button-hover-shadow: 0 0 0 2px rgba(193, 18, 31, 0.18);
+    --anytable-button-hover-border-color: var(--anytable-danger);
+    --anytable-button-hover-shadow: var(--anytable-danger-shadow);
     height: 32px;
-    border: 1px solid #f1b4bb;
+    border: 1px solid var(--anytable-danger-border);
     border-radius: 4px;
     background: #fff;
-    color: #c1121f;
+    color: var(--anytable-danger);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 13px;
     font-weight: 400;
@@ -815,21 +836,21 @@
 }
 
 .anytable-adv-remove-sort-rule:hover {
-    border-color: #c1121f;
-    background: #fff5f5;
-    color: #c1121f;
-    box-shadow: 0 0 0 2px rgba(193, 18, 31, 0.18);
+    border-color: var(--anytable-danger);
+    background: var(--anytable-danger-surface);
+    color: var(--anytable-danger);
+    box-shadow: var(--anytable-danger-shadow);
 }
 
 .anytable-adv-sort-direction,
 .anytable-adv-inline-operator {
-    --anytable-button-hover-border-color: #2e7d32;
-    --anytable-button-hover-shadow: 0 0 0 2px rgba(46, 125, 50, 0.18);
+    --anytable-button-hover-border-color: var(--anytable-success);
+    --anytable-button-hover-shadow: var(--anytable-success-shadow);
     height: 32px;
-    border: 1px solid #b7deb8;
+    border: 1px solid var(--anytable-success-border);
     border-radius: 4px;
-    background: #edf7ee;
-    color: #2e7d32;
+    background: var(--anytable-success-surface);
+    color: var(--anytable-success);
     padding: 0 8px;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 13px;
@@ -855,11 +876,11 @@
 
 .anytable-adv-sort-direction[data-sort-direction="desc"],
 .anytable-adv-inline-operator[data-filter-operator="OR"] {
-    --anytable-button-hover-border-color: #c1121f;
-    --anytable-button-hover-shadow: 0 0 0 2px rgba(193, 18, 31, 0.18);
-    border-color: #f1b4bb;
+    --anytable-button-hover-border-color: var(--anytable-danger);
+    --anytable-button-hover-shadow: var(--anytable-danger-shadow);
+    border-color: var(--anytable-danger-border);
     background: #fef0f1;
-    color: #c1121f;
+    color: var(--anytable-danger);
 }
 
 .anytable-adv-select-btn {
@@ -961,12 +982,12 @@
 }
 
 .anytable-adv-select-option:hover {
-    background: #f0f5ff;
+    background: var(--anytable-accent-surface);
 }
 
 .anytable-adv-select-option.selected {
-    background: #e6f0ff;
-    color: #1677ff;
+    background: var(--anytable-accent-surface-strong);
+    color: var(--anytable-accent-fill);
     font-weight: 500;
 }
 
@@ -1019,10 +1040,10 @@
 
 /* 分组容器样式 */
 .anytable-adv-rule-group {
-    border: 1px solid #d0d5dd;
-    border-left: 3px solid #4a90e0;
+    border: 1px solid var(--anytable-panel-border);
+    border-left: 3px solid var(--anytable-accent);
     border-radius: 6px;
-    background: #f8fafc;
+    background: var(--anytable-panel-surface);
 }
 
 .anytable-adv-rule-group .anytable-adv-rule-group {
@@ -1030,7 +1051,7 @@
 }
 
 .anytable-adv-rule-group .anytable-adv-rule-group .anytable-adv-rule-group {
-    background: #f8fafc;
+    background: var(--anytable-panel-surface);
 }
 
 .anytable-adv-group-header {
@@ -1049,13 +1070,13 @@
 }
 
 .anytable-adv-remove-group {
-    --anytable-button-hover-border-color: #c1121f;
-    --anytable-button-hover-shadow: 0 0 0 2px rgba(193, 18, 31, 0.18);
+    --anytable-button-hover-border-color: var(--anytable-danger);
+    --anytable-button-hover-shadow: var(--anytable-danger-shadow);
     height: 28px;
-    border: 1px solid #f1b4bb;
+    border: 1px solid var(--anytable-danger-border);
     border-radius: 4px;
     background: #fff;
-    color: #c1121f;
+    color: var(--anytable-danger);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 12px;
     font-weight: 400;
@@ -1066,10 +1087,10 @@
 }
 
 .anytable-adv-remove-group:hover {
-    border-color: #c1121f;
-    background: #fff5f5;
-    color: #c1121f;
-    box-shadow: 0 0 0 2px rgba(193, 18, 31, 0.18);
+    border-color: var(--anytable-danger);
+    background: var(--anytable-danger-surface);
+    color: var(--anytable-danger);
+    box-shadow: var(--anytable-danger-shadow);
 }
 
 .anytable-adv-group-children {
@@ -1096,8 +1117,8 @@
 }
 
 :host([dir="rtl"]) .anytable-adv-rule-group {
-    border-right: 3px solid #4a90e0;
-    border-left: 1px solid #d0d5dd;
+    border-right: 3px solid var(--anytable-accent);
+    border-left: 1px solid var(--anytable-panel-border);
 }
 
 :host([dir="rtl"]) .anytable-adv-rule-grid .anytable-adv-value,

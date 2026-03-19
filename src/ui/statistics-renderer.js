@@ -29,15 +29,15 @@ function getStatTypeLabel(statType) {
 }
 
 function applyStatisticsRowStyles(row) {
-    row.style.background = '#f0f7ff';
-    row.style.borderBottom = '1px solid #d0e3f7';
+    row.style.background = '#effcf7';
+    row.style.borderBottom = '1px solid #cbeada';
     row.style.fontSize = '12px';
     row.style.fontWeight = '500';
 }
 
 function applyStatisticsCellStyles(cell) {
     cell.style.padding = '4px 8px';
-    cell.style.color = '#1a5276';
+    cell.style.color = '#12684e';
     cell.style.whiteSpace = 'nowrap';
 }
 

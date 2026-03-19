@@ -116,13 +116,13 @@ export class PickingMode {
         table.style.cursor = isPickable ? 'pointer' : original.cursor;
 
         if (isPicked) {
-            table.style.outline = '2px solid #4a90e2';
+            table.style.outline = '2px solid #18865f';
             table.style.outlineOffset = '2px';
             return;
         }
 
         if (isPickable) {
-            table.style.outline = '2px dashed #4a90e2';
+            table.style.outline = '2px dashed #18865f';
             table.style.outlineOffset = '2px';
             return;
         }
