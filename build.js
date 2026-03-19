@@ -40,6 +40,7 @@ console.log('开始打包...');
 archive.file('manifest.json', { name: 'manifest.json' });
 archive.file('popup.html', { name: 'popup.html' });
 archive.file('popup.js', { name: 'popup.js' });
+archive.file('popup.css', { name: 'popup.css' });
 archive.file('README.md', { name: 'README.md' });
 archive.file('LICENSE', { name: 'LICENSE' });
 

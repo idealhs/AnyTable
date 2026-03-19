@@ -1,6 +1,7 @@
 import {
     DEFAULT_LOCALE,
     FALLBACK_LOCALE,
+    findSupportedLocale,
     getLocaleDefinition,
     LOCALE_MAP,
     normalizeLocaleCode
@@ -22,22 +23,65 @@ class I18n {
         if (this.loaded) return;
 
         try {
-            // 从浏览器存储中获取语言设置
-            const browser = window.browser || chrome;
-            const result = await browser.storage.local.get('locale');
-            const storedLocale = normalizeLocaleCode(result.locale);
-
-            if (storedLocale) {
-                this.currentLocale = storedLocale;
-            }
-
-            // 加载语言包
+            const browser = this.getBrowserApi();
+            this.currentLocale = await this.resolveInitialLocale(browser);
             await this.loadTranslations();
             this.registerStorageListener(browser);
             this.loaded = true;
         } catch (error) {
             console.error('Failed to initialize i18n:', error);
         }
+    }
+
+    getBrowserApi() {
+        return globalThis.window?.browser || globalThis.browser || globalThis.chrome || null;
+    }
+
+    async resolveInitialLocale(browser) {
+        try {
+            const result = await browser?.storage?.local?.get?.('locale');
+            const storedLocale = normalizeLocaleCode(result?.locale);
+
+            if (storedLocale) {
+                return storedLocale;
+            }
+        } catch (error) {
+            console.warn('Failed to read stored locale, falling back to environment detection:', error);
+        }
+
+        const detectedLocale = this.detectEnvironmentLocale(browser) || FALLBACK_LOCALE;
+
+        try {
+            await browser?.storage?.local?.set?.({ locale: detectedLocale });
+        } catch (error) {
+            console.warn(`Failed to persist initial locale ${detectedLocale}:`, error);
+        }
+
+        return detectedLocale;
+    }
+
+    detectEnvironmentLocale(browser) {
+        const navigatorRef = globalThis.window?.navigator || globalThis.navigator;
+        const localeCandidates = [];
+        const uiLocale = browser?.i18n?.getUILanguage?.();
+
+        if (typeof uiLocale === 'string') {
+            localeCandidates.push(uiLocale);
+        }
+
+        if (Array.isArray(navigatorRef?.languages)) {
+            localeCandidates.push(...navigatorRef.languages);
+        }
+
+        if (typeof navigatorRef?.language === 'string') {
+            localeCandidates.push(navigatorRef.language);
+        }
+
+        if (typeof navigatorRef?.userLanguage === 'string') {
+            localeCandidates.push(navigatorRef.userLanguage);
+        }
+
+        return findSupportedLocale(localeCandidates);
     }
 
     // 加载语言包
@@ -67,14 +111,14 @@ class I18n {
         }
 
         try {
-            const browser = window.browser || chrome;
+            const browser = this.getBrowserApi();
             this.pendingLocale = normalizedLocale;
-            await browser.storage.local.set({ locale: normalizedLocale });
+            await browser?.storage?.local?.set?.({ locale: normalizedLocale });
             this.currentLocale = normalizedLocale;
             await this.loadTranslations();
 
             // 触发语言变更事件
-            window.dispatchEvent(new CustomEvent('localeChanged', {
+            globalThis.window?.dispatchEvent(new CustomEvent('localeChanged', {
                 detail: { locale: this.currentLocale }
             }));
         } catch (error) {
@@ -108,7 +152,7 @@ class I18n {
             try {
                 this.currentLocale = nextLocale;
                 await this.loadTranslations();
-                window.dispatchEvent(new CustomEvent('localeChanged', {
+                globalThis.window?.dispatchEvent(new CustomEvent('localeChanged', {
                     detail: { locale: this.currentLocale }
                 }));
             } catch (error) {

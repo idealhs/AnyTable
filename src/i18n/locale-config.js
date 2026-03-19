@@ -1,5 +1,5 @@
-export const DEFAULT_LOCALE = 'zh-CN';
 export const FALLBACK_LOCALE = 'en-US';
+export const DEFAULT_LOCALE = FALLBACK_LOCALE;
 
 export const LOCALE_DEFINITIONS = [
     {
@@ -95,6 +95,10 @@ export const LOCALE_DEFINITIONS = [
 const LOCALE_ALIASES = {
     en: 'en-US',
     zh: 'zh-CN',
+    'zh-hans': 'zh-CN',
+    'zh-hant': 'zh-TW',
+    'zh-hk': 'zh-TW',
+    'zh-mo': 'zh-TW',
     es: 'es-ES',
     fr: 'fr-FR',
     de: 'de-DE',
@@ -111,6 +115,21 @@ export const LOCALE_MAP = Object.fromEntries(
         localeDefinition.load
     ])
 );
+
+export function findSupportedLocale(localeCodes) {
+    if (!Array.isArray(localeCodes)) {
+        return null;
+    }
+
+    for (const localeCode of localeCodes) {
+        const normalizedLocaleCode = normalizeLocaleCode(localeCode);
+        if (normalizedLocaleCode) {
+            return normalizedLocaleCode;
+        }
+    }
+
+    return null;
+}
 
 export function normalizeLocaleCode(localeCode) {
     if (typeof localeCode !== 'string') {

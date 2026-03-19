@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+    findSupportedLocale,
     DEFAULT_LOCALE,
     FALLBACK_LOCALE,
     LOCALE_DEFINITIONS,
@@ -34,7 +35,7 @@ function collectLeafKeys(value, prefix = '') {
 
 describe('locale-config', () => {
     it('exposes all required locales in the expected order', () => {
-        expect(DEFAULT_LOCALE).toBe('zh-CN');
+        expect(DEFAULT_LOCALE).toBe('en-US');
         expect(FALLBACK_LOCALE).toBe('en-US');
         expect(LOCALE_DEFINITIONS.map(({ code }) => code)).toEqual(REQUIRED_LOCALES);
     });
@@ -43,9 +44,17 @@ describe('locale-config', () => {
         expect(normalizeLocaleCode('zh')).toBe('zh-CN');
         expect(normalizeLocaleCode('en')).toBe('en-US');
         expect(normalizeLocaleCode('zh_tw')).toBe('zh-TW');
+        expect(normalizeLocaleCode('zh-HK')).toBe('zh-TW');
+        expect(normalizeLocaleCode('zh-Hant')).toBe('zh-TW');
         expect(normalizeLocaleCode('AR')).toBe('ar-SA');
         expect(normalizeLocaleCode('ja-JP')).toBe('ja-JP');
         expect(normalizeLocaleCode('unknown')).toBeNull();
+    });
+
+    it('selects the first supported locale from a candidate list', () => {
+        expect(findSupportedLocale(['unknown', 'zh-HK', 'en-GB'])).toBe('zh-TW');
+        expect(findSupportedLocale(['pt-BR', 'es-MX'])).toBe('pt-PT');
+        expect(findSupportedLocale(['', null, undefined])).toBeNull();
     });
 
     it('returns locale metadata including RTL direction', () => {

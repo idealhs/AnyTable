@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://github.com/idealhs/AnyTable"><img src="https://img.shields.io/badge/Browser-Extension-2ea44f" alt="Browser Extension"></a>
-  <a href="https://github.com/idealhs/AnyTable/releases"><img src="https://img.shields.io/badge/Version-1.1.0-0969da" alt="Version"></a>
+  <a href="https://github.com/idealhs/AnyTable/releases"><img src="https://img.shields.io/badge/Version-1.2.1-0969da" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-24292f" alt="License"></a>
 </p>
 

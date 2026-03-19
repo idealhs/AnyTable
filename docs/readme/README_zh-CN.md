@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://github.com/idealhs/AnyTable"><img src="https://img.shields.io/badge/浏览器-扩展程序-2ea44f" alt="Browser Extension"></a>
-  <a href="https://github.com/idealhs/AnyTable/releases"><img src="https://img.shields.io/badge/版本-1.1.0-0969da" alt="Version"></a>
+  <a href="https://github.com/idealhs/AnyTable/releases"><img src="https://img.shields.io/badge/版本-1.2.1-0969da" alt="Version"></a>
   <a href="../../LICENSE"><img src="https://img.shields.io/badge/许可证-GPL--3.0-24292f" alt="License"></a>
 </p>
 
