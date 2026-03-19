@@ -1,6 +1,6 @@
 import { buildColumnOptionGroups, buildSelectButtonHtml, getPanelColumnLabel } from './advanced-panel-common.js';
 import { escapeHtml, setInnerHTML, translate } from './panel-utils.js';
-import { FILTER_COMPARATOR_VALUES, FILTER_OPERATOR_VALUES, isFilterGroup } from './filter-panel-state.js';
+import { FILTER_COMPARATOR_VALUES, isFilterGroup } from './filter-panel-state.js';
 import { getDropdownOptionLabel } from './dropdown-popup.js';
 
 function getComparatorTranslationKey(value) {
@@ -25,17 +25,32 @@ function buildComparatorOptionGroups() {
     }))];
 }
 
-function buildOperatorOptionGroups() {
-    return [FILTER_OPERATOR_VALUES.map((value) => ({
-        value,
-        label: translate(`advancedPanel.filter.operator.${value.toLowerCase()}`)
-    }))];
+export function normalizeFilterOperator(operator) {
+    return operator === 'OR' ? 'OR' : 'AND';
 }
 
-function buildFilterOperatorHtml(operator, operatorOptions) {
+export function getFilterOperatorLabel(operator) {
+    return normalizeFilterOperator(operator);
+}
+
+export function getFilterOperatorTooltip(operator) {
+    const normalizedOperator = normalizeFilterOperator(operator);
+    return translate(`advancedPanel.filter.operatorTooltip.${normalizedOperator.toLowerCase()}`) || normalizedOperator;
+}
+
+function buildFilterOperatorHtml(operator) {
+    const normalizedOperator = normalizeFilterOperator(operator);
+    const tooltip = getFilterOperatorTooltip(normalizedOperator);
     return `
         <div class="anytable-adv-rule-operator">
-            ${buildSelectButtonHtml('anytable-adv-inline-operator', operator, getDropdownOptionLabel(operatorOptions, operator, operator))}
+            <button
+                type="button"
+                class="anytable-adv-inline-operator"
+                data-filter-operator="${normalizedOperator}"
+                data-value="${normalizedOperator}"
+                title="${escapeHtml(tooltip)}"
+                aria-label="${escapeHtml(tooltip)}"
+            >${escapeHtml(getFilterOperatorLabel(normalizedOperator))}</button>
         </div>
     `;
 }
@@ -94,7 +109,7 @@ function buildFilterChildrenHtml(children, depth, optionSets) {
     let html = '';
     children.forEach((child, index) => {
         if (index > 0) {
-            html += buildFilterOperatorHtml(child.operator || 'AND', optionSets.operatorOptions);
+            html += buildFilterOperatorHtml(child.operator || 'AND');
         }
 
         html += isFilterGroup(child)
@@ -109,8 +124,7 @@ export function createFilterOptionSets(columnTitles) {
     return {
         columnTitles,
         columnOptions: buildColumnOptionGroups(columnTitles),
-        comparatorOptions: buildComparatorOptionGroups(),
-        operatorOptions: buildOperatorOptionGroups()
+        comparatorOptions: buildComparatorOptionGroups()
     };
 }
 

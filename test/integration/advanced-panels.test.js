@@ -424,8 +424,11 @@ describe('高级面板真实 DOM 交互', () => {
         expect(group.querySelectorAll('.anytable-adv-group-children > .anytable-adv-rule-row')).toHaveLength(2);
 
         const operatorButton = group.querySelector('.anytable-adv-group-children > .anytable-adv-rule-operator .anytable-adv-inline-operator');
+        expect(operatorButton.textContent).toBe('AND');
+        expect(operatorButton.title).toBe('advancedPanel.filter.operatorTooltip.and');
         operatorButton.click();
-        findOpenDropdownOption('advancedPanel.filter.operator.or').click();
+        expect(operatorButton.textContent).toBe('OR');
+        expect(operatorButton.title).toBe('advancedPanel.filter.operatorTooltip.or');
 
         panel.dialog.parentElement.querySelector('.anytable-advanced-apply').click();
 

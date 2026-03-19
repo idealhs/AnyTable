@@ -407,7 +407,7 @@ describe('filter-panel-events', () => {
         expect(children[0].operator).toBeUndefined();
     });
 
-    it('opens the operator dropdown and writes the selected operator back to the matching child node', () => {
+    it('toggles the operator button and writes the selected operator back to the matching child node', () => {
         const containerElement = document.createElement('div');
         const operator = createOperatorElement();
         const targetRule = createRuleElement('rule-1');
@@ -433,23 +433,18 @@ describe('filter-panel-events', () => {
             reRender: vi.fn()
         });
 
-        expect(setDropdownButtonValueMock).toHaveBeenCalledWith(operator.button, 'OR', 'OR');
+        expect(operator.button.textContent).toBe('OR');
+        expect(operator.button.title).toBe('translated:advancedPanel.filter.operatorTooltip.or');
+        expect(operator.button.getAttribute('data-filter-operator')).toBe('OR');
 
         operator.button.click();
 
-        expect(openDropdownPopupMock).toHaveBeenCalledTimes(1);
-        expect(openDropdownPopupMock).toHaveBeenCalledWith(expect.objectContaining({
-            anchorButton: operator.button,
-            currentValue: 'OR',
-            groups: createOptionSets().operatorOptions,
-            onSelect: expect.any(Function)
-        }));
-
-        const [{ onSelect }] = openDropdownPopupMock.mock.calls[0];
-        onSelect('AND');
-
+        expect(closeDropdownPopupMock).toHaveBeenCalledTimes(1);
+        expect(openDropdownPopupMock).not.toHaveBeenCalled();
         expect(children[0].operator).toBe('AND');
-        expect(setDropdownButtonValueMock).toHaveBeenLastCalledWith(operator.button, 'AND', 'AND');
+        expect(operator.button.textContent).toBe('AND');
+        expect(operator.button.title).toBe('translated:advancedPanel.filter.operatorTooltip.and');
+        expect(operator.button.getAttribute('data-filter-operator')).toBe('AND');
     });
 
     it('updates rule flags, value, range inputs, and negate state through bound DOM events', () => {

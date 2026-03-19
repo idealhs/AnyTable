@@ -9,6 +9,11 @@ import {
 } from './filter-panel-state.js';
 import { getPanelColumnLabel } from './advanced-panel-common.js';
 import { translate } from './panel-utils.js';
+import {
+    getFilterOperatorLabel,
+    getFilterOperatorTooltip,
+    normalizeFilterOperator
+} from './filter-panel-renderer.js';
 
 function findDirectChildByClass(containerElement, className) {
     return Array.from(containerElement?.children || []).find((element) => (
@@ -38,6 +43,20 @@ function getNextSiblingNodeId(operatorElement) {
     }
 
     return null;
+}
+
+function setFilterOperatorButtonState(button, operator) {
+    if (!button) {
+        return;
+    }
+
+    const normalizedOperator = normalizeFilterOperator(operator);
+    const tooltip = getFilterOperatorTooltip(normalizedOperator);
+    button.textContent = getFilterOperatorLabel(normalizedOperator);
+    button.title = tooltip;
+    button.setAttribute('aria-label', tooltip);
+    button.setAttribute('data-filter-operator', normalizedOperator);
+    button.setAttribute('data-value', normalizedOperator);
 }
 
 export function setupFilterComparatorVisibility(rowElement) {
@@ -73,18 +92,13 @@ export function bindFilterTreeEvents({
             if (button && ruleId !== null) {
                 const index = findFilterNodeIndex(children, ruleId);
                 if (index >= 0) {
-                    const currentValue = children[index].operator || 'AND';
-                    setDropdownButtonValue(button, currentValue, getDropdownOptionLabel(optionSets.operatorOptions, currentValue, currentValue));
+                    setFilterOperatorButtonState(button, children[index].operator);
                     button.addEventListener('click', () => {
-                        openDropdownPopup({
-                            anchorButton: button,
-                            currentValue: children[index].operator || 'AND',
-                            groups: optionSets.operatorOptions,
-                            onSelect: (newValue) => {
-                                children[index].operator = newValue;
-                                setDropdownButtonValue(button, newValue, getDropdownOptionLabel(optionSets.operatorOptions, newValue, newValue));
-                            }
-                        });
+                        closeDropdownPopup();
+                        const currentValue = normalizeFilterOperator(children[index].operator);
+                        const nextValue = currentValue === 'AND' ? 'OR' : 'AND';
+                        children[index].operator = nextValue;
+                        setFilterOperatorButtonState(button, nextValue);
                     });
                 }
             }

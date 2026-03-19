@@ -123,8 +123,12 @@ export default {
         filter: {
             title: 'Advanced Filter',
             operator: {
-                and: 'AND (all conditions)',
-                or: 'OR (any condition)'
+                and: 'AND',
+                or: 'OR'
+            },
+            operatorTooltip: {
+                and: 'Match all conditions',
+                or: 'Match any condition'
             },
             addRule: '+ Add Condition',
             negateTooltip: 'Negate this condition',

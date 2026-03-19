@@ -123,8 +123,12 @@ export default {
         filter: {
             title: '高级筛选',
             operator: {
-                and: 'AND（并且）',
-                or: 'OR（或者）'
+                and: 'AND',
+                or: 'OR'
+            },
+            operatorTooltip: {
+                and: '并且',
+                or: '或者'
             },
             addRule: '+ 添加条件',
             negateTooltip: '取反当前条件',
