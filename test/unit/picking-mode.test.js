@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PickingMode } from '../../src/picking-mode.js';
 
+const PICKING_ACCENT = '#18865f';
+
 function createClassList() {
     const classes = new Set();
     return {
@@ -96,7 +98,7 @@ describe('PickingMode', () => {
         expect(selectedTables.has(table)).toBe(true);
         expect(table.classList.contains('anytable-picked')).toBe(true);
         expect(table.classList.contains('anytable-pickable')).toBe(false);
-        expect(table.style.outline).toBe('2px solid #4a90e2');
+        expect(table.style.outline).toBe(`2px solid ${PICKING_ACCENT}`);
         expect(table.style.cursor).toBe('');
         expect(pickingMode.isPicking).toBe(false);
         expect(event.preventDefault).toHaveBeenCalledOnce();
@@ -171,7 +173,7 @@ describe('PickingMode', () => {
         expect(previousTable.style.outline).toBe('');
         expect(currentTable.classList.contains('anytable-pickable')).toBe(true);
         expect(currentTable.style.cursor).toBe('pointer');
-        expect(currentTable.style.outline).toBe('2px dashed #4a90e2');
+        expect(currentTable.style.outline).toBe(`2px dashed ${PICKING_ACCENT}`);
         expect(currentTable.style.outlineOffset).toBe('2px');
     });
 

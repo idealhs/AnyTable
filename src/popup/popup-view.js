@@ -1,13 +1,9 @@
 import { LOCALE_DEFINITIONS, getLocaleDefinition } from '../i18n/locale-config.js';
 
 const STATUS_HIDE_DELAY = 2600;
+const SVG_NS = 'http://www.w3.org/2000/svg';
 const browserApi = globalThis.browser || globalThis.chrome;
 const BRAND_LOGO_URL = browserApi?.runtime?.getURL('icons/anytable-96.png') || 'icons/anytable-96.png';
-const LOCALE_CHECK_ICON = `
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <path d="M3.5 8.5L6.5 11.5L12.5 5.5"></path>
-    </svg>
-`;
 
 function createElements(documentRef) {
     return {
@@ -35,6 +31,61 @@ function updateI18nElements(documentRef, i18n) {
         const key = element.getAttribute('data-i18n');
         element.textContent = i18n.t(key);
     });
+}
+
+function createLocaleCheckIcon(documentRef) {
+    const iconWrapper = documentRef.createElement('span');
+    iconWrapper.className = 'locale-option__check';
+    iconWrapper.setAttribute('aria-hidden', 'true');
+
+    const icon = documentRef.createElementNS(SVG_NS, 'svg');
+    icon.setAttribute('viewBox', '0 0 16 16');
+    icon.setAttribute('fill', 'none');
+    icon.setAttribute('aria-hidden', 'true');
+
+    const path = documentRef.createElementNS(SVG_NS, 'path');
+    path.setAttribute('d', 'M3.5 8.5L6.5 11.5L12.5 5.5');
+
+    icon.appendChild(path);
+    iconWrapper.appendChild(icon);
+    return iconWrapper;
+}
+
+function createLocaleOptionButton(documentRef, localeDefinition, onSelectLocale) {
+    const button = documentRef.createElement('button');
+    button.type = 'button';
+    button.className = 'locale-option';
+    button.dataset.locale = localeDefinition.code;
+
+    const copy = documentRef.createElement('span');
+    copy.className = 'locale-option__copy';
+
+    const nativeName = documentRef.createElement('span');
+    nativeName.className = 'locale-option__native';
+    nativeName.textContent = localeDefinition.nativeName;
+
+    const englishName = documentRef.createElement('span');
+    englishName.className = 'locale-option__english';
+    englishName.textContent = localeDefinition.englishName;
+
+    copy.append(nativeName, englishName);
+
+    const meta = documentRef.createElement('span');
+    meta.className = 'locale-option__meta';
+
+    const shortLabel = documentRef.createElement('span');
+    shortLabel.className = 'locale-option__short';
+    shortLabel.textContent = localeDefinition.shortLabel;
+
+    meta.append(shortLabel, createLocaleCheckIcon(documentRef));
+    button.append(copy, meta);
+
+    button.addEventListener('click', async (event) => {
+        event.stopPropagation();
+        await onSelectLocale(localeDefinition.code);
+    });
+
+    return button;
 }
 
 function formatHostLabel(i18n, url) {
@@ -92,27 +143,10 @@ export function createPopupView({
     });
 
     function renderLocaleOptions(onSelectLocale) {
-        elements.localeMenuList.innerHTML = '';
+        elements.localeMenuList.replaceChildren();
 
         localeDefinitions.forEach((localeDefinition) => {
-            const button = documentRef.createElement('button');
-            button.type = 'button';
-            button.className = 'locale-option';
-            button.dataset.locale = localeDefinition.code;
-            button.innerHTML = `
-                <span class="locale-option__copy">
-                    <span class="locale-option__native">${localeDefinition.nativeName}</span>
-                    <span class="locale-option__english">${localeDefinition.englishName}</span>
-                </span>
-                <span class="locale-option__meta">
-                    <span class="locale-option__short">${localeDefinition.shortLabel}</span>
-                    <span class="locale-option__check">${LOCALE_CHECK_ICON}</span>
-                </span>
-            `;
-            button.addEventListener('click', async (event) => {
-                event.stopPropagation();
-                await onSelectLocale(localeDefinition.code);
-            });
+            const button = createLocaleOptionButton(documentRef, localeDefinition, onSelectLocale);
             elements.localeMenuList.appendChild(button);
         });
     }
