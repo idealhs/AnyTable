@@ -32,6 +32,7 @@
     width: 100%;
     height: 100%;
     pointer-events: none;
+    direction: inherit;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     color: #1f1f1f;
 }
@@ -41,6 +42,7 @@
     width: 100%;
     height: 100%;
     overflow: visible;
+    direction: inherit;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     color: #1f1f1f;
 }
@@ -51,6 +53,7 @@
     height: 100%;
     overflow: visible;
     pointer-events: none;
+    direction: inherit;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     color: #1f1f1f;
 }
@@ -143,6 +146,32 @@
     border-radius: 0 3px 3px 0;
 }
 
+:host([dir="rtl"]) .anytable-toolbar-toggle-button {
+    border-radius: 0 3px 3px 0;
+}
+
+:host([dir="rtl"]) .anytable-toolbar:not(.toolbar-collapsed) .anytable-toolbar-toggle-button {
+    border-right: 1px solid #c4d9f2;
+    border-left: none;
+}
+
+:host([dir="rtl"]) .anytable-toolbar-actions {
+    transform-origin: left center;
+}
+
+:host([dir="rtl"]) .anytable-toolbar.toolbar-collapsed .anytable-toolbar-actions {
+    transform: translateX(-8px);
+}
+
+:host([dir="rtl"]) .anytable-toolbar-actions .anytable-toolbar-button + .anytable-toolbar-button {
+    border-left: 1px solid #c4d9f2;
+    border-right: none;
+}
+
+:host([dir="rtl"]) .anytable-toolbar-actions .anytable-toolbar-button:last-child {
+    border-radius: 3px 0 0 3px;
+}
+
 .anytable-toolbar-control:hover {
     border-color: #4a90e0;
     background-color: #e0ecff;
@@ -173,6 +202,10 @@
 .anytable-toolbar-toggle-button svg {
     width: 14px;
     height: 14px;
+}
+
+:host([dir="rtl"]) .anytable-toolbar-toggle-button svg {
+    transform: scaleX(-1);
 }
 
 /* 筛选切换按钮样式 */
@@ -474,6 +507,7 @@
     display: flex;
     flex-direction: column;
     pointer-events: auto;
+    direction: inherit;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     color: #1f1f1f;
 }
@@ -487,9 +521,26 @@
 }
 
 .anytable-advanced-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
     font-size: 16px;
     font-weight: 600;
     color: #1f1f1f;
+}
+
+.anytable-advanced-title-logo {
+    width: 22px;
+    height: 22px;
+    flex: 0 0 auto;
+    display: block;
+    object-fit: contain;
+    border-radius: 7px;
+    box-shadow: 0 4px 10px rgba(42, 132, 97, 0.16);
+}
+
+.anytable-advanced-title-text {
+    min-width: 0;
 }
 
 .anytable-advanced-close {
@@ -613,6 +664,7 @@
     min-height: 16px;
     font-size: 12px;
     color: #5c5c5c;
+    text-align: start;
 }
 
 .anytable-advanced-hint.error {
@@ -826,7 +878,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: flex-start;
-    text-align: left;
+    text-align: start;
     min-width: 0;
     max-width: 100%;
     overflow: hidden;
@@ -871,6 +923,7 @@
     flex-direction: column;
     overflow: hidden;
     pointer-events: auto;
+    direction: inherit;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     color: #1f1f1f;
 }
@@ -888,6 +941,7 @@
     outline: none;
     box-sizing: border-box;
     flex-shrink: 0;
+    text-align: start;
 }
 
 .anytable-adv-select-options {
@@ -903,6 +957,7 @@
     line-height: normal;
     cursor: pointer;
     white-space: nowrap;
+    text-align: start;
 }
 
 .anytable-adv-select-option:hover {
@@ -1028,6 +1083,28 @@
     display: flex;
     gap: 6px;
     padding: 0 8px 8px;
+}
+
+:host([dir="rtl"]) .anytable-adv-remove-sort-rule {
+    margin-left: 0;
+    margin-right: auto;
+}
+
+:host([dir="rtl"]) .anytable-adv-select-btn {
+    padding: 0 8px 0 24px;
+    background-position: left 4px center;
+}
+
+:host([dir="rtl"]) .anytable-adv-rule-group {
+    border-right: 3px solid #4a90e0;
+    border-left: 1px solid #d0d5dd;
+}
+
+:host([dir="rtl"]) .anytable-adv-rule-grid .anytable-adv-value,
+:host([dir="rtl"]) .anytable-adv-rule-grid .anytable-adv-flags,
+:host([dir="rtl"]) .anytable-adv-rule-grid .anytable-adv-range input,
+:host([dir="rtl"]) .anytable-adv-select-search {
+    text-align: right;
 }
 
 @media screen and (max-width: 768px) {

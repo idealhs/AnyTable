@@ -56,6 +56,7 @@ export function translate(key, params = null) {
 export function createOverlayAndDialog() {
     const surface = createShadowSurface({
         parent: document.body,
+        direction: i18n.getDirection?.() || 'ltr',
         hostStyles: {
             position: 'fixed',
             inset: '0',

@@ -92,6 +92,7 @@ describe('shadow-ui', () => {
 
         const surface = createShadowSurface({
             parent,
+            direction: 'rtl',
             hostStyles: {
                 position: 'fixed',
                 top: '12px'
@@ -105,6 +106,7 @@ describe('shadow-ui', () => {
         expect(surface.host.style.getPropertyValue('display')).toBe('block');
         expect(surface.host.style.getPropertyValue('position')).toBe('fixed');
         expect(surface.host.style.getPropertyValue('top')).toBe('12px');
+        expect(surface.host.getAttribute('dir')).toBe('rtl');
         expect(surface.container.tagName).toBe('SECTION');
         expect(surface.container.className).toBe('surface');
         expect(surface.shadowRoot.querySelector('style')?.textContent).toBe('.surface { position: fixed; }');
@@ -113,6 +115,18 @@ describe('shadow-ui', () => {
         surface.destroy();
 
         expect(parent.querySelector('anytable-shadow-host')).toBeNull();
+    });
+
+    it('未显式传入方向时默认使用 ltr 宿主方向', async () => {
+        const { preloadShadowStyles, createShadowSurface } = await loadShadowUi();
+        await preloadShadowStyles();
+
+        const parent = document.createElement('div');
+        document.body.appendChild(parent);
+
+        const surface = createShadowSurface({ parent });
+
+        expect(surface.host.getAttribute('dir')).toBe('ltr');
     });
 
     it('eventPathIncludes 同时支持 composedPath、contains 回退和空输入保护', async () => {

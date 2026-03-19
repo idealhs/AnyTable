@@ -190,6 +190,7 @@ export class Toolbar {
         const parentPositioningContext = ensurePositioningContext(parent);
         const surface = createShadowSurface({
             parent,
+            direction: i18n.getDirection?.() || 'ltr',
             hostStyles: {
                 position: 'absolute',
                 left: '0',
@@ -256,6 +257,7 @@ export class Toolbar {
             actions,
             destroy: surface.destroy,
             geometryObserver,
+            host: surface.host,
             parentPositioningContext,
             toolbar,
             isExpanded: true
@@ -288,6 +290,8 @@ export class Toolbar {
         if (!toolbarEntry) {
             return;
         }
+
+        toolbarEntry.host?.setAttribute('dir', i18n.getDirection?.() || 'ltr');
 
         const [sortBtn, filterBtn, statsBtn, exportBtn] = toolbarEntry.buttons;
         if (sortBtn) {

@@ -34,7 +34,7 @@ function mockSpanOffsetWidth(width) {
     });
 }
 
-async function loadDropdownPopupModule({ eventPathIncludesImpl } = {}) {
+async function loadDropdownPopupModule({ eventPathIncludesImpl, direction = 'ltr' } = {}) {
     vi.resetModules();
     document.body.innerHTML = '';
 
@@ -61,6 +61,11 @@ async function loadDropdownPopupModule({ eventPathIncludesImpl } = {}) {
     vi.doMock('../../src/ui/shadow-ui.js', () => ({
         createShadowSurface: createShadowSurfaceMock,
         eventPathIncludes: eventPathIncludesMock
+    }));
+    vi.doMock('../../src/i18n/i18n.js', () => ({
+        default: {
+            getDirection: () => direction
+        }
     }));
 
     const dropdownPopup = await import('../../src/ui/dropdown-popup.js');
@@ -404,6 +409,61 @@ describe('dropdown-popup', () => {
 
         expect(popup.style.left).toBe('176px');
         expect(popup.style.top).toBe('98px');
+    });
+
+    it('aligns the popup to the anchor right edge in rtl mode and keeps it inside the viewport', async () => {
+        const { openDropdownPopup } = await loadDropdownPopupModule({ direction: 'rtl' });
+        const anchorButton = createAnchorButton({
+            left: 60,
+            top: 40,
+            bottom: 70,
+            right: 150,
+            width: 90,
+            height: 30
+        });
+
+        Object.defineProperty(window, 'innerWidth', {
+            configurable: true,
+            value: 320
+        });
+        Object.defineProperty(window, 'innerHeight', {
+            configurable: true,
+            value: 240
+        });
+
+        vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function getBoundingClientRect() {
+            if (this.classList?.contains('anytable-adv-select-popup')) {
+                return {
+                    left: 60,
+                    top: 72,
+                    right: 180,
+                    bottom: 152,
+                    width: 120,
+                    height: 80
+                };
+            }
+
+            return {
+                left: 0,
+                top: 0,
+                right: 0,
+                bottom: 0,
+                width: 0,
+                height: 0
+            };
+        });
+
+        openDropdownPopup({
+            anchorButton,
+            currentValue: '',
+            groups: [[{ value: 'a', label: 'Option A' }]],
+            onSelect: vi.fn()
+        });
+
+        const popup = document.querySelector('.anytable-adv-select-popup');
+
+        expect(popup.style.left).toBe('30px');
+        expect(popup.style.top).toBe('72px');
     });
 
     it('closeDropdownPopup is safe without an active popup and closes the current popup when one exists', async () => {

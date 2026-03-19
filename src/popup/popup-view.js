@@ -1,6 +1,8 @@
 import { LOCALE_DEFINITIONS, getLocaleDefinition } from '../i18n/locale-config.js';
 
 const STATUS_HIDE_DELAY = 2600;
+const browserApi = globalThis.browser || globalThis.chrome;
+const BRAND_LOGO_URL = browserApi?.runtime?.getURL('icons/anytable-96.png') || 'icons/anytable-96.png';
 const LOCALE_CHECK_ICON = `
     <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <path d="M3.5 8.5L6.5 11.5L12.5 5.5"></path>
@@ -22,6 +24,7 @@ function createElements(documentRef) {
         toolbarDefaultExpandedSwitch: documentRef.getElementById('toolbarDefaultExpanded'),
         pageHost: documentRef.getElementById('pageHost'),
         pageTitle: documentRef.getElementById('pageTitle'),
+        pageFavicon: documentRef.getElementById('pageFavicon'),
         pageSupportBadge: documentRef.getElementById('pageSupportBadge'),
         pageStatusDescription: documentRef.getElementById('pageStatusDescription')
     };
@@ -73,6 +76,21 @@ export function createPopupView({
     const elements = createElements(documentRef);
     let statusTimer = null;
 
+    function renderPageIcon(pageIconUrl) {
+        const nextIconUrl = pageIconUrl || BRAND_LOGO_URL;
+        elements.pageFavicon.dataset.fallback = pageIconUrl ? 'false' : 'true';
+        elements.pageFavicon.src = nextIconUrl;
+    }
+
+    elements.pageFavicon.addEventListener('error', () => {
+        if (elements.pageFavicon.dataset.fallback === 'true') {
+            return;
+        }
+
+        elements.pageFavicon.dataset.fallback = 'true';
+        elements.pageFavicon.src = BRAND_LOGO_URL;
+    });
+
     function renderLocaleOptions(onSelectLocale) {
         elements.localeMenuList.innerHTML = '';
 
@@ -114,8 +132,11 @@ export function createPopupView({
     }
 
     function syncLocale() {
+        const currentLocaleDefinition = getLocaleDefinitionFn(i18n.getCurrentLocale());
+
         updateI18nElements(documentRef, i18n);
-        documentRef.documentElement.lang = i18n.getCurrentLocale() === 'zh' ? 'zh-CN' : 'en';
+        documentRef.documentElement.lang = currentLocaleDefinition?.code || i18n.getCurrentLocale();
+        documentRef.documentElement.dir = currentLocaleDefinition?.direction || 'ltr';
         documentRef.title = i18n.t('popup.title');
         elements.localeMenu.setAttribute('aria-label', i18n.t('popup.language.label'));
         elements.localeTrigger.setAttribute('aria-label', i18n.t('popup.language.label'));
@@ -168,10 +189,12 @@ export function createPopupView({
     function renderPageState(state) {
         const hostLabel = state.currentTab ? formatHostLabel(i18n, state.currentTab.url) : i18n.t('popup.page.hostFallback');
         const titleLabel = state.currentTab?.title || i18n.t('popup.page.titleFallback');
+        const pageIconUrl = state.currentTab?.favIconUrl || '';
 
         elements.pageHost.textContent = hostLabel;
         elements.pageTitle.textContent = titleLabel;
         elements.pageStatusDescription.textContent = getPageStatusDescription(i18n, state);
+        renderPageIcon(pageIconUrl);
 
         updateSupportBadge(state.pageStatus);
     }

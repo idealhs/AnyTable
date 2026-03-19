@@ -9,10 +9,30 @@ function applyInlineStyles(element, styles = {}) {
     });
 }
 
-function createHostElement(hostStyles = {}) {
+function normalizeDirection(direction) {
+    return direction === 'rtl' ? 'rtl' : 'ltr';
+}
+
+function resolveHostDirection(parent, direction) {
+    if (direction === 'rtl' || direction === 'ltr') {
+        return direction;
+    }
+
+    const parentDirection = globalThis.getComputedStyle?.(parent)?.direction;
+    if (parentDirection === 'rtl' || parentDirection === 'ltr') {
+        return parentDirection;
+    }
+
+    const documentDirection = globalThis.getComputedStyle?.(document.documentElement)?.direction
+        || document.documentElement?.getAttribute?.('dir');
+    return normalizeDirection(documentDirection);
+}
+
+function createHostElement(hostStyles = {}, direction = 'ltr') {
     const host = document.createElement('anytable-shadow-host');
     host.style.setProperty('all', 'initial');
     host.style.setProperty('display', 'block');
+    host.setAttribute('dir', normalizeDirection(direction));
     applyInlineStyles(host, hostStyles);
     return host;
 }
@@ -52,6 +72,7 @@ export async function preloadShadowStyles() {
 export function createShadowSurface({
     parent,
     hostStyles = {},
+    direction = null,
     containerTag = 'div',
     containerClassName = ''
 }) {
@@ -59,7 +80,7 @@ export function createShadowSurface({
         throw new Error('createShadowSurface requires a parent element.');
     }
 
-    const host = createHostElement(hostStyles);
+    const host = createHostElement(hostStyles, resolveHostDirection(parent, direction));
     const shadowRoot = host.attachShadow({mode: 'open'});
     const container = document.createElement(containerTag);
 
@@ -97,4 +118,3 @@ export function eventPathIncludes(event, ...elements) {
         return typeof element.contains === 'function' && element.contains(event.target);
     });
 }
-

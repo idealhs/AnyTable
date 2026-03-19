@@ -1,6 +1,13 @@
+import i18n from '../i18n/i18n.js';
 import { createShadowSurface, eventPathIncludes } from './shadow-ui.js';
 
 let activeDropdownPopup = null;
+
+function clampPopupLeft(left, width) {
+    const minLeft = 4;
+    const maxLeft = Math.max(minLeft, window.innerWidth - width - 4);
+    return Math.min(Math.max(left, minLeft), maxLeft);
+}
 
 function normalizeGroups(groups) {
     if (!Array.isArray(groups)) {
@@ -98,6 +105,7 @@ export function openDropdownPopup({
 
     const surface = createShadowSurface({
         parent: document.body,
+        direction: i18n.getDirection?.() || 'ltr',
         hostStyles: {
             position: 'fixed',
             inset: '0',
@@ -189,13 +197,15 @@ export function openDropdownPopup({
     renderOptions('');
 
     const anchorRect = anchorButton.getBoundingClientRect();
+    const isRtl = (i18n.getDirection?.() || 'ltr') === 'rtl';
     popup.style.top = `${anchorRect.bottom + 2}px`;
     popup.style.left = `${anchorRect.left}px`;
 
     const popupRect = popup.getBoundingClientRect();
-    if (popupRect.right > window.innerWidth) {
-        popup.style.left = `${Math.max(4, window.innerWidth - popupRect.width - 4)}px`;
-    }
+    const alignedLeft = isRtl
+        ? anchorRect.right - popupRect.width
+        : anchorRect.left;
+    popup.style.left = `${clampPopupLeft(alignedLeft, popupRect.width)}px`;
     if (popupRect.bottom > window.innerHeight) {
         popup.style.top = `${Math.max(4, anchorRect.top - popupRect.height - 2)}px`;
     }
@@ -240,4 +250,3 @@ export function openDropdownPopup({
         close: closePopup
     };
 }
-
